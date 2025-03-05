@@ -55,7 +55,7 @@ check_docker_service() {
 # 清理docker容器
 clean_containers() {
     log_info "删除相关Docker容器..."  
-    docker-compose -f docker-compose.yaml down --volumes --remove-orphans || handle_error "停止并删除容器失败"
+    docker-compose -f ../docker-compose.yaml down --volumes --remove-orphans || handle_error "停止并删除容器失败"
     docker rm -f $(docker ps -a | grep "dev-peer*" | awk '{print $1}') 2>/dev/null || true
     log_success "Docker容器清理完成"
 }

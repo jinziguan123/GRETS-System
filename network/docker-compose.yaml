@@ -243,8 +243,8 @@ services:
       - orderer3.grets.com
 
   # CLI 工具
-  cli:
-    container_name: cli
+  cli.grets.com:
+    container_name: cli.grets.com
     image: hyperledger/fabric-tools:2.5.10
     tty: true
     stdin_open: true

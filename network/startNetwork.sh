@@ -16,6 +16,47 @@ export PATH=${PWD}/../bin:${PWD}:$PATH
 export FABRIC_CFG_PATH=${PWD}/../config
 export CHANNEL_NAME=gretschannel
 
+###########################################
+# 配置参数
+###########################################
+
+# 等待时间配置（秒）
+NETWORK_STARTUP_WAIT=10
+CHAINCODE_INIT_WAIT=5
+
+# 域名配置
+DOMAIN="grets.com"
+GOVERNMENT_DOMAIN="government.${DOMAIN}"
+BANK_DOMAIN="bank.${DOMAIN}"
+AGENCY_DOMAIN="agency.${DOMAIN}"
+THRIDPARTY_DOMAIN="thirdparty.${DOMAIN}"
+AUDIT_DOMAIN="audit.${DOMAIN}"
+CLI_CONTAINER="cli.${DOMAIN}"
+
+# CLI命令前缀
+CLI_CMD="docker exec ${CLI_CONTAINER} bash -c"
+
+# 基础路径配置
+HYPERLEDGER_PATH="/etc/hyperledger"
+CONFIG_PATH="${HYPERLEDGER_PATH}/config"
+CRYPTO_PATH="${HYPERLEDGER_PATH}/crypto-config"
+
+# 通道和链码配置
+ChannelName="mychannel"
+ChainCodeName="mychaincode"
+Version="1.0.0"
+Sequence="1"
+CHAINCODE_PATH="/opt/gopath/src/chaincode"
+CHAINCODE_PACKAGE="${CHAINCODE_PATH}/chaincode_${Version}.tar.gz"
+
+# Order 配置
+ORDERER1_ADDRESS="orderer1.${DOMAIN}:7050"
+ORDERER_CA="${CRYPTO_PATH}/ordererOrganizations/orderer.${DOMAIN}/orderers/orderer1.${DOMAIN}/msp/tlscacerts/tlsca.${DOMAIN}-cert.pem"
+
+# Org 配置
+PEER_ORGS_MSP_PATH="${CRYPTO_PATH}/peerOrganizations"
+CORE_PEER_TLS_ENABLED=true
+
 # 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -168,25 +209,30 @@ main() {
     execute_with_timer "清理环境" "./stopNetwork.sh"
     mkdir config crypto-config data
 
+    # 启动工具容器
+    show_progress 3 "部署工具容器" $start_time
+    execute_with_timer "部署工具容器" "docker-compose up -d ${CLI_CONTAINER}"
+    log_success "工具容器部署完成"
+
     # 创建组织证书
-    show_progress 1 "生成组织证书" $start_time
+    show_progress 4 "生成组织证书" $start_time
     execute_with_timer "生成组织证书" "./generateCerts.sh" || handle_error "生成组织证书"
 
     # 创建创世区块和通道配置
-    show_progress 2 "生成创世区块和通道配置" $start_time
+    show_progress 5 "生成创世区块和通道配置" $start_time
     execute_with_timer "生成创世区块和通道配置" "./generateChannelArtifacts.sh" || handle_error "生成创世区块和通道配置"
 
     # 启动网络
-    show_progress 3 "启动网络容器" $start_time
+    show_progress 6 "启动网络容器" $start_time
     execute_with_timer "启动网络容器" "docker-compose -f ../docker-compose.yaml up -d" || handle_error "启动网络容器"
     wait_for_completion "等待容器启动（10秒）" 10
 
     # 创建通道
-    show_progress 4 "创建通道" $start_time
+    show_progress 7 "创建通道" $start_time
     execute_with_timer "创建通道" "./createChannel.sh" || handle_error "创建通道"
 
     # 部署链码
-    show_progress 5 "部署链码" $start_time
+    show_progress 8 "部署链码" $start_time
     execute_with_timer "部署链码" "./deployChaincode.sh" || handle_error "部署链码"
 
     log_success "【恭喜您！】政府房产交易系统(GRETS)区块链网络部署成功 (总耗时: $(time_elapsed $start_time))"

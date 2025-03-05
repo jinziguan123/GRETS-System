@@ -5,7 +5,7 @@
 
 # 设置环境变量
 export PATH=${PWD}/../bin:${PWD}:$PATH
-export FABRIC_CFG_PATH=${PWD}/../config
+export FABRIC_CFG_PATH=${PWD}/../
 
 
 # 打印彩色日志
