@@ -127,7 +127,7 @@ wait_for_completion() {
 # 进度显示函数
 show_progress() {
     local current_step=$1
-    local total_steps=5
+    local total_steps=8
     local step_name=$2
     local start_time=${3:-}  # 如果第三个参数未定义，则设为空
 
@@ -207,7 +207,7 @@ main() {
     # 清理环境
     show_progress 2 "清理环境" $start_time
     execute_with_timer "清理环境" "./stopNetwork.sh"
-    mkdir config crypto-config data
+    mkdir config organizations data
 
     # 启动工具容器
     show_progress 3 "部署工具容器" $start_time
@@ -215,25 +215,25 @@ main() {
     log_success "工具容器部署完成"
 
     # 创建组织证书
-    show_progress 4 "生成组织证书" $start_time
-    execute_with_timer "生成组织证书" "./generateCerts.sh" || handle_error "生成组织证书"
+    show_progress 4 "生成证书和密钥（MSP 材料）" $start_time
+    execute_with_timer "生成证书和密钥" "$CLI_CMD \"cryptogen generate --config=${HYPERLEDGER_PATH}/crypto-config.yaml --output=${CRYPTO_PATH}\""
 
     # 创建创世区块和通道配置
     show_progress 5 "生成创世区块和通道配置" $start_time
-    execute_with_timer "生成创世区块和通道配置" "./generateChannelArtifacts.sh" || handle_error "生成创世区块和通道配置"
+    execute_with_timer "生成创世区块和通道配置" "./scripts/generateChannelArtifacts.sh" || handle_error "生成创世区块和通道配置"
 
     # 启动网络
     show_progress 6 "启动网络容器" $start_time
-    execute_with_timer "启动网络容器" "docker-compose -f ../docker-compose.yaml up -d" || handle_error "启动网络容器"
+    execute_with_timer "启动网络容器" "docker-compose -f docker-compose.yaml up -d" || handle_error "启动网络容器"
     wait_for_completion "等待容器启动（10秒）" 10
 
     # 创建通道
     show_progress 7 "创建通道" $start_time
-    execute_with_timer "创建通道" "./createChannel.sh" || handle_error "创建通道"
+    execute_with_timer "创建通道" "./scripts/createChannel.sh" || handle_error "创建通道"
 
     # 部署链码
     show_progress 8 "部署链码" $start_time
-    execute_with_timer "部署链码" "./deployChaincode.sh" || handle_error "部署链码"
+    execute_with_timer "部署链码" "./scripts/deployChaincode.sh" || handle_error "部署链码"
 
     log_success "【恭喜您！】政府房产交易系统(GRETS)区块链网络部署成功 (总耗时: $(time_elapsed $start_time))"
     log_info "可以通过 'docker ps' 查看运行中的容器"

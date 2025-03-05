@@ -55,7 +55,7 @@ check_docker_service() {
 # 清理docker容器
 clean_containers() {
     log_info "删除相关Docker容器..."  
-    docker-compose -f ../docker-compose.yaml down --volumes --remove-orphans || handle_error "停止并删除容器失败"
+    docker-compose -f docker-compose.yaml down --volumes --remove-orphans || handle_error "停止并删除容器失败"
     docker rm -f $(docker ps -a | grep "dev-peer*" | awk '{print $1}') 2>/dev/null || true
     log_success "Docker容器清理完成"
 }
@@ -70,7 +70,7 @@ clean_chaincode() {
 # 清理数据文件
 clean_files() {
     log_info "清理数据文件..."
-    rm -rf config crypto-config data
+    rm -rf config data organizations
     log_success "数据文件清理完成"
 }
 

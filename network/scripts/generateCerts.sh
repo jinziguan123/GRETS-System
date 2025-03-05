@@ -17,8 +17,8 @@ function printError() {
 }
 
 # 创建证书目录
-mkdir -p organizations/ordererOrganizations
-mkdir -p organizations/peerOrganizations
+mkdir -p ../organizations/ordererOrganizations
+mkdir -p ../organizations/peerOrganizations
 
 # 生成Orderer组织证书
 printInfo "生成Orderer组织证书..."
