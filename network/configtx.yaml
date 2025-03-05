@@ -1,0 +1,273 @@
+---
+################################################################################
+#
+#   ORGANIZATIONS section defines the organizations in the network
+#
+################################################################################
+Organizations:
+    - &OrdererOrg
+        Name: OrdererOrg
+        ID: OrdererMSP
+        MSPDir: crypto-config/ordererOrganizations/orderer.grets.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('OrdererMSP.member')"
+            Writers:
+                Type: Signature
+                Rule: "OR('OrdererMSP.member')"
+            Admins:
+                Type: Signature
+                Rule: "OR('OrdererMSP.admin')"
+        OrdererEndpoints:
+            - orderer1.grets.com:7050
+            - orderer2.grets.com:7050
+            - orderer3.grets.com:7050
+
+    - &Government
+        Name: GovernmentMSP
+        ID: GovernmentMSP
+        MSPDir: crypto-config/peerOrganizations/government.grets.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('GovernmentMSP.admin', 'GovernmentMSP.peer', 'GovernmentMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('GovernmentMSP.admin', 'GovernmentMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('GovernmentMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('GovernmentMSP.peer')"
+        AnchorPeers:
+            - Host: peer0.government.grets.com
+              Port: 7051
+
+    - &Bank
+        Name: BankMSP
+        ID: BankMSP
+        MSPDir: crypto-config/peerOrganizations/bank.grets.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('BankMSP.admin', 'BankMSP.peer', 'BankMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('BankMSP.admin', 'BankMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('BankMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('BankMSP.peer')"
+        AnchorPeers:
+            - Host: peer0.bank.grets.com
+              Port: 7051
+
+    - &Agency
+        Name: AgencyMSP
+        ID: AgencyMSP
+        MSPDir: crypto-config/peerOrganizations/agency.grets.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('AgencyMSP.admin', 'AgencyMSP.peer', 'AgencyMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('AgencyMSP.admin', 'AgencyMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('AgencyMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('AgencyMSP.peer')"
+        AnchorPeers:
+            - Host: peer0.agency.grets.com
+              Port: 7051
+
+    - &ThirdParty
+        Name: ThirdPartyMSP
+        ID: ThirdPartyMSP
+        MSPDir: crypto-config/peerOrganizations/thirdparty.grets.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('ThirdPartyMSP.admin', 'ThirdPartyMSP.peer', 'ThirdPartyMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('ThirdPartyMSP.admin', 'ThirdPartyMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('ThirdPartyMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('ThirdPartyMSP.peer')"
+        AnchorPeers:
+            - Host: peer0.thirdparty.grets.com
+              Port: 7051
+
+    - &Audit
+        Name: AuditMSP
+        ID: AuditMSP
+        MSPDir: crypto-config/peerOrganizations/audit.grets.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('AuditMSP.admin', 'AuditMSP.peer', 'AuditMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('AuditMSP.admin', 'AuditMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('AuditMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('AuditMSP.peer')"
+        AnchorPeers:
+            - Host: peer0.audit.grets.com
+              Port: 7051
+
+################################################################################
+#
+#   CAPABILITIES
+#
+################################################################################
+Capabilities:
+    Channel: &ChannelCapabilities
+        V2_0: true
+    Orderer: &OrdererCapabilities
+        V2_0: true
+    Application: &ApplicationCapabilities
+        V2_0: true
+
+################################################################################
+#
+#   APPLICATION
+#
+################################################################################
+Application: &ApplicationDefaults
+    Organizations:
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        LifecycleEndorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+        Endorsement:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Endorsement"
+    Capabilities:
+        <<: *ApplicationCapabilities
+
+################################################################################
+#
+#   ORDERER
+#
+################################################################################
+Orderer: &OrdererDefaults
+    OrdererType: etcdraft
+    Addresses:
+        - orderer1.grets.com:7050
+        - orderer2.grets.com:7050
+        - orderer3.grets.com:7050
+    BatchTimeout: 2s
+    BatchSize:
+        MaxMessageCount: 10
+        AbsoluteMaxBytes: 99 MB
+        PreferredMaxBytes: 512 KB
+    Organizations:
+    EtcdRaft:
+        Consenters:
+            - Host: orderer1.grets.com
+              Port: 7050
+              ClientTLSCert: crypto-config/ordererOrganizations/orderer.grets.com/orderers/orderer1.grets.com/tls/server.crt
+              ServerTLSCert: crypto-config/ordererOrganizations/orderer.grets.com/orderers/orderer1.grets.com/tls/server.crt
+            - Host: orderer2.grets.com
+              Port: 7050
+              ClientTLSCert: crypto-config/ordererOrganizations/orderer.grets.com/orderers/orderer2.grets.com/tls/server.crt
+              ServerTLSCert: crypto-config/ordererOrganizations/orderer.grets.com/orderers/orderer2.grets.com/tls/server.crt
+            - Host: orderer3.grets.com
+              Port: 7050
+              ClientTLSCert: crypto-config/ordererOrganizations/orderer.grets.com/orderers/orderer3.grets.com/tls/server.crt
+              ServerTLSCert: crypto-config/ordererOrganizations/orderer.grets.com/orderers/orderer3.grets.com/tls/server.crt
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+        BlockValidation:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+    Capabilities:
+        <<: *OrdererCapabilities
+
+################################################################################
+#
+#   CHANNEL
+#
+################################################################################
+Channel: &ChannelDefaults
+    Policies:
+        Readers:
+            Type: ImplicitMeta
+            Rule: "ANY Readers"
+        Writers:
+            Type: ImplicitMeta
+            Rule: "ANY Writers"
+        Admins:
+            Type: ImplicitMeta
+            Rule: "MAJORITY Admins"
+    Capabilities:
+        <<: *ChannelCapabilities
+
+################################################################################
+#
+#   PROFILES
+#
+################################################################################
+Profiles:
+    GretsOrdererGenesis:
+        <<: *ChannelDefaults
+        # Orderer节点配置
+        Orderer:
+            <<: *OrdererDefaults
+            Organizations:
+                - *OrdererOrg
+        Consortiums:
+            # 联盟配置
+            GretsConsortium:
+                Organizations:
+                    - *Government
+                    - *Bank
+                    - *Agency
+                    - *ThirdParty
+                    - *Audit
+    GretsChannel:
+        <<: *ChannelDefaults
+        # 所属联盟
+        Consortium: GretsConsortium
+        # 通道组织
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *Government
+                - *Bank
+                - *Agency
+                - *ThirdParty
+                - *Audit
+            Capabilities:
+                <<: *ApplicationCapabilities

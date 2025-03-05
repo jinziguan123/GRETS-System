@@ -1,0 +1,54 @@
+# 网络拓扑定义，方便 cryptogen 用来生成各个组织节点的证书和秘钥
+OrdererOrgs:
+  - Name: Orderer
+    Domain: orderer.grets.com
+    EnableNodeOUs: true
+    CommonName: orderer
+    Specs:
+      - Hostname: orderer1
+        CommonName: "{{.Hostname}}.{{.Domain}}"
+      - Hostname: orderer2
+        CommonName: "{{.Hostname}}.{{.Domain}}"
+      - Hostname: orderer3
+        CommonName: "{{.Hostname}}.{{.Domain}}"
+
+PeerOrgs:
+  - Name: Agency
+    Domain: agency.grets.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1
+  
+  - Name: Audit
+    Domain: audit.grets.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1
+
+  - Name: Bank
+    Domain: bank.grets.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1
+
+  - Name: Government
+    Domain: government.grets.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1
+
+    - Name: ThirdParty
+    Domain: thirdparty.grets.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1

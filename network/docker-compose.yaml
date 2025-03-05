@@ -1,0 +1,275 @@
+version: '2.1'
+
+networks:
+  grets:
+    name: grets
+
+services:
+  # CA 服务
+  ca_government:
+    extends:
+      file: docker-compose-base.yaml
+      service: ca-base
+    container_name: ca_government
+    environment:
+      - FABRIC_CA_SERVER_CA_NAME=ca-government
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.government.grets.com-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.government.grets.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+    ports:
+      - "7054:7054"
+    volumes:
+      - ./organizations/peerOrganizations/government.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
+
+  ca_bank:
+    extends:
+      file: docker-compose-base.yaml
+      service: ca-base
+    container_name: ca_bank
+    environment:
+      - FABRIC_CA_SERVER_CA_NAME=ca-bank
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.bank.grets.com-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.bank.grets.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+    ports:
+      - "8054:7054"
+    volumes:
+      - ./organizations/peerOrganizations/bank.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
+
+  ca_agency:
+    extends:
+      file: docker-compose-base.yaml
+      service: ca-base
+    container_name: ca_agency
+    environment:
+      - FABRIC_CA_SERVER_CA_NAME=ca-agency
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.agency.grets.com-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.agency.grets.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+    ports:
+      - "9054:7054"
+    volumes:
+      - ./organizations/peerOrganizations/agency.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
+
+  ca_thirdparty:
+    extends:
+      file: docker-compose-base.yaml
+      service: ca-base
+    container_name: ca_thirdparty
+    environment:
+      - FABRIC_CA_SERVER_CA_NAME=ca-thirdparty
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.thirdparty.grets.com-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.thirdparty.grets.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+    ports:
+      - "10054:7054"
+    volumes:
+      - ./organizations/peerOrganizations/thirdparty.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
+
+  ca_audit:
+    extends:
+      file: docker-compose-base.yaml
+      service: ca-base
+    container_name: ca_audit
+    environment:
+      - FABRIC_CA_SERVER_CA_NAME=ca-audit
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.audit.grets.com-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.audit.grets.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+    ports:
+      - "11054:7054"
+    volumes:
+      - ./organizations/peerOrganizations/audit.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
+
+  # Orderer 服务
+  orderer1.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: order-base
+    container_name: orderer1.grets.com
+    ports:
+      - "7050:7050"
+    volumes:
+      - ./config/genesis.block:/etc/hyperledger/config/genesis.block
+      - ./organizations/ordererOrganizations/orderer.grets.com/orderers/orderer1.grets.com/:/etc/hyperledger/orderer
+      - ./data/orderer1.grets.com:/var/hyperledger/production/orderer
+  orderer2.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: order-base
+    container_name: orderer2.grets.com
+    ports:
+      - "8050:7050"
+    volumes:
+      - ./config/genesis.block:/etc/hyperledger/config/genesis.block
+      - ./organizations/ordererOrganizations/orderer.grets.com/orderers/orderer2.grets.com/:/etc/hyperledger/orderer
+      - ./data/orderer2.grets.com:/var/hyperledger/production/orderer
+  orderer3.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: order-base
+    container_name: orderer3.grets.com
+    ports:
+      - "9050:7050"
+    volumes:
+      - ./config/genesis.block:/etc/hyperledger/config/genesis.block
+      - ./organizations/ordererOrganizations/orderer.grets.com/orderers/orderer3.grets.com/:/etc/hyperledger/orderer
+      - ./data/orderer3.grets.com:/var/hyperledger/production/orderer
+
+  # Peer 服务
+  peer0.government.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer0.government.grets.com
+    environment:
+      - CORE_PEER_ID=peer0.government.grets.com
+      - CORE_PEER_ADDRESS=peer0.government.grets.com:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.government.grets.com:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.government.grets.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.government.grets.com:7051
+      - CORE_PEER_LOCALMSPID=GovernmentMSP
+      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:17051
+    ports:
+      - "7051:7051"
+      - "17051:17051"
+    volumes:
+      - ./organizations/peerOrganizations/government.grets.com/peers/peer0.government.grets.com:/etc/hyperledger/peer
+      - ./data/peer0.government.grets.com:/var/hyperledger/production
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com
+
+  peer0.bank.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer0.bank.grets.com
+    environment:
+      - CORE_PEER_ID=peer0.bank.grets.com
+      - CORE_PEER_ADDRESS=peer0.bank.grets.com:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.bank.grets.com:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.bank.grets.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.bank.grets.com:7051
+      - CORE_PEER_LOCALMSPID=BankMSP
+      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:18051
+    ports:
+      - "8051:7051"
+      - "18051:17051"
+    volumes:
+      - ./organizations/peerOrganizations/bank.grets.com/peers/peer0.bank.grets.com:/etc/hyperledger/peer
+      - ./data/peer0.bank.grets.com:/var/hyperledger/production
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com
+
+  peer0.agency.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer0.agency.grets.com
+    environment:
+      - CORE_PEER_ID=peer0.agency.grets.com
+      - CORE_PEER_ADDRESS=peer0.agency.grets.com:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.agency.grets.com:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.agency.grets.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.agency.grets.com:7051
+      - CORE_PEER_LOCALMSPID=AgencyMSP
+      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:19051
+    ports:
+      - "9051:7051"
+      - "19051:17051"
+    volumes:
+      - ./organizations/peerOrganizations/agency.grets.com/peers/peer0.agency.grets.com:/etc/hyperledger/peer
+      - ./data/peer0.agency.grets.com:/var/hyperledger/production
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com
+
+  peer0.thirdparty.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer0.thirdparty.grets.com
+    environment:
+      - CORE_PEER_ID=peer0.thirdparty.grets.com
+      - CORE_PEER_ADDRESS=peer0.thirdparty.grets.com:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.thirdparty.grets.com:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.thirdparty.grets.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.thirdparty.grets.com:7051
+      - CORE_PEER_LOCALMSPID=ThirdpartyMSP
+      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:17051
+    ports:
+      - "10051:7051"
+      - "17051:17051"
+    volumes:
+      - ./organizations/peerOrganizations/thirdparty.grets.com/peers/peer0.thirdparty.grets.com:/etc/hyperledger/peer
+      - ./data/peer0.thirdparty.grets.com:/var/hyperledger/production
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com
+
+  peer0.audit.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer0.audit.grets.com
+    environment:
+      - CORE_PEER_ID=peer0.audit.grets.com
+      - CORE_PEER_ADDRESS=peer0.audit.grets.com:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.audit.grets.com:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.audit.grets.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.audit.grets.com:7051
+      - CORE_PEER_LOCALMSPID=AuditMSP
+      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:20051
+    ports:
+      - "11051:7051"
+      - "20051:17051"
+    volumes:
+      - ./organizations/peerOrganizations/audit.grets.com/peers/peer0.audit.grets.com:/etc/hyperledger/peer
+      - ./data/peer0.audit.grets.com:/var/hyperledger/production
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com
+
+  # CLI 工具
+  cli:
+    container_name: cli
+    image: hyperledger/fabric-tools:2.5.10
+    tty: true
+    stdin_open: true
+    environment:
+      - GOPATH=/opt/gopath
+      - GOPROXY=https://goproxy.cn,direct
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/peerOrganizations/government.grets.com/peers/peer0.government.grets.com/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/peerOrganizations/government.grets.com/peers/peer0.government.grets.com/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/peerOrganizations/government.grets.com/peers/peer0.government.grets.com/tls/ca.crt
+      - CORE_PEER_ID=cli
+      - CORE_PEER_ADDRESS=peer0.government.grets.com:7051
+      - CORE_PEER_LOCALMSPID=GovernmentMSP
+      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/peerOrganizations/government.grets.com/users/Admin@government.grets.com/msp
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: /bin/bash
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ./chaincode/:/opt/gopath/src/github.com/chaincode
+      - ./organizations:/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations
+      - ./scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts
+      - ./config:/opt/gopath/src/github.com/hyperledger/fabric/peer/config
+      - ./configtx.yaml:/etc/hyperledger/configtx.yaml
+      - ./config:/etc/hyperledger/config
+    networks:
+      - grets
