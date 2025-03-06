@@ -209,7 +209,7 @@ services:
       - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:17051
     ports:
       - "10051:7051"
-      - "17051:17051"
+      - "20051:17051"
     volumes:
       - ./crypto-config/peerOrganizations/thirdparty.grets.com/peers/peer0.thirdparty.grets.com:/etc/hyperledger/peer
       - ./data/peer0.thirdparty.grets.com:/var/hyperledger/production
@@ -233,7 +233,7 @@ services:
       - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:20051
     ports:
       - "11051:7051"
-      - "20051:17051"
+      - "21051:17051"
     volumes:
       - ./crypto-config/peerOrganizations/audit.grets.com/peers/peer0.audit.grets.com:/etc/hyperledger/peer
       - ./data/peer0.audit.grets.com:/var/hyperledger/production

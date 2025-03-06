@@ -239,6 +239,10 @@ main() {
     execute_with_timer "启动节点" "docker-compose up -d"
     wait_for_completion "等待节点启动（${NETWORK_STARTUP_WAIT}秒）" $NETWORK_STARTUP_WAIT
 
+    # 创建通道
+    show_progress 9 "创建通道" $start_time
+    execute_with_timer "创建通道" "$CLI_CMD \"$Org1Peer0Cli peer channel create --outputBlock ${CONFIG_PATH}/$ChannelName.block -o $ORDERER1_ADDRESS -c $ChannelName -f ${CONFIG_PATH}/$ChannelName.tx --tls --cafile $ORDERER_CA\""
+
     log_success "【恭喜您！】政府房产交易系统(GRETS)区块链网络部署成功 (总耗时: $(time_elapsed $start_time))"
     log_info "可以通过 'docker ps' 查看运行中的容器"
 }

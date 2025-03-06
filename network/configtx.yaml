@@ -25,7 +25,7 @@ Organizations:
             - orderer3.grets.com:7050
 
     - &Government
-        Name: GovernmentMSP
+        Name: Government
         ID: GovernmentMSP
         MSPDir: crypto-config/peerOrganizations/government.grets.com/msp
         Policies:
@@ -46,7 +46,7 @@ Organizations:
               Port: 7051
 
     - &Bank
-        Name: BankMSP
+        Name: Bank
         ID: BankMSP
         MSPDir: crypto-config/peerOrganizations/bank.grets.com/msp
         Policies:
@@ -67,7 +67,7 @@ Organizations:
               Port: 7051
 
     - &Agency
-        Name: AgencyMSP
+        Name: Agency
         ID: AgencyMSP
         MSPDir: crypto-config/peerOrganizations/agency.grets.com/msp
         Policies:
@@ -88,7 +88,7 @@ Organizations:
               Port: 7051
 
     - &ThirdParty
-        Name: ThirdPartyMSP
+        Name: ThirdParty
         ID: ThirdPartyMSP
         MSPDir: crypto-config/peerOrganizations/thirdparty.grets.com/msp
         Policies:
@@ -109,7 +109,7 @@ Organizations:
               Port: 7051
 
     - &Audit
-        Name: AuditMSP
+        Name: Audit
         ID: AuditMSP
         MSPDir: crypto-config/peerOrganizations/audit.grets.com/msp
         Policies:
