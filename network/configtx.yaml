@@ -87,23 +87,23 @@ Organizations:
             - Host: peer0.agency.grets.com
               Port: 7051
 
-    - &ThirdParty
-        Name: ThirdParty
-        ID: ThirdPartyMSP
+    - &Thirdparty
+        Name: Thirdparty
+        ID: ThirdpartyMSP
         MSPDir: crypto-config/peerOrganizations/thirdparty.grets.com/msp
         Policies:
             Readers:
                 Type: Signature
-                Rule: "OR('ThirdPartyMSP.admin', 'ThirdPartyMSP.peer', 'ThirdPartyMSP.client')"
+                Rule: "OR('ThirdpartyMSP.admin', 'ThirdpartyMSP.peer', 'ThirdpartyMSP.client')"
             Writers:
                 Type: Signature
-                Rule: "OR('ThirdPartyMSP.admin', 'ThirdPartyMSP.client')"
+                Rule: "OR('ThirdpartyMSP.admin', 'ThirdpartyMSP.client')"
             Admins:
                 Type: Signature
-                Rule: "OR('ThirdPartyMSP.admin')"
+                Rule: "OR('ThirdpartyMSP.admin')"
             Endorsement:
                 Type: Signature
-                Rule: "OR('ThirdPartyMSP.peer')"
+                Rule: "OR('ThirdpartyMSP.peer')"
         AnchorPeers:
             - Host: peer0.thirdparty.grets.com
               Port: 7051
@@ -254,7 +254,7 @@ Profiles:
                     - *Government
                     - *Bank
                     - *Agency
-                    - *ThirdParty
+                    - *Thirdparty
                     - *Audit
     GretsChannel:
         <<: *ChannelDefaults
@@ -267,7 +267,7 @@ Profiles:
                 - *Government
                 - *Bank
                 - *Agency
-                - *ThirdParty
+                - *Thirdparty
                 - *Audit
             Capabilities:
                 <<: *ApplicationCapabilities

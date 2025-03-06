@@ -51,7 +51,11 @@ CHAINCODE_PACKAGE="${CHAINCODE_PATH}/chaincode_${Version}.tar.gz"
 
 # Order 配置
 ORDERER1_ADDRESS="orderer1.${DOMAIN}:7050"
-ORDERER_CA="${CRYPTO_PATH}/ordererOrganizations/orderer.${DOMAIN}/orderers/orderer1.${DOMAIN}/msp/tlscacerts/tlsca.${DOMAIN}-cert.pem"
+ORDERER1_CA="${CRYPTO_PATH}/ordererOrganizations/${DOMAIN}/orderers/orderer1.${DOMAIN}/msp/tlscacerts/tlsca.${DOMAIN}-cert.pem"
+ORDERER2_ADDRESS="orderer2.${DOMAIN}:7050"
+ORDERER2_CA="${CRYPTO_PATH}/ordererOrganizations/${DOMAIN}/orderers/orderer2.${DOMAIN}/msp/tlscacerts/tlsca.${DOMAIN}-cert.pem"
+ORDERER3_ADDRESS="orderer3.${DOMAIN}:7050"
+ORDERER3_CA="${CRYPTO_PATH}/ordererOrganizations/${DOMAIN}/orderers/orderer3.${DOMAIN}/msp/tlscacerts/tlsca.${DOMAIN}-cert.pem"
 
 # Org 配置
 PEER_ORGS_MSP_PATH="${CRYPTO_PATH}/peerOrganizations"
@@ -62,6 +66,61 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# 生成节点配置函数
+generate_peer_config() {
+    local org=$1    # 组织名称
+    local peer=$2   # 节点编号
+    local org_domain="${org}.${DOMAIN}"     # government.grets.com
+    local peer_name="peer${peer}.${org_domain}"     # peer0.government.grets.com
+    local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"    # Government
+    local org_upper="$(tr '[:lower:]' '[:upper:]' <<< ${org})"    # GOVERNMENT
+
+    # 设置环境变量
+    eval "${org_upper}_PEER${peer}_ADDRESS=\"${peer_name}:7051\""
+    eval "${org_upper}_PEER${peer}_LOCALMSPID=\"${org_cap}MSP\""
+    eval "${org_upper}_PEER${peer}_MSPCONFIGPATH=\"${PEER_ORGS_MSP_PATH}/${org_domain}/users/Admin@${org_domain}/msp\""
+    eval "${org_upper}_PEER${peer}_TLS_ROOTCERT_FILE=\"${PEER_ORGS_MSP_PATH}/${org_domain}/peers/${peer_name}/tls/ca.crt\""
+    eval "${org_upper}_PEER${peer}_TLS_CERT_FILE=\"${PEER_ORGS_MSP_PATH}/${org_domain}/peers/${peer_name}/tls/server.crt\""
+    eval "${org_upper}_PEER${peer}_TLS_KEY_FILE=\"${PEER_ORGS_MSP_PATH}/${org_domain}/peers/${peer_name}/tls/server.key\""
+}
+
+# 生成CLI配置函数
+generate_cli_config() {
+    local org=$1    # 组织名称
+    local peer=$2   # 节点编号
+    local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"    # Government
+    local org_upper="$(tr '[:lower:]' '[:upper:]' <<< ${org})"    # GOVERNMENT
+
+    eval "${org_cap}Peer${peer}Cli=\"CORE_PEER_ADDRESS=\${${org_upper}_PEER${peer}_ADDRESS} \\
+CORE_PEER_LOCALMSPID=\${${org_upper}_PEER${peer}_LOCALMSPID} \\
+CORE_PEER_MSPCONFIGPATH=\${${org_upper}_PEER${peer}_MSPCONFIGPATH} \\
+CORE_PEER_TLS_ENABLED=\${CORE_PEER_TLS_ENABLED} \\
+CORE_PEER_TLS_ROOTCERT_FILE=\${${org_upper}_PEER${peer}_TLS_ROOTCERT_FILE} \\
+CORE_PEER_TLS_CERT_FILE=\${${org_upper}_PEER${peer}_TLS_CERT_FILE} \\
+CORE_PEER_TLS_KEY_FILE=\${${org_upper}_PEER${peer}_TLS_KEY_FILE}\""
+}
+
+OrganizationList=(
+    "government"
+    "agency"
+    "audit"
+    "bank"
+    "thirdparty"
+);
+
+peerNumber=1;
+
+for org in ${OrganizationList[@]}; do
+    for ((i=0; i < $peerNumber; i++)); do
+        generate_peer_config $org $i
+        generate_cli_config $org $i
+    done
+done
+
+###########################################
+# 工具函数
+###########################################
 
 # 日志函数
 log_info() {
@@ -127,7 +186,7 @@ wait_for_completion() {
 # 进度显示函数
 show_progress() {
     local current_step=$1
-    local total_steps=8
+    local total_steps=16
     local step_name=$2
     local start_time=${3:-}  # 如果第三个参数未定义，则设为空
 
@@ -191,6 +250,10 @@ check_docker_service() {
     log_success "Docker 服务运行正常"
 }
 
+###########################################
+# 主程序
+###########################################
+
 # 主函数
 main() {
     # 记录开始时间
@@ -240,7 +303,7 @@ main() {
     execute_with_timer "定义Agency锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/AgencyAnchor.tx -channelID $ChannelName -asOrg Agency\""
     execute_with_timer "定义Audit锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/AuditAnchor.tx -channelID $ChannelName -asOrg Audit\""
     execute_with_timer "定义Bank锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/BankAnchor.tx -channelID $ChannelName -asOrg Bank\""
-    execute_with_timer "定义ThirdParty锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/ThirdPartyAnchor.tx -channelID $ChannelName -asOrg ThirdParty\""
+    execute_with_timer "定义Thirdparty锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/ThirdpartyAnchor.tx -channelID $ChannelName -asOrg Thirdparty\""
 
     # 启动所有节点
     show_progress 8 "启动所有节点" $start_time
@@ -249,7 +312,45 @@ main() {
 
     # 创建通道
     show_progress 9 "创建通道" $start_time
-    execute_with_timer "创建通道" "$CLI_CMD \"$Org1Peer0Cli peer channel create --outputBlock ${CONFIG_PATH}/$ChannelName.block -o $ORDERER1_ADDRESS -c $ChannelName -f ${CONFIG_PATH}/$ChannelName.tx --tls --cafile $ORDERER_CA\""
+    for org in ${OrganizationList[@]}; do
+        for ((i=0; i < $peerNumber; i++)); do
+            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
+            local OrgPeerCli="${org_cap}Peer${i}Cli"
+            local cli_value=$(eval echo "\$${OrgPeerCli}")
+            execute_with_timer "创建通道" "$CLI_CMD \"${cli_value} peer channel create --outputBlock ${CONFIG_PATH}/$ChannelName.block -o $ORDERER1_ADDRESS -c $ChannelName -f ${CONFIG_PATH}/$ChannelName.tx --tls --cafile $ORDERER1_CA\""
+
+            # 一个组织创建通道即可
+            break 2
+        done
+    done
+
+    # 节点加入通道
+    show_progress 10 "节点加入通道" $start_time
+    for org in ${OrganizationList[@]}; do
+        for ((i=0; i < $peerNumber; i++)); do
+            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
+            local OrgPeerCli="${org_cap}Peer${i}Cli"
+            local cli_value=$(eval echo "\$${OrgPeerCli}")
+            
+            execute_with_timer "${org_cap}Peer${i}加入通道" "$CLI_CMD \"${cli_value} peer channel join -b ${CONFIG_PATH}/$ChannelName.block\""
+        done
+    done
+
+    # 更新锚节点
+    show_progress 11 "更新锚节点" $start_time
+    for org in ${OrganizationList[@]}; do
+        for ((i=0; i < $peerNumber; i++)); do
+            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
+            local OrgPeerCli="${org_cap}Peer${i}Cli"
+            local cli_value=$(eval echo "\$${OrgPeerCli}")
+            
+            execute_with_timer "更新${org_cap}锚节点" "$CLI_CMD \"${cli_value} peer channel update -o $ORDERER1_ADDRESS -c $ChannelName -f ${CONFIG_PATH}/${org_cap}Anchor.tx --tls --cafile $ORDERER1_CA\""
+        done
+    done
+
+    # 打包链码
+    show_progress 12 "打包链码" $start_time
+    execute_with_timer "打包链码" "$CLI_CMD \"peer lifecycle chaincode package ${CHAINCODE_PACKAGE} --path ${CHAINCODE_PATH} --lang golang --label chaincode_${Version}\""
 
     log_success "【恭喜您！】政府房产交易系统(GRETS)区块链网络部署成功 (总耗时: $(time_elapsed $start_time))"
     log_info "可以通过 'docker ps' 查看运行中的容器"

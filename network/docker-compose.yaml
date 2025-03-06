@@ -96,7 +96,7 @@ services:
       - "7050:7050"
     volumes:
       - ./config/genesis.block:/etc/hyperledger/config/genesis.block
-      - ./crypto-config/ordererOrganizations/orderer.grets.com/orderers/orderer1.grets.com/:/etc/hyperledger/orderer
+      - ./crypto-config/ordererOrganizations/grets.com/orderers/orderer1.grets.com/:/etc/hyperledger/orderer
       - ./data/orderer1.grets.com:/var/hyperledger/production/orderer
   orderer2.grets.com:
     extends:
@@ -107,7 +107,7 @@ services:
       - "8050:7050"
     volumes:
       - ./config/genesis.block:/etc/hyperledger/config/genesis.block
-      - ./crypto-config/ordererOrganizations/orderer.grets.com/orderers/orderer2.grets.com/:/etc/hyperledger/orderer
+      - ./crypto-config/ordererOrganizations/grets.com/orderers/orderer2.grets.com/:/etc/hyperledger/orderer
       - ./data/orderer2.grets.com:/var/hyperledger/production/orderer
   orderer3.grets.com:
     extends:
@@ -118,7 +118,7 @@ services:
       - "9050:7050"
     volumes:
       - ./config/genesis.block:/etc/hyperledger/config/genesis.block
-      - ./crypto-config/ordererOrganizations/orderer.grets.com/orderers/orderer3.grets.com/:/etc/hyperledger/orderer
+      - ./crypto-config/ordererOrganizations/grets.com/orderers/orderer3.grets.com/:/etc/hyperledger/orderer
       - ./data/orderer3.grets.com:/var/hyperledger/production/orderer
 
   # Peer 服务
