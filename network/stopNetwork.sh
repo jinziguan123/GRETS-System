@@ -70,7 +70,7 @@ clean_chaincode() {
 # 清理数据文件
 clean_files() {
     log_info "清理数据文件..."
-    rm -rf config data organizations chaincode 
+    rm -rf config data crypto-config chaincode 
     log_success "数据文件清理完成"
 }
 

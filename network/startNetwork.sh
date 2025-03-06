@@ -207,7 +207,7 @@ main() {
     # 清理环境
     show_progress 2 "清理环境" $start_time
     execute_with_timer "清理环境" "./stopNetwork.sh"
-    mkdir config organizations data
+    mkdir config crypto-config data
 
     # 启动工具容器
     show_progress 3 "部署工具容器" $start_time

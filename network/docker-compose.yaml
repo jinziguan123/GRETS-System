@@ -249,27 +249,14 @@ services:
     tty: true
     stdin_open: true
     environment:
-      - GOPATH=/opt/gopath
       - GOPROXY=https://goproxy.cn,direct
-      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - FABRIC_LOGGING_SPEC=INFO
-      - CORE_PEER_TLS_ENABLED=true
-      - CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/peerOrganizations/government.grets.com/peers/peer0.government.grets.com/tls/server.crt
-      - CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/peerOrganizations/government.grets.com/peers/peer0.government.grets.com/tls/server.key
-      - CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/peerOrganizations/government.grets.com/peers/peer0.government.grets.com/tls/ca.crt
-      - CORE_PEER_ID=cli
-      - CORE_PEER_ADDRESS=peer0.government.grets.com:7051
-      - CORE_PEER_LOCALMSPID=GovernmentMSP
-      - CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations/peerOrganizations/government.grets.com/users/Admin@government.grets.com/msp
-    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+      - CORE_PEER_ID=cli.togettoyou.com
     command: /bin/bash
     volumes:
-      - /var/run/docker.sock:/host/var/run/docker.sock
-      - ./chaincode/:/opt/gopath/src/github.com/chaincode
-      - ./organizations:/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations
-      - ./scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts
-      - ./config:/opt/gopath/src/github.com/hyperledger/fabric/peer/config
       - ./configtx.yaml:/etc/hyperledger/configtx.yaml
+      - ./crypto-config.yaml:/etc/hyperledger/crypto-config.yaml
       - ./config:/etc/hyperledger/config
+      - ./crypto-config:/etc/hyperledger/crypto-config
+      - ./../chaincode:/opt/gopath/src/chaincode
     networks:
       - grets
