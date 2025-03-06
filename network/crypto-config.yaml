@@ -1,7 +1,7 @@
 # 网络拓扑定义，方便 cryptogen 用来生成各个组织节点的证书和秘钥
 OrdererOrgs:
   - Name: Orderer
-    Domain: orderer.grets.com
+    Domain: grets.com
     EnableNodeOUs: true
     CommonName: orderer
     Specs:

@@ -138,10 +138,10 @@ show_progress() {
         "🧹 [清理]"                 # 步骤2
         "🛠️ [工具]"                 # 步骤3
         "🔑 [证书]"                 # 步骤4
-        "📦 [配置]"                 # 步骤5
-        "🚀 [启动]"                 # 步骤6
-        "📝 [通道]"                 # 步骤7
-        "💾 [链码]"                 # 步骤8
+        "📦 [创世]"                 # 步骤5
+        "⚙️ [配置]"                 # 步骤6
+        "⚓ [锚点]"                 # 步骤7
+        "🚀 [启动]"                 # 步骤8
     )
 
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -215,28 +215,40 @@ main() {
     log_success "工具容器部署完成"
 
     # 创建组织证书
-    show_progress 4 "生成证书和密钥（MSP 材料）" $start_time
+    show_progress 4 "生成证书和密钥(MSP 材料）" $start_time
     execute_with_timer "生成证书和密钥" "$CLI_CMD \"cryptogen generate --config=${HYPERLEDGER_PATH}/crypto-config.yaml --output=${CRYPTO_PATH}\"" || handle_error "生成证书和密钥"
 
-    # 创建创世区块和通道配置
-    show_progress 5 "生成创世区块和通道配置" $start_time
-    execute_with_timer "生成创世区块和通道配置" "./scripts/generateChannelArtifacts.sh" || handle_error "生成创世区块和通道配置"
+    # 创建排序通道创世区块
+    show_progress 5 "创建排序通道创世区块" $start_time
+    execute_with_timer "创建创世区块" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsOrdererGenesis -outputBlock ${CONFIG_PATH}/genesis.block -channelID firstchannel\"" || handle_error "生成创世区块和通道配置"
 
-    # 启动网络
-    show_progress 6 "启动网络容器" $start_time
-    execute_with_timer "启动网络容器" "docker-compose -f docker-compose.yaml up -d" || handle_error "启动网络容器"
-    wait_for_completion "等待容器启动（10秒）" 10
+    # 生成通道配置事务
+    show_progress 6 "生成通道配置事务" $start_time
+    execute_with_timer "生成通道配置" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputCreateChannelTx ${CONFIG_PATH}/$ChannelName.tx -channelID $ChannelName\""
 
-    # 创建通道
-    show_progress 7 "创建通道" $start_time
-    execute_with_timer "创建通道" "./scripts/createChannel.sh" || handle_error "创建通道"
+    # 定义组织锚节点
+    show_progress 7 "定义组织锚节点" $start_time
+    execute_with_timer "定义Government锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/GovernmentAnchor.tx -channelID $ChannelName -asOrg Government\""
+    execute_with_timer "定义Agency锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/AgencyAnchor.tx -channelID $ChannelName -asOrg Agency\""
+    execute_with_timer "定义Audit锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/AuditAnchor.tx -channelID $ChannelName -asOrg Audit\""
+    execute_with_timer "定义Bank锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/BankAnchor.tx -channelID $ChannelName -asOrg Bank\""
+    execute_with_timer "定义ThirdParty锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/ThirdPartyAnchor.tx -channelID $ChannelName -asOrg ThirdParty\""
 
-    # 部署链码
-    show_progress 8 "部署链码" $start_time
-    execute_with_timer "部署链码" "./scripts/deployChaincode.sh" || handle_error "部署链码"
+    # 启动所有节点
+    show_progress 8 "启动所有节点" $start_time
+    execute_with_timer "启动节点" "docker-compose up -d"
+    wait_for_completion "等待节点启动（${NETWORK_STARTUP_WAIT}秒）" $NETWORK_STARTUP_WAIT
 
-    log_success "【恭喜您！】政府房产交易系统(GRETS)区块链网络部署成功 (总耗时: $(time_elapsed $start_time))"
-    log_info "可以通过 'docker ps' 查看运行中的容器"
+    # # 创建通道
+    # show_progress 7 "创建通道" $start_time
+    # execute_with_timer "创建通道" "./scripts/createChannel.sh" || handle_error "创建通道"
+
+    # # 部署链码
+    # show_progress 8 "部署链码" $start_time
+    # execute_with_timer "部署链码" "./scripts/deployChaincode.sh" || handle_error "部署链码"
+
+    # log_success "【恭喜您！】政府房产交易系统(GRETS)区块链网络部署成功 (总耗时: $(time_elapsed $start_time))"
+    # log_info "可以通过 'docker ps' 查看运行中的容器"
 }
 
 # 执行主函数

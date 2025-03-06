@@ -20,7 +20,7 @@ services:
     ports:
       - "7054:7054"
     volumes:
-      - ./organizations/peerOrganizations/government.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
+      - ./crypto-config/peerOrganizations/government.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
 
   ca_bank:
     extends:
@@ -36,7 +36,7 @@ services:
     ports:
       - "8054:7054"
     volumes:
-      - ./organizations/peerOrganizations/bank.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
+      - ./crypto-config/peerOrganizations/bank.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
 
   ca_agency:
     extends:
@@ -52,7 +52,7 @@ services:
     ports:
       - "9054:7054"
     volumes:
-      - ./organizations/peerOrganizations/agency.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
+      - ./crypto-config/peerOrganizations/agency.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
 
   ca_thirdparty:
     extends:
@@ -68,7 +68,7 @@ services:
     ports:
       - "10054:7054"
     volumes:
-      - ./organizations/peerOrganizations/thirdparty.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
+      - ./crypto-config/peerOrganizations/thirdparty.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
 
   ca_audit:
     extends:
@@ -84,7 +84,7 @@ services:
     ports:
       - "11054:7054"
     volumes:
-      - ./organizations/peerOrganizations/audit.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
+      - ./crypto-config/peerOrganizations/audit.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
 
   # Orderer 服务
   orderer1.grets.com:
@@ -96,7 +96,7 @@ services:
       - "7050:7050"
     volumes:
       - ./config/genesis.block:/etc/hyperledger/config/genesis.block
-      - ./organizations/ordererOrganizations/orderer.grets.com/orderers/orderer1.grets.com/:/etc/hyperledger/orderer
+      - ./crypto-config/ordererOrganizations/orderer.grets.com/orderers/orderer1.grets.com/:/etc/hyperledger/orderer
       - ./data/orderer1.grets.com:/var/hyperledger/production/orderer
   orderer2.grets.com:
     extends:
@@ -107,7 +107,7 @@ services:
       - "8050:7050"
     volumes:
       - ./config/genesis.block:/etc/hyperledger/config/genesis.block
-      - ./organizations/ordererOrganizations/orderer.grets.com/orderers/orderer2.grets.com/:/etc/hyperledger/orderer
+      - ./crypto-config/ordererOrganizations/orderer.grets.com/orderers/orderer2.grets.com/:/etc/hyperledger/orderer
       - ./data/orderer2.grets.com:/var/hyperledger/production/orderer
   orderer3.grets.com:
     extends:
@@ -118,7 +118,7 @@ services:
       - "9050:7050"
     volumes:
       - ./config/genesis.block:/etc/hyperledger/config/genesis.block
-      - ./organizations/ordererOrganizations/orderer.grets.com/orderers/orderer3.grets.com/:/etc/hyperledger/orderer
+      - ./crypto-config/ordererOrganizations/orderer.grets.com/orderers/orderer3.grets.com/:/etc/hyperledger/orderer
       - ./data/orderer3.grets.com:/var/hyperledger/production/orderer
 
   # Peer 服务
@@ -139,7 +139,7 @@ services:
       - "7051:7051"
       - "17051:17051"
     volumes:
-      - ./organizations/peerOrganizations/government.grets.com/peers/peer0.government.grets.com:/etc/hyperledger/peer
+      - ./crypto-config/peerOrganizations/government.grets.com/peers/peer0.government.grets.com:/etc/hyperledger/peer
       - ./data/peer0.government.grets.com:/var/hyperledger/production
     depends_on:
       - orderer1.grets.com
@@ -163,7 +163,7 @@ services:
       - "8051:7051"
       - "18051:17051"
     volumes:
-      - ./organizations/peerOrganizations/bank.grets.com/peers/peer0.bank.grets.com:/etc/hyperledger/peer
+      - ./crypto-config/peerOrganizations/bank.grets.com/peers/peer0.bank.grets.com:/etc/hyperledger/peer
       - ./data/peer0.bank.grets.com:/var/hyperledger/production
     depends_on:
       - orderer1.grets.com
@@ -187,7 +187,7 @@ services:
       - "9051:7051"
       - "19051:17051"
     volumes:
-      - ./organizations/peerOrganizations/agency.grets.com/peers/peer0.agency.grets.com:/etc/hyperledger/peer
+      - ./crypto-config/peerOrganizations/agency.grets.com/peers/peer0.agency.grets.com:/etc/hyperledger/peer
       - ./data/peer0.agency.grets.com:/var/hyperledger/production
     depends_on:
       - orderer1.grets.com
@@ -211,7 +211,7 @@ services:
       - "10051:7051"
       - "17051:17051"
     volumes:
-      - ./organizations/peerOrganizations/thirdparty.grets.com/peers/peer0.thirdparty.grets.com:/etc/hyperledger/peer
+      - ./crypto-config/peerOrganizations/thirdparty.grets.com/peers/peer0.thirdparty.grets.com:/etc/hyperledger/peer
       - ./data/peer0.thirdparty.grets.com:/var/hyperledger/production
     depends_on:
       - orderer1.grets.com
@@ -235,7 +235,7 @@ services:
       - "11051:7051"
       - "20051:17051"
     volumes:
-      - ./organizations/peerOrganizations/audit.grets.com/peers/peer0.audit.grets.com:/etc/hyperledger/peer
+      - ./crypto-config/peerOrganizations/audit.grets.com/peers/peer0.audit.grets.com:/etc/hyperledger/peer
       - ./data/peer0.audit.grets.com:/var/hyperledger/production
     depends_on:
       - orderer1.grets.com
