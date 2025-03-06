@@ -239,16 +239,8 @@ main() {
     execute_with_timer "启动节点" "docker-compose up -d"
     wait_for_completion "等待节点启动（${NETWORK_STARTUP_WAIT}秒）" $NETWORK_STARTUP_WAIT
 
-    # # 创建通道
-    # show_progress 7 "创建通道" $start_time
-    # execute_with_timer "创建通道" "./scripts/createChannel.sh" || handle_error "创建通道"
-
-    # # 部署链码
-    # show_progress 8 "部署链码" $start_time
-    # execute_with_timer "部署链码" "./scripts/deployChaincode.sh" || handle_error "部署链码"
-
-    # log_success "【恭喜您！】政府房产交易系统(GRETS)区块链网络部署成功 (总耗时: $(time_elapsed $start_time))"
-    # log_info "可以通过 'docker ps' 查看运行中的容器"
+    log_success "【恭喜您！】政府房产交易系统(GRETS)区块链网络部署成功 (总耗时: $(time_elapsed $start_time))"
+    log_info "可以通过 'docker ps' 查看运行中的容器"
 }
 
 # 执行主函数
