@@ -211,12 +211,12 @@ main() {
 
     # 启动工具容器
     show_progress 3 "部署工具容器" $start_time
-    execute_with_timer "部署工具容器" "docker-compose up -d ${CLI_CONTAINER}"
+    execute_with_timer "部署工具容器" "docker-compose up -d ${CLI_CONTAINER}" || handle_error "部署工具容器"
     log_success "工具容器部署完成"
 
     # 创建组织证书
     show_progress 4 "生成证书和密钥（MSP 材料）" $start_time
-    execute_with_timer "生成证书和密钥" "$CLI_CMD \"cryptogen generate --config=${HYPERLEDGER_PATH}/crypto-config.yaml --output=${CRYPTO_PATH}\""
+    execute_with_timer "生成证书和密钥" "$CLI_CMD \"cryptogen generate --config=${HYPERLEDGER_PATH}/crypto-config.yaml --output=${CRYPTO_PATH}\"" || handle_error "生成证书和密钥"
 
     # 创建创世区块和通道配置
     show_progress 5 "生成创世区块和通道配置" $start_time
