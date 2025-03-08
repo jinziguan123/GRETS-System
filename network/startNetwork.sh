@@ -365,16 +365,7 @@ main() {
     done
 
     show_progress 14 "批准链码" $start_time
-    for org in ${OrganizationList[@]}; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            
-            PackageID=$($CLI_CMD "${cli_value} peer lifecycle chaincode calculatepackageid ${CHAINCODE_PACKAGE}")
-            break 2
-        done
-    done
+    PackageID=$($CLI_CMD "${GovernmentPeer0Cli} peer lifecycle chaincode calculatepackageid ${CHAINCODE_PACKAGE}")
     for org in ${OrganizationList[@]}; do
         for ((i=0; i < $peerNumber; i++)); do
             local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
