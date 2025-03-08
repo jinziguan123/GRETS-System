@@ -72,9 +72,11 @@ type QueryResult struct {
 
 // 组织 MSP ID 常量
 const (
-	REALTY_ORG_MSPID = "Org1MSP" // 不动产登记机构组织 MSP ID
-	BANK_ORG_MSPID   = "Org2MSP" // 银行组织 MSP ID
-	TRADE_ORG_MSPID  = "Org3MSP" // 交易平台组织 MSP ID
+	GOVERNMENT_ORG_MSPID = "GovernmentMSP" // 政府机构组织 MSP ID
+	BANK_ORG_MSPID       = "BankMSP"       // 银行和金融机构组织 MSP ID
+	AGENCY_ORG_MSPID     = "AgencyMSP"     // 房地产中介组织 MSP ID
+	THIRDPARTY_ORG_MSPID = "ThirdpartyMSP" // 第三方服务提供商组织 MSP ID
+	AUDIT_ORG_MSPID      = "AuditMSP"      // 审计和监管机构组织 MSP ID
 )
 
 // 通用方法: 获取客户端身份信息
@@ -126,7 +128,7 @@ func (s *SmartContract) putState(ctx contractapi.TransactionContextInterface, ke
 	return nil
 }
 
-// CreateRealEstate 创建房产信息（仅不动产登记机构组织可以调用）
+// CreateRealEstate 创建房产信息（仅政府机构组织可以调用）
 func (s *SmartContract) CreateRealEstate(ctx contractapi.TransactionContextInterface, id string, address string, area float64, owner string, createTime time.Time) error {
 	// 检查调用者身份
 	clientMSPID, err := s.getClientIdentityMSPID(ctx)
@@ -134,9 +136,9 @@ func (s *SmartContract) CreateRealEstate(ctx contractapi.TransactionContextInter
 		return fmt.Errorf("获取调用者身份失败：%v", err)
 	}
 
-	// 验证是否是不动产登记机构组织的成员
-	if clientMSPID != REALTY_ORG_MSPID {
-		return fmt.Errorf("只有不动产登记机构组织成员才能创建房产信息")
+	// 验证是否是政府机构组织的成员
+	if clientMSPID != GOVERNMENT_ORG_MSPID {
+		return fmt.Errorf("只有政府机构组织成员才能创建房产信息")
 	}
 
 	// 参数验证
@@ -203,7 +205,7 @@ func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 验证是否是交易平台组织的成员
-	if clientMSPID != TRADE_ORG_MSPID {
+	if clientMSPID != AGENCY_ORG_MSPID {
 		return fmt.Errorf("只有交易平台组织成员才能生成交易")
 	}
 
@@ -369,6 +371,49 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 	}
 
 	return nil
+}
+
+// AuditTransaction 审计交易（仅审计组织可以调用）
+func (s *SmartContract) AuditTransaction(ctx contractapi.TransactionContextInterface, txID string, auditResult string, auditComments string, auditTime time.Time) error {
+	// 检查调用者身份
+	clientMSPID, err := s.getClientIdentityMSPID(ctx)
+	if err != nil {
+		return fmt.Errorf("获取调用者身份失败：%v", err)
+	}
+
+	// 验证是否是审计组织的成员
+	if clientMSPID != AUDIT_ORG_MSPID {
+		return fmt.Errorf("只有审计组织成员才能进行交易审计")
+	}
+
+	// 查询交易信息
+	_, err = s.QueryTransaction(ctx, txID)
+	if err != nil {
+		return err
+	}
+
+	// 创建审计记录
+	auditRecord := struct {
+		TxID          string    `json:"txId"`
+		AuditResult   string    `json:"auditResult"`
+		AuditComments string    `json:"auditComments"`
+		AuditorMSPID  string    `json:"auditorMspId"`
+		AuditTime     time.Time `json:"auditTime"`
+	}{
+		TxID:          txID,
+		AuditResult:   auditResult,
+		AuditComments: auditComments,
+		AuditorMSPID:  clientMSPID,
+		AuditTime:     auditTime,
+	}
+
+	// 保存审计记录
+	auditKey, err := s.getCompositeKey(ctx, "AUDIT", []string{txID})
+	if err != nil {
+		return err
+	}
+
+	return s.putState(ctx, auditKey, auditRecord)
 }
 
 // QueryRealEstate 查询房产信息

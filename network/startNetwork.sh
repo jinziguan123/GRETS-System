@@ -352,8 +352,67 @@ main() {
     show_progress 12 "打包链码" $start_time
     execute_with_timer "打包链码" "$CLI_CMD \"peer lifecycle chaincode package ${CHAINCODE_PACKAGE} --path ${CHAINCODE_PATH} --lang golang --label chaincode_${Version}\""
 
-    log_success "【恭喜您！】政府房产交易系统(GRETS)区块链网络部署成功 (总耗时: $(time_elapsed $start_time))"
-    log_info "可以通过 'docker ps' 查看运行中的容器"
+    # 安装链码
+    show_progress 13 "安装链码" $start_time
+    for org in ${OrganizationList[@]}; do
+        for ((i=0; i < $peerNumber; i++)); do
+            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
+            local OrgPeerCli="${org_cap}Peer${i}Cli"
+            local cli_value=$(eval echo "\$${OrgPeerCli}")
+            
+            execute_with_timer "${org_cap}Peer${i}安装链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode install ${CHAINCODE_PACKAGE}\""
+        done
+    done
+
+    show_progress 14 "批准链码" $start_time
+    for org in ${OrganizationList[@]}; do
+        for ((i=0; i < $peerNumber; i++)); do
+            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
+            local OrgPeerCli="${org_cap}Peer${i}Cli"
+            local cli_value=$(eval echo "\$${OrgPeerCli}")
+            
+            PackageID=$($CLI_CMD "${cli_value} peer lifecycle chaincode calculatepackageid ${CHAINCODE_PACKAGE}")
+            break 2
+        done
+    done
+    for org in ${OrganizationList[@]}; do
+        for ((i=0; i < $peerNumber; i++)); do
+            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
+            local OrgPeerCli="${org_cap}Peer${i}Cli"
+            local cli_value=$(eval echo "\$${OrgPeerCli}")
+            
+            execute_with_timer "${org_cap}批准链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode approveformyorg -o $ORDERER1_ADDRESS --channelID $ChannelName --name $ChainCodeName --version $Version --package-id $PackageID --sequence $Sequence --tls --cafile $ORDERER1_CA\""
+        done
+    done
+
+    # 提交链码
+    show_progress 15 "提交链码" $start_time
+    execute_with_timer "提交链码定义" "$CLI_CMD \"${GovernmentPeer0Cli} peer lifecycle chaincode commit -o $ORDERER1_ADDRESS --channelID $ChannelName --name $ChainCodeName --version $Version --sequence $Sequence --tls --cafile $ORDERER1_CA \
+    --peerAddresses $GOVERNMENT_PEER0_ADDRESS --tlsRootCertFiles $GOVERNMENT_PEER0_TLS_ROOTCERT_FILE \
+    --peerAddresses $AGENCY_PEER0_ADDRESS --tlsRootCertFiles $AGENCY_PEER0_TLS_ROOTCERT_FILE \
+    --peerAddresses $THIRDPARTY_PEER0_ADDRESS --tlsRootCertFiles $THIRDPARTY_PEER0_TLS_ROOTCERT_FILE \
+    --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
+    --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE\""
+
+    # 初始化并验证
+    show_progress 16 "初始化并验证" $start_time
+    execute_with_timer "初始化链码" "$CLI_CMD \"$GovernmentPeer0Cli peer chaincode invoke -o $ORDERER1_ADDRESS -C $ChannelName -n $ChainCodeName \
+    -c '{\\\"function\\\":\\\"InitLedger\\\",\\\"Args\\\":[]}' --tls --cafile $ORDERER1_CA \
+    --peerAddresses $GOVERNMENT_PEER0_ADDRESS --tlsRootCertFiles $GOVERNMENT_PEER0_TLS_ROOTCERT_FILE \
+    --peerAddresses $AGENCY_PEER0_ADDRESS --tlsRootCertFiles $AGENCY_PEER0_TLS_ROOTCERT_FILE \
+    --peerAddresses $THIRDPARTY_PEER0_ADDRESS --tlsRootCertFiles $THIRDPARTY_PEER0_TLS_ROOTCERT_FILE \
+    --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
+    --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE\""
+
+    wait_for_completion "等待链码初始化（${CHAINCODE_INIT_WAIT}秒）" $CHAINCODE_INIT_WAIT
+
+    if $CLI_CMD "$GovernmentPeer0Cli peer chaincode query -C $ChannelName -n $ChainCodeName -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello"; then
+        log_success "【恭喜您！】network 部署成功 (总耗时: $(time_elapsed $start_time))"
+        exit 0
+    fi
+
+    log_error "【警告】network 未部署成功，请检查日志定位具体问题。(总耗时: $(time_elapsed $start_time))"
+    exit 1
 }
 
 # 执行主函数
