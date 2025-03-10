@@ -39,6 +39,13 @@
    - 审计师
    - 监管人员
 
+| 通道名称 | 参与组织 | 使用的链码 | 主要功能 |
+|---------|---------|-----------|---------|
+| propertychannel | Government, Bank, Agency, Audit | propertycc | 房产信息管理 |
+| txchannel | Agency, Bank, Government | transactioncc | 交易管理 |
+| auditchannel | Audit, Government | auditcc | 审计记录 |
+| financechannel | Bank, Government, Agency | financecc | 金融服务 |
+
 ### 技术栈
 
 - **区块链平台**：Hyperledger Fabric 2.5

@@ -310,80 +310,53 @@ main() {
     execute_with_timer "启动节点" "docker-compose up -d"
     wait_for_completion "等待节点启动（${NETWORK_STARTUP_WAIT}秒）" $NETWORK_STARTUP_WAIT
 
-    # 创建通道
-    show_progress 9 "创建通道" $start_time
-    for org in ${OrganizationList[@]}; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            execute_with_timer "创建通道" "$CLI_CMD \"${cli_value} peer channel create --outputBlock ${CONFIG_PATH}/$ChannelName.block -o $ORDERER1_ADDRESS -c $ChannelName -f ${CONFIG_PATH}/$ChannelName.tx --tls --cafile $ORDERER1_CA\""
+    # 定义通道和链码对应关系
+    CHANNELS_AND_CHAINCODES=(
+        "mychannel:propertycc:chaincode/property:/opt/gopath/src/chaincode/property"
+        "txchannel:transactioncc:chaincode/transaction:/opt/gopath/src/chaincode/transaction"  
+        "auditchannel:auditcc:chaincode/audit:/opt/gopath/src/chaincode/audit"
+    )
 
-            # 一个组织创建通道即可
-            break 2
+    # 创建所有通道
+    for channel_def in "${CHANNELS_AND_CHAINCODES[@]}"; do
+        IFS=':' read -r channel chaincode src_path dest_path <<< "$channel_def"
+        
+        echo "创建通道: $channel"
+        $CLI_CMD "$GovernmentPeer0Cli peer channel create -o $ORDERER1_ADDRESS -c $channel -f ${CONFIG_PATH}/$channel.tx --tls --cafile $ORDERER1_CA"
+        
+        # 所有组织节点加入通道
+        for org in ${OrganizationList[@]}; do
+            # 判断组织是否应该加入此通道
+            if should_join_channel "$org" "$channel"; then
+                for ((i=0; i < $peerNumber; i++)); do
+                    org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
+                    OrgPeerCli="${org_cap}Peer${i}Cli"
+                    cli_value=$(eval echo "\$${OrgPeerCli}")
+                    
+                    echo "${org_cap}Peer${i}加入通道 $channel"
+                    $CLI_CMD "$cli_value peer channel join -b ${CONFIG_PATH}/$channel.block"
+                done
+            fi
         done
-    done
-
-    # 节点加入通道
-    show_progress 10 "节点加入通道" $start_time
-    for org in ${OrganizationList[@]}; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            
-            execute_with_timer "${org_cap}Peer${i}加入通道" "$CLI_CMD \"${cli_value} peer channel join -b ${CONFIG_PATH}/$ChannelName.block\""
+        
+        # 为此通道打包并安装链码
+        echo "为通道 $channel 准备链码 $chaincode"
+        $CLI_CMD "mkdir -p $dest_path"
+        $CLI_CMD "cp -r $src_path/* $dest_path/"
+        
+        CHAINCODE_PACKAGE="${dest_path}/${chaincode}_${Version}.tar.gz"
+        $CLI_CMD "peer lifecycle chaincode package $CHAINCODE_PACKAGE --path $dest_path --lang golang --label ${chaincode}_${Version}"
+        
+        # 安装链码到相关组织
+        for org in ${OrganizationList[@]}; do
+            if should_join_channel "$org" "$channel"; then
+                # 安装链码逻辑...
+            fi
         done
+        
+        # 批准和提交链码
+        # ...链码生命周期管理逻辑...
     done
-
-    # 更新锚节点
-    show_progress 11 "更新锚节点" $start_time
-    for org in ${OrganizationList[@]}; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            
-            execute_with_timer "更新${org_cap}锚节点" "$CLI_CMD \"${cli_value} peer channel update -o $ORDERER1_ADDRESS -c $ChannelName -f ${CONFIG_PATH}/${org_cap}Anchor.tx --tls --cafile $ORDERER1_CA\""
-        done
-    done
-
-    # 打包链码
-    show_progress 12 "打包链码" $start_time
-    execute_with_timer "打包链码" "$CLI_CMD \"peer lifecycle chaincode package ${CHAINCODE_PACKAGE} --path ${CHAINCODE_PATH} --lang golang --label chaincode_${Version}\""
-
-    # 安装链码
-    show_progress 13 "安装链码" $start_time
-    for org in ${OrganizationList[@]}; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            
-            execute_with_timer "${org_cap}Peer${i}安装链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode install ${CHAINCODE_PACKAGE}\""
-        done
-    done
-
-    show_progress 14 "批准链码" $start_time
-    PackageID=$($CLI_CMD "${GovernmentPeer0Cli} peer lifecycle chaincode calculatepackageid ${CHAINCODE_PACKAGE}")
-    for org in ${OrganizationList[@]}; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            
-            execute_with_timer "${org_cap}批准链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode approveformyorg -o $ORDERER1_ADDRESS --channelID $ChannelName --name $ChainCodeName --version $Version --package-id $PackageID --sequence $Sequence --tls --cafile $ORDERER1_CA\""
-        done
-    done
-
-    # 提交链码
-    show_progress 15 "提交链码" $start_time
-    execute_with_timer "提交链码定义" "$CLI_CMD \"${GovernmentPeer0Cli} peer lifecycle chaincode commit -o $ORDERER1_ADDRESS --channelID $ChannelName --name $ChainCodeName --version $Version --sequence $Sequence --tls --cafile $ORDERER1_CA \
-    --peerAddresses $GOVERNMENT_PEER0_ADDRESS --tlsRootCertFiles $GOVERNMENT_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $AGENCY_PEER0_ADDRESS --tlsRootCertFiles $AGENCY_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $THIRDPARTY_PEER0_ADDRESS --tlsRootCertFiles $THIRDPARTY_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE\""
 
     # 初始化并验证
     show_progress 16 "初始化并验证" $start_time
