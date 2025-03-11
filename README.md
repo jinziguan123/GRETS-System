@@ -60,23 +60,11 @@
 
 ```
 /GRETS_System
-├── chaincode/             # 智能合约代码
-│   ├── property/          # 房产管理合约
-│   ├── transaction/       # 交易管理合约
-│   ├── finance/           # 金融服务合约
-│   └── audit/             # 审计合约
-├── network/               # Fabric网络配置
-│   ├── organizations/     # 组织配置
-│   ├── scripts/           # 网络启动脚本
-│   └── config/            # 通道配置
-├── api/                   # API服务
-│   ├── routes/            # API路由
-│   ├── controllers/       # 业务逻辑
-│   └── middleware/        # 中间件
-└── web/                   # Vue前端
-    ├── src/               # 源代码
-    ├── public/            # 静态资源
-    └── config/            # 前端配置
+├── application
+│   ├── server    后端
+│   └── web       前端
+├── chaincode     链码
+└── network       区块链网络启动脚本
 ```
 
 ## 安装与部署
@@ -84,7 +72,7 @@
 ### 前提条件
 
 - Docker和Docker Compose
-- Go 1.16+
+- Go 1.23+
 - Node.js 14+
 - Vue CLI
 
