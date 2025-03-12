@@ -86,6 +86,38 @@ services:
     volumes:
       - ./crypto-config/peerOrganizations/audit.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
 
+  ca_investor:
+    extends:
+      file: docker-compose-base.yaml
+      service: ca-base
+    container_name: ca_investor
+    environment:
+      - FABRIC_CA_SERVER_CA_NAME=ca-investor
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.investor.grets.com-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.investor.grets.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+    ports:
+      - "12054:7054"
+    volumes:
+      - ./crypto-config/peerOrganizations/investor.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
+
+  ca_administrator:
+    extends:
+      file: docker-compose-base.yaml
+      service: ca-base  
+    container_name: ca_administrator
+    environment:
+      - FABRIC_CA_SERVER_CA_NAME=ca-administrator
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.administrator.grets.com-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.administrator.grets.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+    ports:
+      - "13054:7054"
+    volumes:
+      - ./crypto-config/peerOrganizations/administrator.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
+
   # Orderer 服务
   orderer1.grets.com:
     extends:
@@ -129,12 +161,11 @@ services:
     container_name: peer0.government.grets.com
     environment:
       - CORE_PEER_ID=peer0.government.grets.com
-      - CORE_PEER_ADDRESS=peer0.government.grets.com:7051
-      - CORE_PEER_CHAINCODEADDRESS=peer0.government.grets.com:7052
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.government.grets.com:7051
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.government.grets.com:7051
       - CORE_PEER_LOCALMSPID=GovernmentMSP
-      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:17051
+      - CORE_PEER_ADDRESS=peer0.government.grets.com:7051  # peer节点的访问地址
+      - CORE_PEER_CHAINCODEADDRESS=peer0.government.grets.com:7052 # peer节点的链码访问地址
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.government.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.government.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
     ports:
       - "7051:7051"
       - "17051:17051"
@@ -153,12 +184,11 @@ services:
     container_name: peer0.bank.grets.com
     environment:
       - CORE_PEER_ID=peer0.bank.grets.com
-      - CORE_PEER_ADDRESS=peer0.bank.grets.com:7051
-      - CORE_PEER_CHAINCODEADDRESS=peer0.bank.grets.com:7052
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.bank.grets.com:7051
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.bank.grets.com:7051
       - CORE_PEER_LOCALMSPID=BankMSP
-      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:18051
+      - CORE_PEER_ADDRESS=peer0.bank.grets.com:7051  # peer节点的访问地址
+      - CORE_PEER_CHAINCODEADDRESS=peer0.bank.grets.com:7052 # peer节点的链码访问地址
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.bank.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.bank.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）  
     ports:
       - "8051:7051"
       - "18051:17051"
@@ -177,12 +207,11 @@ services:
     container_name: peer0.agency.grets.com
     environment:
       - CORE_PEER_ID=peer0.agency.grets.com
-      - CORE_PEER_ADDRESS=peer0.agency.grets.com:7051
-      - CORE_PEER_CHAINCODEADDRESS=peer0.agency.grets.com:7052
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.agency.grets.com:7051
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.agency.grets.com:7051
       - CORE_PEER_LOCALMSPID=AgencyMSP
-      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:19051
+      - CORE_PEER_ADDRESS=peer0.agency.grets.com:7051  # peer节点的访问地址
+      - CORE_PEER_CHAINCODEADDRESS=peer0.agency.grets.com:7052 # peer节点的链码访问地址
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.agency.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.agency.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）    
     ports:
       - "9051:7051"
       - "19051:17051"
@@ -201,12 +230,11 @@ services:
     container_name: peer0.thirdparty.grets.com
     environment:
       - CORE_PEER_ID=peer0.thirdparty.grets.com
-      - CORE_PEER_ADDRESS=peer0.thirdparty.grets.com:7051
-      - CORE_PEER_CHAINCODEADDRESS=peer0.thirdparty.grets.com:7052
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.thirdparty.grets.com:7051
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.thirdparty.grets.com:7051
       - CORE_PEER_LOCALMSPID=ThirdpartyMSP
-      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:17051
+      - CORE_PEER_ADDRESS=peer0.thirdparty.grets.com:7051  # peer节点的访问地址
+      - CORE_PEER_CHAINCODEADDRESS=peer0.thirdparty.grets.com:7052 # peer节点的链码访问地址
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.thirdparty.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.thirdparty.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
     ports:
       - "10051:7051"
       - "20051:17051"
@@ -225,12 +253,11 @@ services:
     container_name: peer0.audit.grets.com
     environment:
       - CORE_PEER_ID=peer0.audit.grets.com
-      - CORE_PEER_ADDRESS=peer0.audit.grets.com:7051
-      - CORE_PEER_CHAINCODEADDRESS=peer0.audit.grets.com:7052
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.audit.grets.com:7051
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.audit.grets.com:7051
       - CORE_PEER_LOCALMSPID=AuditMSP
-      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:20051
+      - CORE_PEER_ADDRESS=peer0.audit.grets.com:7051  # peer节点的访问地址
+      - CORE_PEER_CHAINCODEADDRESS=peer0.audit.grets.com:7052 # peer节点的链码访问地址
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.audit.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.audit.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点） 
     ports:
       - "11051:7051"
       - "21051:17051"
@@ -241,6 +268,52 @@ services:
       - orderer1.grets.com
       - orderer2.grets.com
       - orderer3.grets.com
+
+  peer0.investor.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer0.investor.grets.com  
+    environment:
+      - CORE_PEER_ID=peer0.investor.grets.com
+      - CORE_PEER_LOCALMSPID=InvestorMSP
+      - CORE_PEER_ADDRESS=peer0.investor.grets.com:7051  # peer节点的访问地址
+      - CORE_PEER_CHAINCODEADDRESS=peer0.investor.grets.com:7052 # peer节点的链码访问地址
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.investor.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.investor.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
+    ports:
+      - "12051:7051"
+      - "22051:17051"
+    volumes:
+      - ./crypto-config/peerOrganizations/investor.grets.com/peers/peer0.investor.grets.com:/etc/hyperledger/peer
+      - ./data/peer0.investor.grets.com:/var/hyperledger/production 
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com  
+
+  peer0.administrator.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer0.administrator.grets.com 
+    environment:
+      - CORE_PEER_ID=peer0.administrator.grets.com
+      - CORE_PEER_LOCALMSPID=AdministratorMSP
+      - CORE_PEER_ADDRESS=peer0.administrator.grets.com:7051  # peer节点的访问地址
+      - CORE_PEER_CHAINCODEADDRESS=peer0.administrator.grets.com:7052 # peer节点的链码访问地址
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.administrator.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.administrator.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
+    ports:
+      - "13051:7051"
+      - "23051:17051"
+    volumes:
+      - ./crypto-config/peerOrganizations/administrator.grets.com/peers/peer0.administrator.grets.com:/etc/hyperledger/peer
+      - ./data/peer0.administrator.grets.com:/var/hyperledger/production  
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com  
 
   # CLI 工具
   cli.grets.com:

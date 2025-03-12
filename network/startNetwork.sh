@@ -21,8 +21,10 @@ export CHANNEL_NAME=gretschannel
 ###########################################
 
 # 等待时间配置（秒）
-NETWORK_STARTUP_WAIT=10
-CHAINCODE_INIT_WAIT=5
+NETWORK_STARTUP_WAIT=30
+CHAINCODE_INIT_WAIT=10
+# 添加链码操作超时设置(秒)
+PEER_OPERATION_TIMEOUT=300s
 
 # 域名配置
 DOMAIN="grets.com"
@@ -107,6 +109,8 @@ OrganizationList=(
     "audit"
     "bank"
     "thirdparty"
+    "investor"
+    "administrator"
 );
 
 peerNumber=1;
@@ -304,6 +308,8 @@ main() {
     execute_with_timer "定义Audit锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/AuditAnchor.tx -channelID $ChannelName -asOrg Audit\""
     execute_with_timer "定义Bank锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/BankAnchor.tx -channelID $ChannelName -asOrg Bank\""
     execute_with_timer "定义Thirdparty锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/ThirdpartyAnchor.tx -channelID $ChannelName -asOrg Thirdparty\""
+    execute_with_timer "定义Investor锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/InvestorAnchor.tx -channelID $ChannelName -asOrg Investor\""
+    execute_with_timer "定义Administrator锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/AdministratorAnchor.tx -channelID $ChannelName -asOrg Administrator\""
 
     # 启动所有节点
     show_progress 8 "启动所有节点" $start_time
@@ -372,7 +378,7 @@ main() {
             local OrgPeerCli="${org_cap}Peer${i}Cli"
             local cli_value=$(eval echo "\$${OrgPeerCli}")
             
-            execute_with_timer "${org_cap}批准链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode approveformyorg -o $ORDERER1_ADDRESS --channelID $ChannelName --name $ChainCodeName --version $Version --package-id $PackageID --sequence $Sequence --tls --cafile $ORDERER1_CA\""
+            execute_with_timer "${org_cap}批准链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode approveformyorg -o $ORDERER1_ADDRESS --channelID $ChannelName --name $ChainCodeName --version $Version --package-id $PackageID --sequence $Sequence --tls --cafile $ORDERER1_CA --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
         done
     done
 
@@ -383,7 +389,9 @@ main() {
     --peerAddresses $AGENCY_PEER0_ADDRESS --tlsRootCertFiles $AGENCY_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $THIRDPARTY_PEER0_ADDRESS --tlsRootCertFiles $THIRDPARTY_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE\""
+    --peerAddresses $INVESTOR_PEER0_ADDRESS --tlsRootCertFiles $INVESTOR_PEER0_TLS_ROOTCERT_FILE \
+    --peerAddresses $ADMINISTRATOR_PEER0_ADDRESS --tlsRootCertFiles $ADMINISTRATOR_PEER0_TLS_ROOTCERT_FILE \
+    --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
 
     # 初始化并验证
     show_progress 16 "初始化并验证" $start_time
@@ -393,7 +401,9 @@ main() {
     --peerAddresses $AGENCY_PEER0_ADDRESS --tlsRootCertFiles $AGENCY_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $THIRDPARTY_PEER0_ADDRESS --tlsRootCertFiles $THIRDPARTY_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE\""
+    --peerAddresses $INVESTOR_PEER0_ADDRESS --tlsRootCertFiles $INVESTOR_PEER0_TLS_ROOTCERT_FILE \
+    --peerAddresses $ADMINISTRATOR_PEER0_ADDRESS --tlsRootCertFiles $ADMINISTRATOR_PEER0_TLS_ROOTCERT_FILE \
+    --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
 
     wait_for_completion "等待链码初始化（${CHAINCODE_INIT_WAIT}秒）" $CHAINCODE_INIT_WAIT
 

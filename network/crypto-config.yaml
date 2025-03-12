@@ -52,3 +52,19 @@ PeerOrgs:
       Count: 1
     Users:
       Count: 1
+
+  - Name: Investor
+    Domain: investor.grets.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1  
+
+  - Name: Administrator
+    Domain: administrator.grets.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1  
+    Users:
+      Count: 1  
