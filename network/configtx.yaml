@@ -386,3 +386,24 @@ Profiles:
                 - *Sysadmin    # 系统管理员
             Capabilities:
                 <<: *ApplicationCapabilities
+    
+    # 新增交易专用通道
+    TransactionChannel:
+        Consortium: GretsSortiumConsortium
+        Application:
+            Organizations:
+                - *Government
+                - *Bank
+                - *Agency  # 只包含交易相关组织
+            Capabilities:
+                <<: *ApplicationCapabilities
+            
+    # 新增审计专用通道
+    AuditChannel:
+        Consortium: GretsSortiumConsortium
+        Application:
+            Organizations:
+                - *Government
+                - *Audit    # 只包含审计相关组织
+            Capabilities:
+                <<: *ApplicationCapabilities
