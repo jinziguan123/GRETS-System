@@ -299,6 +299,11 @@ func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("卖方不是房产所有者")
 	}
 
+	// 检查买方是否为房产所有者
+	if realEstate.CurrentOwner == buyer {
+		return fmt.Errorf("买方不能是房产所有者")
+	}
+
 	// 创建交易信息
 	transaction := Transaction{
 		TxID:         txID,

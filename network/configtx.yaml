@@ -129,6 +129,48 @@ Organizations:
             - Host: peer0.audit.grets.com
               Port: 7051
 
+    - &Buyerseller
+        Name: Buyerseller
+        ID: BuyersellerMSP
+        MSPDir: crypto-config/peerOrganizations/buyerseller.grets.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('BuyersellerMSP.admin', 'BuyersellerMSP.peer', 'BuyersellerMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('BuyersellerMSP.admin', 'BuyersellerMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('BuyersellerMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('BuyersellerMSP.peer')"
+        AnchorPeers:
+            - Host: peer0.buyerseller.grets.com
+              Port: 7051
+
+    - &Sysadmin
+        Name: Sysadmin
+        ID: SysadminMSP
+        MSPDir: crypto-config/peerOrganizations/sysadmin.grets.com/msp
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('SysadminMSP.admin', 'SysadminMSP.peer', 'SysadminMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('SysadminMSP.admin', 'SysadminMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('SysadminMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('SysadminMSP.peer')"
+        AnchorPeers:
+            - Host: peer0.sysadmin.grets.com
+              Port: 7051
+
 ################################################################################
 #
 #   CAPABILITIES
@@ -256,7 +298,11 @@ Profiles:
                     - *Agency
                     - *Thirdparty
                     - *Audit
-    GretsChannel:
+                    - *Buyerseller
+                    - *Sysadmin
+    
+    # 主通道 - 所有组织共享基础数据
+    MainChannel:
         <<: *ChannelDefaults
         # 所属联盟
         Consortium: GretsConsortium
@@ -269,5 +315,74 @@ Profiles:
                 - *Agency
                 - *Thirdparty
                 - *Audit
+                - *Buyerseller
+                - *Sysadmin
+            Capabilities:
+                <<: *ApplicationCapabilities
+    
+    # 房产管理通道 - 房产信息登记与管理
+    PropertyChannel:
+        <<: *ChannelDefaults
+        Consortium: GretsConsortium
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *Government  # 土地管理局、不动产登记中心
+                - *Bank        # 按揭贷款需查询房产信息
+                - *Agency      # 房产经纪和开发商
+                - *Buyerseller # 买卖双方
+            Capabilities:
+                <<: *ApplicationCapabilities
+    
+    # 交易处理通道 - 交易流程管理
+    TransactionChannel:
+        <<: *ChannelDefaults
+        Consortium: GretsConsortium
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *Government  # 交易监管
+                - *Bank        # 资金处理
+                - *Agency      # 交易发起
+                - *Thirdparty  # 房产评估等辅助服务
+                - *Buyerseller # 买卖双方
+            Capabilities:
+                <<: *ApplicationCapabilities
+    
+    # 金融服务通道 - 贷款和资金结算
+    FinanceChannel:
+        <<: *ChannelDefaults
+        Consortium: GretsConsortium
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *Government  # 税务监管
+                - *Bank        # 主要金融服务提供方
+                - *Buyerseller # 买卖双方（贷款申请、还款）
+            Capabilities:
+                <<: *ApplicationCapabilities
+    
+    # 审计通道 - 交易合规性审计
+    AuditChannel:
+        <<: *ChannelDefaults
+        Consortium: GretsConsortium
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *Government  # 政府监管
+                - *Audit       # 审计机构
+                - *Sysadmin    # 系统管理员
+            Capabilities:
+                <<: *ApplicationCapabilities
+                
+    # 系统管理通道 - 系统管理和配置
+    AdminChannel:
+        <<: *ChannelDefaults
+        Consortium: GretsConsortium
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *Government  # 政府监管
+                - *Sysadmin    # 系统管理员
             Capabilities:
                 <<: *ApplicationCapabilities

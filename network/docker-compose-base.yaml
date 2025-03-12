@@ -1,5 +1,3 @@
-version: '2.1'
-
 services:
   order-base:
     image: hyperledger/fabric-orderer:2.5.10

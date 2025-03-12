@@ -1,5 +1,3 @@
-version: '2.1'
-
 networks:
   grets:
     name: grets
@@ -237,6 +235,54 @@ services:
     volumes:
       - ./crypto-config/peerOrganizations/audit.grets.com/peers/peer0.audit.grets.com:/etc/hyperledger/peer
       - ./data/peer0.audit.grets.com:/var/hyperledger/production
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com
+
+  peer0.buyerseller.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer0.buyerseller.grets.com
+    environment:
+      - CORE_PEER_ID=peer0.buyerseller.grets.com
+      - CORE_PEER_ADDRESS=peer0.buyerseller.grets.com:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.buyerseller.grets.com:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.buyerseller.grets.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.buyerseller.grets.com:7051
+      - CORE_PEER_LOCALMSPID=BuyersellerMSP
+      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:20051
+    ports:
+      - "12051:7051"
+      - "22051:17051"
+    volumes:
+      - ./crypto-config/peerOrganizations/buyerseller.grets.com/peers/peer0.buyerseller.grets.com:/etc/hyperledger/peer
+      - ./data/peer0.buyerseller.grets.com:/var/hyperledger/production
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com
+
+  peer0.sysadmin.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer0.sysadmin.grets.com
+    environment:
+      - CORE_PEER_ID=peer0.sysadmin.grets.com
+      - CORE_PEER_ADDRESS=peer0.sysadmin.grets.com:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.sysadmin.grets.com:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.sysadmin.grets.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.sysadmin.grets.com:7051
+      - CORE_PEER_LOCALMSPID=SysadminMSP
+      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:20051
+    ports:
+      - "13051:7051"
+      - "23051:17051"
+    volumes:
+      - ./crypto-config/peerOrganizations/sysadmin.grets.com/peers/peer0.sysadmin.grets.com:/etc/hyperledger/peer
+      - ./data/peer0.sysadmin.grets.com:/var/hyperledger/production
     depends_on:
       - orderer1.grets.com
       - orderer2.grets.com

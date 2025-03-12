@@ -52,3 +52,19 @@ PeerOrgs:
       Count: 1
     Users:
       Count: 1
+
+  - Name: Buyerseller
+    Domain: buyerseller.grets.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1
+      
+  - Name: Sysadmin
+    Domain: sysadmin.grets.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1

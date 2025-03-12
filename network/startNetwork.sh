@@ -24,6 +24,10 @@ export CHANNEL_NAME=gretschannel
 NETWORK_STARTUP_WAIT=10
 CHAINCODE_INIT_WAIT=5
 
+# 链码配置
+Version="1.0"
+Sequence=1
+
 # 域名配置
 DOMAIN="grets.com"
 GOVERNMENT_DOMAIN="government.${DOMAIN}"
@@ -33,6 +37,57 @@ THRIDPARTY_DOMAIN="thirdparty.${DOMAIN}"
 AUDIT_DOMAIN="audit.${DOMAIN}"
 CLI_CONTAINER="cli.${DOMAIN}"
 
+# 通道名称定义
+MAIN_CHANNEL="mainchannel"
+PROPERTY_CHANNEL="propertychannel"
+TX_CHANNEL="txchannel"
+FINANCE_CHANNEL="financechannel"
+AUDIT_CHANNEL="auditchannel"
+ADMIN_CHANNEL="adminchannel"
+
+# 通道配置映射
+CHANNEL_PROFILE_MAIN_CHANNEL="MainChannel"
+CHANNEL_PROFILE_PROPERTY_CHANNEL="PropertyChannel"
+CHANNEL_PROFILE_TX_CHANNEL="TransactionChannel"
+CHANNEL_PROFILE_FINANCE_CHANNEL="FinanceChannel"
+CHANNEL_PROFILE_AUDIT_CHANNEL="AuditChannel"
+CHANNEL_PROFILE_ADMIN_CHANNEL="AdminChannel"
+
+# 通道组织映射
+ORGS_MAIN_CHANNEL="government bank agency thirdparty audit buyerseller sysadmin"
+ORGS_PROPERTY_CHANNEL="government bank agency buyerseller"
+ORGS_TX_CHANNEL="government bank agency thirdparty buyerseller"
+ORGS_FINANCE_CHANNEL="government bank buyerseller"
+ORGS_AUDIT_CHANNEL="government audit sysadmin"
+ORGS_ADMIN_CHANNEL="government sysadmin"
+
+# 为每个通道创建对应的变量
+mainchannel_ORGS="$ORGS_MAIN_CHANNEL"
+propertychannel_ORGS="$ORGS_PROPERTY_CHANNEL"
+txchannel_ORGS="$ORGS_TX_CHANNEL"
+financechannel_ORGS="$ORGS_FINANCE_CHANNEL"
+auditchannel_ORGS="$ORGS_AUDIT_CHANNEL"
+adminchannel_ORGS="$ORGS_ADMIN_CHANNEL"
+
+# 链码配置映射
+CHAINCODE_MAIN_CHANNEL="basecc:chaincode/base:/opt/gopath/src/github.com/chaincode/base"
+CHAINCODE_PROPERTY_CHANNEL="propertycc:chaincode/property:/opt/gopath/src/github.com/chaincode/property"
+CHAINCODE_TX_CHANNEL="transactioncc:chaincode/transaction:/opt/gopath/src/github.com/chaincode/transaction"
+CHAINCODE_FINANCE_CHANNEL="financecc:chaincode/finance:/opt/gopath/src/github.com/chaincode/finance"
+CHAINCODE_AUDIT_CHANNEL="auditcc:chaincode/audit:/opt/gopath/src/github.com/chaincode/audit"
+CHAINCODE_ADMIN_CHANNEL="admincc:chaincode/admin:/opt/gopath/src/github.com/chaincode/admin"
+
+# 为每个通道创建对应的链码变量
+mainchannel_CHAINCODE="$CHAINCODE_MAIN_CHANNEL"
+propertychannel_CHAINCODE="$CHAINCODE_PROPERTY_CHANNEL"
+txchannel_CHAINCODE="$CHAINCODE_TX_CHANNEL"
+financechannel_CHAINCODE="$CHAINCODE_FINANCE_CHANNEL"
+auditchannel_CHAINCODE="$CHAINCODE_AUDIT_CHANNEL"
+adminchannel_CHAINCODE="$CHAINCODE_ADMIN_CHANNEL"
+
+# 所有通道ID列表
+ALL_CHANNELS="${MAIN_CHANNEL} ${PROPERTY_CHANNEL} ${TX_CHANNEL} ${FINANCE_CHANNEL} ${AUDIT_CHANNEL} ${ADMIN_CHANNEL}"
+
 # CLI命令前缀
 CLI_CMD="docker exec ${CLI_CONTAINER} bash -c"
 
@@ -40,14 +95,6 @@ CLI_CMD="docker exec ${CLI_CONTAINER} bash -c"
 HYPERLEDGER_PATH="/etc/hyperledger"
 CONFIG_PATH="${HYPERLEDGER_PATH}/config"
 CRYPTO_PATH="${HYPERLEDGER_PATH}/crypto-config"
-
-# 通道和链码配置
-ChannelName="mychannel"
-ChainCodeName="mychaincode"
-Version="1.0.0"
-Sequence="1"
-CHAINCODE_PATH="/opt/gopath/src/chaincode"
-CHAINCODE_PACKAGE="${CHAINCODE_PATH}/chaincode_${Version}.tar.gz"
 
 # Order 配置
 ORDERER1_ADDRESS="orderer1.${DOMAIN}:7050"
@@ -73,8 +120,18 @@ generate_peer_config() {
     local peer=$2   # 节点编号
     local org_domain="${org}.${DOMAIN}"     # government.grets.com
     local peer_name="peer${peer}.${org_domain}"     # peer0.government.grets.com
-    local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"    # Government
-    local org_upper="$(tr '[:lower:]' '[:upper:]' <<< ${org})"    # GOVERNMENT
+    
+    # 特殊处理Buyerseller和Sysadmin组织
+    if [ "$org" = "buyerseller" ]; then
+        local org_cap="Buyerseller"    # Buyerseller
+        local org_upper="BUYERSELLER"  # BUYERSELLER
+    elif [ "$org" = "sysadmin" ]; then
+        local org_cap="Sysadmin"       # Sysadmin
+        local org_upper="SYSADMIN"     # SYSADMIN
+    else
+        local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"    # Government
+        local org_upper="$(tr '[:lower:]' '[:upper:]' <<< ${org})"    # GOVERNMENT
+    fi
 
     # 设置环境变量
     eval "${org_upper}_PEER${peer}_ADDRESS=\"${peer_name}:7051\""
@@ -89,8 +146,18 @@ generate_peer_config() {
 generate_cli_config() {
     local org=$1    # 组织名称
     local peer=$2   # 节点编号
-    local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"    # Government
-    local org_upper="$(tr '[:lower:]' '[:upper:]' <<< ${org})"    # GOVERNMENT
+    
+    # 特殊处理Buyerseller和Sysadmin组织
+    if [ "$org" = "buyerseller" ]; then
+        local org_cap="Buyerseller"    # Buyerseller
+        local org_upper="BUYERSELLER"  # BUYERSELLER
+    elif [ "$org" = "sysadmin" ]; then
+        local org_cap="Sysadmin"       # Sysadmin
+        local org_upper="SYSADMIN"     # SYSADMIN
+    else
+        local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"    # Government
+        local org_upper="$(tr '[:lower:]' '[:upper:]' <<< ${org})"    # GOVERNMENT
+    fi
 
     eval "${org_cap}Peer${peer}Cli=\"CORE_PEER_ADDRESS=\${${org_upper}_PEER${peer}_ADDRESS} \\
 CORE_PEER_LOCALMSPID=\${${org_upper}_PEER${peer}_LOCALMSPID} \\
@@ -107,6 +174,8 @@ OrganizationList=(
     "audit"
     "bank"
     "thirdparty"
+    "buyerseller"
+    "sysadmin"
 );
 
 peerNumber=1;
@@ -293,17 +362,90 @@ main() {
     show_progress 5 "创建排序通道创世区块" $start_time
     execute_with_timer "创建创世区块" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsOrdererGenesis -outputBlock ${CONFIG_PATH}/genesis.block -channelID firstchannel\"" || handle_error "生成创世区块和通道配置"
 
-    # 生成通道配置事务
+    # 创建通道配置事务文件
     show_progress 6 "生成通道配置事务" $start_time
-    execute_with_timer "生成通道配置" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputCreateChannelTx ${CONFIG_PATH}/$ChannelName.tx -channelID $ChannelName\""
+    for channel_id in $ALL_CHANNELS; do
+        # 根据通道ID获取对应的配置文件
+        channel_upper=$(echo "$channel_id" | tr 'a-z' 'A-Z')
+        
+        # 根据通道名称获取对应的配置文件
+        case "$channel_upper" in
+            MAINCHANNEL)
+                profile=$CHANNEL_PROFILE_MAIN_CHANNEL
+                ;;
+            PROPERTYCHANNEL)
+                profile=$CHANNEL_PROFILE_PROPERTY_CHANNEL
+                ;;
+            TXCHANNEL)
+                profile=$CHANNEL_PROFILE_TX_CHANNEL
+                ;;
+            FINANCECHANNEL)
+                profile=$CHANNEL_PROFILE_FINANCE_CHANNEL
+                ;;
+            AUDITCHANNEL)
+                profile=$CHANNEL_PROFILE_AUDIT_CHANNEL
+                ;;
+            ADMINCHANNEL)
+                profile=$CHANNEL_PROFILE_ADMIN_CHANNEL
+                ;;
+            *)
+                log_error "未知的通道: $channel_id"
+                exit 1
+                ;;
+        esac
+        
+        execute_with_timer "生成${channel_id}通道配置" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile $profile -outputCreateChannelTx ${CONFIG_PATH}/${channel_id}.tx -channelID ${channel_id}\""
+    done
 
-    # 定义组织锚节点
+    # 定义每个通道的组织锚节点
     show_progress 7 "定义组织锚节点" $start_time
-    execute_with_timer "定义Government锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/GovernmentAnchor.tx -channelID $ChannelName -asOrg Government\""
-    execute_with_timer "定义Agency锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/AgencyAnchor.tx -channelID $ChannelName -asOrg Agency\""
-    execute_with_timer "定义Audit锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/AuditAnchor.tx -channelID $ChannelName -asOrg Audit\""
-    execute_with_timer "定义Bank锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/BankAnchor.tx -channelID $ChannelName -asOrg Bank\""
-    execute_with_timer "定义Thirdparty锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/ThirdpartyAnchor.tx -channelID $ChannelName -asOrg Thirdparty\""
+    for channel_id in $ALL_CHANNELS; do
+        # 获取通道对应的组织和配置文件
+        channel_upper=$(echo "$channel_id" | tr 'a-z' 'A-Z')
+        
+        # 获取通道对应的组织列表
+        case "$channel_upper" in
+            MAINCHANNEL)
+                orgs=$ORGS_MAIN_CHANNEL
+                profile=$CHANNEL_PROFILE_MAIN_CHANNEL
+                ;;
+            PROPERTYCHANNEL)
+                orgs=$ORGS_PROPERTY_CHANNEL
+                profile=$CHANNEL_PROFILE_PROPERTY_CHANNEL
+                ;;
+            TXCHANNEL)
+                orgs=$ORGS_TX_CHANNEL
+                profile=$CHANNEL_PROFILE_TX_CHANNEL
+                ;;
+            FINANCECHANNEL)
+                orgs=$ORGS_FINANCE_CHANNEL
+                profile=$CHANNEL_PROFILE_FINANCE_CHANNEL
+                ;;
+            AUDITCHANNEL)
+                orgs=$ORGS_AUDIT_CHANNEL
+                profile=$CHANNEL_PROFILE_AUDIT_CHANNEL
+                ;;
+            ADMINCHANNEL)
+                orgs=$ORGS_ADMIN_CHANNEL
+                profile=$CHANNEL_PROFILE_ADMIN_CHANNEL
+                ;;
+            *)
+                log_error "未知的通道: $channel_id"
+                exit 1
+                ;;
+        esac
+        
+        for org in $orgs; do
+            if [ "$org" = "buyerseller" ]; then
+                org_cap="Buyerseller"
+            elif [ "$org" = "sysadmin" ]; then
+                org_cap="Sysadmin"
+            else
+                org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
+            fi
+            execute_with_timer "定义${org_cap}在${channel_id}的锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile $profile -outputAnchorPeersUpdate ${CONFIG_PATH}/${org_cap}Anchor_${channel_id}.tx -channelID ${channel_id} -asOrg ${org_cap}\""
+        done
+    done
 
     # 启动所有节点
     show_progress 8 "启动所有节点" $start_time
@@ -312,98 +454,214 @@ main() {
 
     # 创建通道
     show_progress 9 "创建通道" $start_time
-    for org in ${OrganizationList[@]}; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            execute_with_timer "创建通道" "$CLI_CMD \"${cli_value} peer channel create --outputBlock ${CONFIG_PATH}/$ChannelName.block -o $ORDERER1_ADDRESS -c $ChannelName -f ${CONFIG_PATH}/$ChannelName.tx --tls --cafile $ORDERER1_CA\""
-
-            # 一个组织创建通道即可
-            break 2
-        done
+    for channel_id in $ALL_CHANNELS; do
+        # 选择第一个组织创建通道
+        eval "channel_orgs=\$${channel_id}_ORGS"
+        IFS=' ' read -r -a orgs <<< "$channel_orgs"
+        create_org=${orgs[0]}
+        org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${create_org:0:1})${create_org:1}"
+        OrgPeer0Cli="${org_cap}Peer0Cli"
+        cli_value=$(eval echo "\$${OrgPeer0Cli}")
+        
+        execute_with_timer "创建${channel_id}通道" "$CLI_CMD \"${cli_value} peer channel create --outputBlock ${CONFIG_PATH}/${channel_id}.block -o $ORDERER1_ADDRESS -c ${channel_id} -f ${CONFIG_PATH}/${channel_id}.tx --tls --cafile $ORDERER1_CA\""
     done
 
     # 节点加入通道
     show_progress 10 "节点加入通道" $start_time
-    for org in ${OrganizationList[@]}; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            
-            execute_with_timer "${org_cap}Peer${i}加入通道" "$CLI_CMD \"${cli_value} peer channel join -b ${CONFIG_PATH}/$ChannelName.block\""
+    for channel_id in $ALL_CHANNELS; do
+        eval "channel_orgs=\$${channel_id}_ORGS"
+        IFS=' ' read -r -a orgs <<< "$channel_orgs"
+        for org in "${orgs[@]}"; do
+            for ((i=0; i < $peerNumber; i++)); do
+                if [ "$org" = "buyerseller" ]; then
+                    org_cap="Buyerseller"
+                elif [ "$org" = "sysadmin" ]; then
+                    org_cap="Sysadmin"
+                else
+                    org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
+                fi
+                
+                OrgPeerCli="${org_cap}Peer${i}Cli"
+                cli_value=$(eval echo "\$${OrgPeerCli}")
+                
+                execute_with_timer "${org}Peer${i}加入${channel_id}通道" "$CLI_CMD \"${cli_value} peer channel join -b ${CONFIG_PATH}/${channel_id}.block\""
+            done
         done
     done
 
     # 更新锚节点
     show_progress 11 "更新锚节点" $start_time
-    for org in ${OrganizationList[@]}; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
+    for channel_id in $ALL_CHANNELS; do
+        eval "channel_orgs=\$${channel_id}_ORGS"
+        IFS=' ' read -r -a orgs <<< "$channel_orgs"
             
-            execute_with_timer "更新${org_cap}锚节点" "$CLI_CMD \"${cli_value} peer channel update -o $ORDERER1_ADDRESS -c $ChannelName -f ${CONFIG_PATH}/${org_cap}Anchor.tx --tls --cafile $ORDERER1_CA\""
+        for org in "${orgs[@]}"; do
+            if [ "$org" = "buyerseller" ]; then
+                org_cap="Buyerseller"
+            elif [ "$org" = "sysadmin" ]; then
+                org_cap="Sysadmin"
+            else
+                org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
+            fi
+            
+            OrgPeer0Cli="${org_cap}Peer0Cli"
+            cli_value=$(eval echo "\$${OrgPeer0Cli}")
+            
+            execute_with_timer "更新${org_cap}在${channel_id}的锚节点" "$CLI_CMD \"${cli_value} peer channel update -o $ORDERER1_ADDRESS -c ${channel_id} -f ${CONFIG_PATH}/${org_cap}Anchor_${channel_id}.tx --tls --cafile $ORDERER1_CA\""
         done
     done
 
     # 打包链码
     show_progress 12 "打包链码" $start_time
-    execute_with_timer "打包链码" "$CLI_CMD \"peer lifecycle chaincode package ${CHAINCODE_PACKAGE} --path ${CHAINCODE_PATH} --lang golang --label chaincode_${Version}\""
+    for channel_id in $ALL_CHANNELS; do
+        eval "chaincode_config=\$${channel_id}_CHAINCODE"
+        IFS=':' read -r chaincode_id src_path dest_path <<< "$chaincode_config"
+        
+        # 创建目标目录
+        execute_with_timer "创建链码目录" "$CLI_CMD \"mkdir -p ${dest_path}\""
+        
+        # 复制链码文件 - 修改为使用容器内的路径
+        execute_with_timer "复制链码文件" "$CLI_CMD \"cp -r /opt/gopath/src/${src_path}/* ${dest_path}/\""
+        
+        # 打包链码
+        execute_with_timer "打包${chaincode_id}链码" "$CLI_CMD \"peer lifecycle chaincode package ${dest_path}/${chaincode_id}_${Version}.tar.gz --path ${dest_path} --lang golang --label ${chaincode_id}_${Version}\""
+    done
 
     # 安装链码
     show_progress 13 "安装链码" $start_time
-    for org in ${OrganizationList[@]}; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            
-            execute_with_timer "${org_cap}Peer${i}安装链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode install ${CHAINCODE_PACKAGE}\""
+    for channel_id in $ALL_CHANNELS; do
+        eval "chaincode_config=\$${channel_id}_CHAINCODE"
+        IFS=':' read -r chaincode_id src_path dest_path <<< "$chaincode_config"
+        
+        eval "channel_orgs=\$${channel_id}_ORGS"
+        IFS=' ' read -r -a orgs <<< "$channel_orgs"
+        
+        for org in "${orgs[@]}"; do
+            for ((i=0; i < $peerNumber; i++)); do
+                if [ "$org" = "buyerseller" ]; then
+                    org_cap="Buyerseller"
+                elif [ "$org" = "sysadmin" ]; then
+                    org_cap="Sysadmin"
+                else
+                    org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
+                fi
+                
+                OrgPeerCli="${org_cap}Peer${i}Cli"
+                cli_value=$(eval echo "\$${OrgPeerCli}")
+                
+                execute_with_timer "在${org}Peer${i}上安装${chaincode_id}链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode install ${dest_path}/${chaincode_id}_${Version}.tar.gz\""
+            done
         done
+        
+        # 计算链码包ID
+        first_org=${orgs[0]}
+        # 特殊处理Buyerseller和Sysadmin组织
+        if [ "$first_org" = "buyerseller" ]; then
+            org_cap="Buyerseller"
+        elif [ "$first_org" = "sysadmin" ]; then
+            org_cap="Sysadmin"
+        else
+            org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${first_org:0:1})${first_org:1}"
+        fi
+        
+        OrgPeer0Cli="${org_cap}Peer0Cli"
+        cli_value=$(eval echo "\$${OrgPeer0Cli}")
+        
+        PackageID=$($CLI_CMD "${cli_value} peer lifecycle chaincode queryinstalled" | grep "${chaincode_id}_${Version}" | awk '{print $3}' | sed 's/,//')
+        
+        # 批准链码
+        show_progress 14 "批准链码" $start_time
+        for org in "${orgs[@]}"; do
+            org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
+            # 特殊处理Buyerseller和Sysadmin组织
+            if [ "$org" = "buyerseller" ]; then
+                org_cap="Buyerseller"
+            elif [ "$org" = "sysadmin" ]; then
+                org_cap="Sysadmin"
+            fi
+            
+            OrgPeer0Cli="${org_cap}Peer0Cli"
+            cli_value=$(eval echo "\$${OrgPeer0Cli}")
+            
+            execute_with_timer "${org_cap}批准${chaincode_id}链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode approveformyorg -o $ORDERER1_ADDRESS --channelID ${channel_id} --name ${chaincode_id} --version ${Version} --package-id ${PackageID} --sequence ${Sequence} --tls --cafile ${ORDERER1_CA}\""
+        done
+        
+        # 提交链码定义
+        show_progress 15 "提交链码" $start_time
+        peers_addresses=""
+        peers_tlscerts=""
+        for org in "${orgs[@]}"; do
+            # 特殊处理Buyerseller和Sysadmin组织
+            if [ "$org" = "buyerseller" ]; then
+                org_upper="BUYERSELLER"
+            elif [ "$org" = "sysadmin" ]; then
+                org_upper="SYSADMIN"
+            else
+                org_upper="$(tr '[:lower:]' '[:upper:]' <<< ${org})"
+            fi
+            
+            peers_addresses="${peers_addresses} --peerAddresses \${${org_upper}_PEER0_ADDRESS}"
+            peers_tlscerts="${peers_tlscerts} --tlsRootCertFiles \${${org_upper}_PEER0_TLS_ROOTCERT_FILE}"
+        done
+        
+        first_org=${orgs[0]}
+        # 特殊处理Buyerseller和Sysadmin组织
+        if [ "$first_org" = "buyerseller" ]; then
+            org_cap="Buyerseller"
+        elif [ "$first_org" = "sysadmin" ]; then
+            org_cap="Sysadmin"
+        fi
+        
+        OrgPeer0Cli="${org_cap}Peer0Cli"
+        cli_value=$(eval echo "\$${OrgPeer0Cli}")
+        
+        execute_with_timer "提交${chaincode_id}链码定义" "$CLI_CMD \"${cli_value} peer lifecycle chaincode commit -o $ORDERER1_ADDRESS --channelID ${channel_id} --name ${chaincode_id} --version ${Version} --sequence ${Sequence} --tls --cafile ${ORDERER1_CA} ${peers_addresses} ${peers_tlscerts}\""
+        
+        # 初始化链码
+        execute_with_timer "初始化${chaincode_id}链码" "$CLI_CMD \"${cli_value} peer chaincode invoke -o $ORDERER1_ADDRESS -C ${channel_id} -n ${chaincode_id} -c '{\\\"function\\\":\\\"InitLedger\\\",\\\"Args\\\":[]}' --tls --cafile $ORDERER1_CA ${peers_addresses} ${peers_tlscerts}\""
     done
 
-    show_progress 14 "批准链码" $start_time
-    PackageID=$($CLI_CMD "${GovernmentPeer0Cli} peer lifecycle chaincode calculatepackageid ${CHAINCODE_PACKAGE}")
-    for org in ${OrganizationList[@]}; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            
-            execute_with_timer "${org_cap}批准链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode approveformyorg -o $ORDERER1_ADDRESS --channelID $ChannelName --name $ChainCodeName --version $Version --package-id $PackageID --sequence $Sequence --tls --cafile $ORDERER1_CA\""
-        done
+    # 验证链码部署
+    show_progress 16 "验证链码部署" $start_time
+    successful_deployments=0
+    total_deployments=0
+
+    for channel_id in $ALL_CHANNELS; do
+        ((total_deployments++))
+        eval "chaincode_config=\$${channel_id}_CHAINCODE"
+        IFS=':' read -r chaincode_id src_path dest_path <<< "$chaincode_config"
+        
+        eval "channel_orgs=\$${channel_id}_ORGS"
+        IFS=' ' read -r -a orgs <<< "$channel_orgs"
+        
+        first_org=${orgs[0]}
+        # 特殊处理Buyerseller和Sysadmin组织
+        if [ "$first_org" = "buyerseller" ]; then
+            org_cap="Buyerseller"
+        elif [ "$first_org" = "sysadmin" ]; then
+            org_cap="Sysadmin"
+        else
+            org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${first_org:0:1})${first_org:1}"
+        fi
+        
+        OrgPeer0Cli="${org_cap}Peer0Cli"
+        cli_value=$(eval echo "\$${OrgPeer0Cli}")
+        
+        if $CLI_CMD "${cli_value} peer chaincode query -C ${channel_id} -n ${chaincode_id} -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello"; then
+            log_success "链码 ${chaincode_id} 在通道 ${channel_id} 上部署成功"
+            ((successful_deployments++))
+        else
+            log_error "链码 ${chaincode_id} 在通道 ${channel_id} 上部署失败"
+        fi
     done
 
-    # 提交链码
-    show_progress 15 "提交链码" $start_time
-    execute_with_timer "提交链码定义" "$CLI_CMD \"${GovernmentPeer0Cli} peer lifecycle chaincode commit -o $ORDERER1_ADDRESS --channelID $ChannelName --name $ChainCodeName --version $Version --sequence $Sequence --tls --cafile $ORDERER1_CA \
-    --peerAddresses $GOVERNMENT_PEER0_ADDRESS --tlsRootCertFiles $GOVERNMENT_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $AGENCY_PEER0_ADDRESS --tlsRootCertFiles $AGENCY_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $THIRDPARTY_PEER0_ADDRESS --tlsRootCertFiles $THIRDPARTY_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE\""
-
-    # 初始化并验证
-    show_progress 16 "初始化并验证" $start_time
-    execute_with_timer "初始化链码" "$CLI_CMD \"$GovernmentPeer0Cli peer chaincode invoke -o $ORDERER1_ADDRESS -C $ChannelName -n $ChainCodeName \
-    -c '{\\\"function\\\":\\\"InitLedger\\\",\\\"Args\\\":[]}' --tls --cafile $ORDERER1_CA \
-    --peerAddresses $GOVERNMENT_PEER0_ADDRESS --tlsRootCertFiles $GOVERNMENT_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $AGENCY_PEER0_ADDRESS --tlsRootCertFiles $AGENCY_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $THIRDPARTY_PEER0_ADDRESS --tlsRootCertFiles $THIRDPARTY_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE\""
-
-    wait_for_completion "等待链码初始化（${CHAINCODE_INIT_WAIT}秒）" $CHAINCODE_INIT_WAIT
-
-    if $CLI_CMD "$GovernmentPeer0Cli peer chaincode query -C $ChannelName -n $ChainCodeName -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello"; then
-        log_success "【恭喜您！】network 部署成功 (总耗时: $(time_elapsed $start_time))"
+    if [ $successful_deployments -eq $total_deployments ]; then
+        log_success "【恭喜您！】所有链码部署成功 (总耗时: $(time_elapsed $start_time))"
         exit 0
+    else
+        log_error "【警告】部分链码部署失败，请检查日志 (总耗时: $(time_elapsed $start_time))"
+        exit 1
     fi
-
-    log_error "【警告】network 未部署成功，请检查日志定位具体问题。(总耗时: $(time_elapsed $start_time))"
-    exit 1
 }
 
 # 执行主函数
