@@ -1,0 +1,40 @@
+# 服务器配置
+server:
+  port: 8080
+  mode: debug # debug or release
+
+# JWT配置
+jwt:
+  secret: grets_system_secret_key_2024
+  expiration: 24h # 24小时
+
+# Fabric网络配置
+fabric:
+  # 操作智能合约的连接信息
+  connection:
+    organization: Org1
+    user: User1
+    cryptoPath: /fabric/crypto-config
+    channelName: mychannel
+    chaincodeName: grets
+    networkConfig: /fabric/connection.yaml
+    walletPath: /fabric/wallet
+  # 监听智能合约事件的连接信息
+  eventConnection:
+    organization: Org1 
+    user: User1
+    cryptoPath: /fabric/crypto-config
+    channelName: mychannel
+    chaincodeName: grets
+    networkConfig: /fabric/connection.yaml
+    walletPath: /fabric/wallet
+
+# 日志配置
+log:
+  level: debug
+  path: ./logs
+  filename: grets.log
+  max_size: 500
+  max_backups: 10
+  max_age: 28
+  compress: false 
