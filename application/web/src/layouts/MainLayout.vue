@@ -25,8 +25,8 @@
             <el-icon><House /></el-icon>
             <span>房产管理</span>
           </template>
-          <el-menu-item index="/realty">房产列表</el-menu-item>
-          <el-menu-item v-if="hasRole(['GovernmentMSP'])" index="/realty/create">创建房产</el-menu-item>
+          <el-menu-item index="/realty/list">房产列表</el-menu-item>
+          <el-menu-item index="/realty/create" v-if="hasPermission(['GovernmentMSP'])">添加房产</el-menu-item>
         </el-sub-menu>
         
         <el-sub-menu index="/transaction">
@@ -34,8 +34,8 @@
             <el-icon><Sell /></el-icon>
             <span>交易管理</span>
           </template>
-          <el-menu-item index="/transaction">交易列表</el-menu-item>
-          <el-menu-item v-if="hasRole(['AgencyMSP', 'InvestorMSP'])" index="/transaction/create">创建交易</el-menu-item>
+          <el-menu-item index="/transaction/list">交易列表</el-menu-item>
+          <el-menu-item index="/transaction/create" v-if="hasPermission(['AgencyMSP', 'InvestorMSP'])">创建交易</el-menu-item>
         </el-sub-menu>
         
         <el-sub-menu index="/contract">
@@ -43,8 +43,8 @@
             <el-icon><Document /></el-icon>
             <span>合同管理</span>
           </template>
-          <el-menu-item index="/contract">合同列表</el-menu-item>
-          <el-menu-item v-if="hasRole(['AgencyMSP', 'InvestorMSP'])" index="/contract/create">创建合同</el-menu-item>
+          <el-menu-item index="/contract/list">合同列表</el-menu-item>
+          <el-menu-item index="/contract/create" v-if="hasPermission(['AgencyMSP', 'InvestorMSP'])">创建合同</el-menu-item>
         </el-sub-menu>
         
         <el-sub-menu index="/payment">
@@ -52,8 +52,8 @@
             <el-icon><Money /></el-icon>
             <span>支付管理</span>
           </template>
-          <el-menu-item index="/payment">支付列表</el-menu-item>
-          <el-menu-item v-if="hasRole(['InvestorMSP', 'BankMSP'])" index="/payment/create">创建支付</el-menu-item>
+          <el-menu-item index="/payment/list">支付列表</el-menu-item>
+          <el-menu-item index="/payment/create" v-if="hasPermission(['InvestorMSP', 'BankMSP'])">创建支付</el-menu-item>
         </el-sub-menu>
         
         <el-sub-menu index="/tax">
@@ -61,8 +61,8 @@
             <el-icon><Wallet /></el-icon>
             <span>税费管理</span>
           </template>
-          <el-menu-item index="/tax">税费列表</el-menu-item>
-          <el-menu-item v-if="hasRole(['GovernmentMSP'])" index="/tax/create">创建税费</el-menu-item>
+          <el-menu-item index="/tax/list">税费列表</el-menu-item>
+          <el-menu-item index="/tax/create" v-if="hasPermission(['GovernmentMSP'])">创建税费</el-menu-item>
         </el-sub-menu>
         
         <el-sub-menu index="/mortgage">
@@ -70,139 +70,159 @@
             <el-icon><CreditCard /></el-icon>
             <span>抵押贷款</span>
           </template>
-          <el-menu-item index="/mortgage">贷款列表</el-menu-item>
-          <el-menu-item v-if="hasRole(['InvestorMSP'])" index="/mortgage/create">申请贷款</el-menu-item>
+          <el-menu-item index="/mortgage/list">贷款列表</el-menu-item>
+          <el-menu-item index="/mortgage/create" v-if="hasPermission(['InvestorMSP'])">申请贷款</el-menu-item>
         </el-sub-menu>
         
-        <el-sub-menu v-if="hasRole(['AdminMSP'])" index="/admin">
+        <el-sub-menu index="/admin" v-if="hasPermission(['AdminMSP'])">
           <template #title>
             <el-icon><Setting /></el-icon>
             <span>系统管理</span>
           </template>
-          <el-menu-item index="/admin/users">用户管理</el-menu-item>
+          <el-menu-item index="/admin/user">用户管理</el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
     
-    <!-- 主内容区 -->
+    <!-- 主要内容区域 -->
     <el-container class="main-container">
-      <!-- 顶部导航 -->
       <el-header class="header">
         <div class="header-left">
-          <el-icon class="toggle-sidebar" @click="toggleSidebar">
-            <Fold v-if="!isCollapse" />
-            <Expand v-else />
-          </el-icon>
-          <el-breadcrumb separator="/">
-            <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-            <el-breadcrumb-item v-if="$route.meta.title">{{ $route.meta.title }}</el-breadcrumb-item>
-          </el-breadcrumb>
+          <el-button type="text" @click="toggleSidebar">
+            <el-icon><Menu /></el-icon>
+          </el-button>
         </div>
-        
         <div class="header-right">
-          <el-dropdown trigger="click" @command="handleCommand">
+          <el-dropdown trigger="click">
             <span class="user-dropdown">
               {{ username }}
-              <el-icon><ArrowDown /></el-icon>
+              <el-icon class="el-icon--right"><arrow-down /></el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="profile">个人资料</el-dropdown-item>
-                <el-dropdown-item command="changePassword">修改密码</el-dropdown-item>
-                <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
+                <el-dropdown-item @click="$router.push('/user/profile')">个人信息</el-dropdown-item>
+                <el-dropdown-item @click="$router.push('/user/password')">修改密码</el-dropdown-item>
+                <el-dropdown-item divided @click="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
         </div>
       </el-header>
       
-      <!-- 内容区 -->
-      <el-main class="content">
-        <router-view />
+      <el-main class="main-content">
+        <!-- 面包屑导航 -->
+        <el-breadcrumb class="breadcrumb" separator="/">
+          <el-breadcrumb-item v-for="(item, index) in breadcrumbs" :key="index" :to="item.path">
+            {{ item.title }}
+          </el-breadcrumb-item>
+        </el-breadcrumb>
+        
+        <!-- 内容区域 -->
+        <div class="content-container">
+          <router-view />
+        </div>
       </el-main>
-      
-      <!-- 页脚 -->
-      <el-footer class="footer">
-        <div>房地产交易系统 &copy; {{ new Date().getFullYear() }}</div>
-      </el-footer>
     </el-container>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { 
-  Monitor, House, Sell, Document, Money, Wallet, 
-  CreditCard, Setting, Fold, Expand, ArrowDown 
+import {
+  Menu, 
+  House, 
+  Document, 
+  Sell, 
+  Money, 
+  Wallet, 
+  CreditCard, 
+  Setting, 
+  Monitor,
+  ArrowDown
 } from '@element-plus/icons-vue'
 
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
+// 用户信息
+const username = computed(() => userStore.username)
+const userRole = computed(() => userStore.userRole)
+
 // 侧边栏折叠状态
 const isCollapse = ref(false)
-
-// 计算当前激活的菜单
-const activeMenu = computed(() => {
-  return router.currentRoute.value.path
-})
-
-// 用户名
-const username = computed(() => userStore.username)
-
-// 切换侧边栏折叠状态
 const toggleSidebar = () => {
   isCollapse.value = !isCollapse.value
 }
 
-// 检查角色权限
-const hasRole = (roles) => {
-  return userStore.hasRole(roles)
+// 当前激活的菜单项
+const activeMenu = computed(() => {
+  return route.path
+})
+
+// 面包屑导航
+const breadcrumbs = computed(() => {
+  const crumbs = [{ title: '首页', path: '/' }]
+  
+  if (route.path === '/') {
+    return crumbs
+  }
+  
+  const paths = route.path.split('/').filter(Boolean)
+  
+  let currentPath = ''
+  paths.forEach(path => {
+    currentPath += `/${path}`
+    const currentRoute = router.resolve(currentPath).matched[0]
+    if (currentRoute) {
+      crumbs.push({
+        title: currentRoute.meta.title || path,
+        path: currentPath
+      })
+    }
+  })
+  
+  return crumbs
+})
+
+// 权限检查
+const hasPermission = (roles) => {
+  if (!roles || roles.length === 0) return true
+  return roles.includes(userRole.value)
 }
 
-// 处理下拉菜单命令
-const handleCommand = (command) => {
-  switch (command) {
-    case 'profile':
-      router.push({ name: 'UserProfile' })
-      break
-    case 'changePassword':
-      router.push({ name: 'ChangePassword' })
-      break
-    case 'logout':
-      userStore.logout()
-      break
-  }
+// 退出登录
+const logout = () => {
+  userStore.logout()
 }
 </script>
 
 <style scoped>
 .main-layout {
-  display: flex;
   height: 100vh;
-  overflow: hidden;
+  display: flex;
 }
 
 .sidebar {
-  background-color: #001529;
-  color: #fff;
   height: 100%;
-  overflow-y: auto;
+  background-color: #001529;
   transition: width 0.3s;
+  overflow-x: hidden;
 }
 
 .logo-container {
   height: 60px;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  padding: 0 20px;
+  color: #fff;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .logo {
-  color: #fff;
   font-size: 20px;
   font-weight: bold;
   margin: 0;
@@ -220,52 +240,59 @@ const handleCommand = (command) => {
 }
 
 .header {
-  background-color: #fff;
-  border-bottom: 1px solid #eee;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-}
-
-.header-left {
-  display: flex;
   align-items: center;
+  padding: 0 20px;
+  height: 60px;
+  background-color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
-.toggle-sidebar {
-  font-size: 20px;
-  margin-right: 20px;
-  cursor: pointer;
-}
-
-.header-right {
+.header-left, .header-right {
   display: flex;
   align-items: center;
 }
 
 .user-dropdown {
+  cursor: pointer;
   display: flex;
   align-items: center;
-  cursor: pointer;
+  font-size: 14px;
 }
 
-.content {
+.main-content {
   flex: 1;
-  overflow-y: auto;
   padding: 20px;
+  overflow-y: auto;
   background-color: #f5f7fa;
 }
 
-.footer {
+.breadcrumb {
+  margin-bottom: 20px;
+}
+
+.content-container {
   background-color: #fff;
-  border-top: 1px solid #eee;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  height: 40px;
-  font-size: 12px;
-  color: #999;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  min-height: calc(100% - 40px);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    z-index: 999;
+    height: 100%;
+  }
+  
+  .main-container {
+    margin-left: 0;
+  }
+  
+  .content-container {
+    padding: 15px;
+  }
 }
 </style> 

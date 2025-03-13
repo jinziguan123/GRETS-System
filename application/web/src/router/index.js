@@ -9,7 +9,7 @@ const Login = () => import('@/views/user/Login.vue')
 const Register = () => import('@/views/user/Register.vue')
 
 // 仪表盘
-const Dashboard = () => import('@/views/dashboard/Dashboard.vue')
+const Dashboard = () => import('@/views/dashboard/DashboardView.vue')
 
 // 房产管理
 const RealtyList = () => import('@/views/realty/RealtyList.vue')

@@ -1,24 +1,28 @@
 <template>
   <div class="auth-layout">
     <div class="auth-container">
-      <div class="auth-logo">
-        <h1>GRETS</h1>
-        <p>房地产交易系统</p>
-      </div>
-      
-      <div class="auth-content">
-        <router-view />
-      </div>
-      
-      <div class="auth-footer">
-        <p>房地产交易系统 &copy; {{ new Date().getFullYear() }}</p>
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="logo">
+            <h1>GRETS系统</h1>
+            <p>基于区块链的房地产交易系统</p>
+          </div>
+        </div>
+        
+        <div class="auth-content">
+          <router-view />
+        </div>
+        
+        <div class="auth-footer">
+          <p>&copy; {{ new Date().getFullYear() }} GRETS System. 版权所有</p>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-// 认证布局不需要特殊逻辑
+// 认证布局组件，用于登录、注册等页面
 </script>
 
 <style scoped>
@@ -27,42 +31,54 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background: linear-gradient(135deg, #1976d2, #2196f3);
+  padding: 20px;
 }
 
 .auth-container {
-  width: 400px;
-  padding: 40px;
+  width: 100%;
+  max-width: 440px;
+}
+
+.auth-card {
   background-color: #fff;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
-.auth-logo {
+.auth-header {
+  padding: 30px 30px 20px;
   text-align: center;
-  margin-bottom: 30px;
 }
 
-.auth-logo h1 {
-  font-size: 28px;
+.logo h1 {
+  font-size: 24px;
   font-weight: bold;
-  color: #409EFF;
+  margin: 0 0 8px;
+  color: #1976d2;
+}
+
+.logo p {
+  font-size: 14px;
+  color: #666;
   margin: 0;
 }
 
-.auth-logo p {
-  font-size: 16px;
-  color: #606266;
-  margin: 10px 0 0;
-}
-
 .auth-content {
-  margin-bottom: 30px;
+  padding: 0 30px 30px;
 }
 
 .auth-footer {
+  padding: 15px 0;
   text-align: center;
+  background-color: #f5f7fa;
+  border-top: 1px solid #eee;
+}
+
+.auth-footer p {
+  margin: 0;
   font-size: 12px;
-  color: #909399;
+  color: #999;
 }
 </style> 
