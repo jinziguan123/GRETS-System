@@ -55,9 +55,9 @@
 ### 技术栈
 
 - **区块链平台**：Hyperledger Fabric 2.5
-- **智能合约**：Golang
+- **智能合约**：Golang 1.23.1
 - **前端**：Vue3
-- **API服务**：Golang
+- **API服务**：Golang 1.23.1
 
 ## 功能模块
 
@@ -86,7 +86,7 @@
 
 - Docker和Docker Compose
 - Go 1.23+
-- Node.js 14+
+- Node.js 20+
 - Vue CLI
 
 ### 部署步骤
