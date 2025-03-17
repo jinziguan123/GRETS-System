@@ -1,209 +1,167 @@
 package controller
 
 import (
-	"encoding/json"
-	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
+	"grets_server/service"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-// CreatePaymentRequest 创建支付请求
-type CreatePaymentRequest struct {
-	TransactionID string  `json:"transactionId" binding:"required"`
-	RealtyID      string  `json:"realtyId" binding:"required"`
-	Payer         string  `json:"payer" binding:"required"`
-	Payee         string  `json:"payee" binding:"required"`
-	Amount        float64 `json:"amount" binding:"required"`
-	PaymentType   string  `json:"paymentType" binding:"required"`
-	PaymentDate   string  `json:"paymentDate" binding:"required"`
-	Description   string  `json:"description"`
+// 支付控制器结构体
+type PaymentController struct {
+	paymentService service.PaymentService
 }
 
-// CreatePayment 创建支付记录
-func CreatePayment(c *gin.Context) {
+// NewPaymentController 创建支付控制器实例
+func NewPaymentController() *PaymentController {
+	return &PaymentController{
+		paymentService: service.NewPaymentService(),
+	}
+}
+
+// CreatePayment 创建支付
+func (ctrl *PaymentController) CreatePayment(c *gin.Context) {
 	// 解析请求参数
-	var req CreatePaymentRequest
+	var req service.CreatePaymentDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ResponseBadRequest(c, "无效的请求参数")
 		return
 	}
 
-	// 获取当前用户
-	userId := c.GetString("userId")
-	if userId == "" {
-		utils.ResponseUnauthorized(c, "未获取到用户信息")
+	// 调用服务创建支付
+	if err := ctrl.paymentService.CreatePayment(&req); err != nil {
+		utils.ResponseInternalServerError(c, err.Error())
 		return
 	}
 
-	// 调用链码创建支付记录
-	_, err := blockchain.DefaultFabricClient.Invoke("CreatePayment",
-		req.TransactionID,
-		req.RealtyID,
-		req.Payer,
-		req.Payee,
-		strconv.FormatFloat(req.Amount, 'f', 2, 64),
-		req.PaymentType,
-		req.PaymentDate,
-		req.Description,
-		userId)
-	if err != nil {
-		utils.ResponseInternalServerError(c, "创建支付记录失败: "+err.Error())
-		return
-	}
-
-	// 返回结果
-	utils.ResponseSuccess(c)
-}
-
-// QueryPaymentListRequest 查询支付列表请求
-type QueryPaymentListRequest struct {
-	TransactionID string `form:"transactionId"`
-	RealtyID      string `form:"realtyId"`
-	Payer         string `form:"payer"`
-	Payee         string `form:"payee"`
-	PaymentType   string `form:"paymentType"`
-	Status        string `form:"status"`
-	PageSize      int    `form:"pageSize,default=10"`
-	PageNumber    int    `form:"pageNumber,default=1"`
+	// 返回成功结果
+	utils.ResponseWithData(c, gin.H{
+		"paymentId": req.ID,
+		"message":   "支付创建成功",
+	})
 }
 
 // QueryPaymentList 查询支付列表
-func QueryPaymentList(c *gin.Context) {
+func (ctrl *PaymentController) QueryPaymentList(c *gin.Context) {
 	// 解析查询参数
-	var req QueryPaymentListRequest
-	if err := c.ShouldBindQuery(&req); err != nil {
-		utils.ResponseBadRequest(c, "无效的查询参数")
-		return
+	query := &service.QueryPaymentDTO{
+		TransactionID: c.Query("transactionId"),
+		Status:        c.Query("status"),
+		PayerID:       c.Query("payerId"),
+		PayeeID:       c.Query("payeeId"),
+		PageSize:      10,
+		PageNumber:    1,
 	}
 
-	// 准备查询条件的JSON字符串
-	condition := map[string]interface{}{}
-	if req.TransactionID != "" {
-		condition["transactionId"] = req.TransactionID
+	// 解析数值类型参数
+	if pageSize, err := strconv.Atoi(c.Query("pageSize")); err == nil && pageSize > 0 {
+		query.PageSize = pageSize
 	}
-	if req.RealtyID != "" {
-		condition["realtyId"] = req.RealtyID
-	}
-	if req.Payer != "" {
-		condition["payer"] = req.Payer
-	}
-	if req.Payee != "" {
-		condition["payee"] = req.Payee
-	}
-	if req.PaymentType != "" {
-		condition["paymentType"] = req.PaymentType
-	}
-	if req.Status != "" {
-		condition["status"] = req.Status
+	if pageNum, err := strconv.Atoi(c.Query("pageNumber")); err == nil && pageNum > 0 {
+		query.PageNumber = pageNum
 	}
 
-	conditionJson, err := json.Marshal(condition)
+	// 调用服务查询支付列表
+	payments, total, err := ctrl.paymentService.QueryPaymentList(query)
 	if err != nil {
-		utils.ResponseInternalServerError(c, "序列化查询条件失败")
+		utils.ResponseInternalServerError(c, err.Error())
 		return
 	}
 
-	// 调用链码查询支付列表
-	result, err := blockchain.DefaultFabricClient.Query("QueryPaymentByCondition",
-		string(conditionJson),
-		strconv.Itoa(req.PageSize),
-		strconv.Itoa(req.PageNumber))
-	if err != nil {
-		utils.ResponseInternalServerError(c, "查询支付列表失败")
-		return
-	}
-
-	// 解析响应数据
-	var resp struct {
-		Total int         `json:"total"`
-		List  interface{} `json:"list"`
-	}
-	if err := json.Unmarshal(result, &resp); err != nil {
-		utils.ResponseInternalServerError(c, "解析响应数据失败")
-		return
-	}
-
-	// 返回结果
-	utils.ResponseWithData(c, resp)
+	// 返回查询结果
+	utils.ResponseWithData(c, gin.H{
+		"items": payments,
+		"total": total,
+		"page":  query.PageNumber,
+		"size":  query.PageSize,
+	})
 }
 
 // GetPaymentByID 根据ID获取支付信息
-func GetPaymentByID(c *gin.Context) {
-	// 获取支付ID
-	paymentId := c.Param("id")
-	if paymentId == "" {
-		utils.ResponseBadRequest(c, "无效的支付ID")
+func (ctrl *PaymentController) GetPaymentByID(c *gin.Context) {
+	// 获取路径参数
+	id := c.Param("id")
+	if id == "" {
+		utils.ResponseBadRequest(c, "支付ID不能为空")
 		return
 	}
 
-	// 调用链码查询支付
-	result, err := blockchain.DefaultFabricClient.Query("QueryPayment", paymentId)
+	// 调用服务获取支付信息
+	payment, err := ctrl.paymentService.GetPaymentByID(id)
 	if err != nil {
-		utils.ResponseInternalServerError(c, "查询支付失败")
+		utils.ResponseInternalServerError(c, err.Error())
 		return
 	}
 
-	// 检查是否找到支付
-	if len(result) == 0 {
-		utils.ResponseNotFound(c, "支付记录不存在")
-		return
-	}
-
-	// 解析支付数据
-	var payment interface{}
-	if err := json.Unmarshal(result, &payment); err != nil {
-		utils.ResponseInternalServerError(c, "解析支付数据失败")
-		return
-	}
-
-	// 返回结果
+	// 返回支付信息
 	utils.ResponseWithData(c, payment)
 }
 
-// ConfirmPaymentRequest 确认支付请求
-type ConfirmPaymentRequest struct {
-	ConfirmationInfo string `json:"confirmationInfo" binding:"required"`
-	ConfirmationDate string `json:"confirmationDate" binding:"required"`
-	Comment          string `json:"comment"`
+// VerifyPayment 验证支付
+func (ctrl *PaymentController) VerifyPayment(c *gin.Context) {
+	// 获取路径参数
+	id := c.Param("id")
+	if id == "" {
+		utils.ResponseBadRequest(c, "支付ID不能为空")
+		return
+	}
+
+	// 调用服务验证支付
+	if err := ctrl.paymentService.VerifyPayment(id); err != nil {
+		utils.ResponseInternalServerError(c, err.Error())
+		return
+	}
+
+	// 返回成功结果
+	utils.ResponseWithData(c, gin.H{
+		"paymentId": id,
+		"message":   "支付验证成功",
+	})
 }
 
-// ConfirmPayment 确认支付
+// CompletePayment 完成支付
+func (ctrl *PaymentController) CompletePayment(c *gin.Context) {
+	// 获取路径参数
+	id := c.Param("id")
+	if id == "" {
+		utils.ResponseBadRequest(c, "支付ID不能为空")
+		return
+	}
+
+	// 调用服务完成支付
+	if err := ctrl.paymentService.CompletePayment(id); err != nil {
+		utils.ResponseInternalServerError(c, err.Error())
+		return
+	}
+
+	// 返回成功结果
+	utils.ResponseWithData(c, gin.H{
+		"paymentId": id,
+		"message":   "支付完成成功",
+	})
+}
+
+// 创建控制器实例
+var Payment = NewPaymentController()
+
+// 为兼容现有路由，提供这些函数
+func CreatePayment(c *gin.Context) {
+	Payment.CreatePayment(c)
+}
+
+func QueryPaymentList(c *gin.Context) {
+	Payment.QueryPaymentList(c)
+}
+
+func GetPaymentByID(c *gin.Context) {
+	Payment.GetPaymentByID(c)
+}
+
+func VerifyPayment(c *gin.Context) {
+	Payment.VerifyPayment(c)
+}
+
 func ConfirmPayment(c *gin.Context) {
-	// 获取支付ID
-	paymentId := c.Param("id")
-	if paymentId == "" {
-		utils.ResponseBadRequest(c, "无效的支付ID")
-		return
-	}
-
-	// 解析请求参数
-	var req ConfirmPaymentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ResponseBadRequest(c, "无效的请求参数")
-		return
-	}
-
-	// 获取当前用户
-	userId := c.GetString("userId")
-	if userId == "" {
-		utils.ResponseUnauthorized(c, "未获取到用户信息")
-		return
-	}
-
-	// 调用链码确认支付
-	_, err := blockchain.DefaultFabricClient.Invoke("ConfirmPayment",
-		paymentId,
-		req.ConfirmationInfo,
-		req.ConfirmationDate,
-		req.Comment,
-		userId)
-	if err != nil {
-		utils.ResponseInternalServerError(c, "确认支付失败: "+err.Error())
-		return
-	}
-
-	// 返回结果
-	utils.ResponseSuccess(c)
+	Payment.CompletePayment(c)
 }

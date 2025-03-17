@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
+	"grets_server/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,67 +15,41 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+// 用户控制器结构体
+type UserController struct {
+	userService service.UserService
+}
+
+// NewUserController 创建用户控制器实例
+func NewUserController() *UserController {
+	return &UserController{
+		userService: service.NewUserService(),
+	}
+}
+
 // Login 用户登录
-func Login(c *gin.Context) {
+func (ctrl *UserController) Login(c *gin.Context) {
 	// 解析请求参数
-	var req LoginRequest
+	var req struct {
+		Username string `json:"username" binding:"required"`
+		Password string `json:"password" binding:"required"`
+	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ResponseBadRequest(c, "无效的请求参数")
 		return
 	}
 
-	// 调用链码查询用户
-	result, err := blockchain.DefaultFabricClient.Query("QueryUser", req.Username)
+	// 调用服务进行登录
+	user, token, err := ctrl.userService.Login(req.Username, req.Password)
 	if err != nil {
-		utils.ResponseInternalServerError(c, "查询用户失败")
+		utils.ResponseUnauthorized(c, err.Error())
 		return
 	}
 
-	// 检查是否找到用户
-	if len(result) == 0 {
-		utils.ResponseUnauthorized(c, "用户名或密码错误")
-		return
-	}
-
-	// 解析用户数据
-	var user struct {
-		ID       string `json:"id"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-		Role     string `json:"role"`
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Phone    string `json:"phone"`
-	}
-	if err := json.Unmarshal(result, &user); err != nil {
-		utils.ResponseInternalServerError(c, "解析用户数据失败")
-		return
-	}
-
-	// 验证密码
-	if user.Password != req.Password {
-		utils.ResponseUnauthorized(c, "用户名或密码错误")
-		return
-	}
-
-	// 生成JWT令牌
-	token, err := utils.GenerateToken(user.ID, user.Username, user.Role)
-	if err != nil {
-		utils.ResponseInternalServerError(c, "生成token失败")
-		return
-	}
-
-	// 返回结果
+	// 返回登录结果
 	utils.ResponseWithData(c, gin.H{
 		"token": token,
-		"user": gin.H{
-			"id":       user.ID,
-			"username": user.Username,
-			"role":     user.Role,
-			"name":     user.Name,
-			"email":    user.Email,
-			"phone":    user.Phone,
-		},
+		"user":  user,
 	})
 }
 
@@ -395,4 +370,71 @@ func GetSystemInfo(c *gin.Context) {
 		"name":    "房地产交易系统",
 		"version": "1.0.0",
 	})
+}
+
+// GetUserList 获取用户列表
+func (ctrl *UserController) GetUserList(c *gin.Context) {
+	// 解析查询参数
+	query := &service.QueryUserDTO{
+		Username:   c.Query("username"),
+		Role:       c.Query("role"),
+		PageSize:   10,
+		PageNumber: 1,
+	}
+
+	// 获取用户列表
+	users, total, err := ctrl.userService.GetUserList(query)
+	if err != nil {
+		utils.ResponseInternalServerError(c, err.Error())
+		return
+	}
+
+	// 返回用户列表
+	utils.ResponseWithData(c, gin.H{
+		"items": users,
+		"total": total,
+		"page":  query.PageNumber,
+		"size":  query.PageSize,
+	})
+}
+
+// UpdateUser 更新用户信息
+func (ctrl *UserController) UpdateUser(c *gin.Context) {
+	// 获取路径参数
+	id := c.Param("id")
+	if id == "" {
+		utils.ResponseBadRequest(c, "用户ID不能为空")
+		return
+	}
+
+	// 解析请求参数
+	var req service.UpdateUserDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ResponseBadRequest(c, "无效的请求参数")
+		return
+	}
+	req.ID = id
+
+	// 调用服务更新用户信息
+	if err := ctrl.userService.UpdateUser(&req); err != nil {
+		utils.ResponseInternalServerError(c, err.Error())
+		return
+	}
+
+	// 返回成功结果
+	utils.ResponseWithData(c, gin.H{
+		"message": "用户更新成功",
+	})
+}
+
+// 创建控制器实例
+var User = NewUserController()
+
+// 为兼容现有路由，提供这些函数
+func Login(c *gin.Context) {
+	User.Login(c)
+}
+
+func GetUserList(c *gin.Context) {
+	User.GetUserList(c)
 }

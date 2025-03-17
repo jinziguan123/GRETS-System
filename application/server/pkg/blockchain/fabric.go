@@ -4,151 +4,90 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"grets_server/config"
 	"grets_server/pkg/utils"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/hyperledger/fabric-gateway/pkg/client"
+	"github.com/hyperledger/fabric-gateway/pkg/hash"
 	"github.com/hyperledger/fabric-gateway/pkg/identity"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
-// FabricClient 区块链客户端结构
-type FabricClient struct {
-	Gateway       *client.Gateway
-	Network       *client.Network
-	Contract      *client.Contract
-	channelName   string
-	chaincodeName string
-}
-
 var (
-	// DefaultFabricClient 默认的Fabric客户端实例
-	DefaultFabricClient *FabricClient
+	// 组织对应的合约客户端
+	contracts = make(map[string]*client.Contract)
 )
 
 // InitFabricClient 初始化Fabric客户端
-func InitFabricClient(mspID, certPath, keyPath, tlsCertPath, peerEndpoint, channelName, chaincodeName string) error {
-	// 检查文件是否存在
-	if _, err := os.Stat(certPath); os.IsNotExist(err) {
-		return fmt.Errorf("证书文件不存在: %s", certPath)
-	}
-	if _, err := os.Stat(keyPath); os.IsNotExist(err) {
-		return fmt.Errorf("密钥文件不存在: %s", keyPath)
-	}
-	if _, err := os.Stat(tlsCertPath); os.IsNotExist(err) {
-		return fmt.Errorf("TLS证书文件不存在: %s", tlsCertPath)
+func InitFabricClient() error {
+	// 初始化区块链监听器
+	if err := initBlockchainListener(filepath.Join("data", "blocks")); err != nil {
+		return fmt.Errorf("初始化区块链监听器失败: %v", err)
 	}
 
-	// 读取证书
-	cert, err := loadCertificate(certPath)
-	if err != nil {
-		return err
-	}
+	// 为每个组织创建客户端
+	for orgName, orgConfig := range config.GlobalConfig.Fabric.Organizations {
+		// 创建grpc链接
+		clientConnection, err := newGrpcConnection(orgConfig)
+		if err != nil {
+			return fmt.Errorf("创建grpc连接失败: %v", err)
+		}
 
-	// 读取私钥
-	key, err := loadPrivateKey(keyPath)
-	if err != nil {
-		return err
-	}
+		// 创建身份
+		id, err := newIdentity(orgConfig)
+		if err != nil {
+			return fmt.Errorf("创建身份失败: %v", err)
+		}
 
-	// 创建签名身份
-	id, err := identity.NewX509Identity(mspID, cert)
-	if err != nil {
-		return err
-	}
+		// 创建签名函数
+		sign, err := newSign(orgConfig)
+		if err != nil {
+			return fmt.Errorf("创建组织[%s]签名函数失败：%v", orgName, err)
+		}
 
-	// 使用私钥创建签名器
-	signer, err := identity.NewPrivateKeySign(key)
-	if err != nil {
-		return err
-	}
+		gw, err := client.Connect(
+			id,
+			client.WithSign(sign),
+			client.WithHash(hash.SHA256),
+			client.WithClientConnection(clientConnection),
+			client.WithEvaluateTimeout(5*time.Second),
+			client.WithEndorseTimeout(15*time.Second),
+			client.WithSubmitTimeout(5*time.Second),
+			client.WithCommitStatusTimeout(1*time.Minute),
+		)
+		if err != nil {
+			return fmt.Errorf("创建gateway客户端失败: %v", err)
+		}
 
-	// 读取TLS证书
-	tlsCert, err := loadTLSCertificate(tlsCertPath)
-	if err != nil {
-		return err
-	}
+		network := gw.GetNetwork(config.GlobalConfig.Fabric.ChannelName)
+		contract := network.GetContract(config.GlobalConfig.Fabric.ChainCodeName)
 
-	// 创建TLS证书凭证
-	transportCredentials := credentials.NewClientTLSFromCert(nil, "")
-	if tlsCert != nil {
-		transportCredentials = credentials.NewClientTLSFromCert(tlsCert, "")
-	}
+		// 添加网络到区块链监听器
+		if err := addNetwork(orgName, network); err != nil {
+			return fmt.Errorf("添加网络到区块链监听器失败: %v", err)
+		}
 
-	// 创建gRPC连接选项
-	dialOptions := []grpc.DialOption{
-		grpc.WithTransportCredentials(transportCredentials),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(100*1024*1024), grpc.MaxCallSendMsgSize(100*1024*1024)),
-	}
+		// 添加到合约客户端映射表
+		contracts[orgName] = contract
 
-	// 连接到Fabric网络
-	conn, err := grpc.Dial(peerEndpoint, dialOptions...)
-	if err != nil {
-		return err
-	}
-
-	// 创建Gateway
-	gateway, err := client.Connect(id, client.WithSign(signer), client.WithClientConnection(conn))
-	if err != nil {
-		return err
-	}
-
-	// 获取网络
-	network := gateway.GetNetwork(channelName)
-
-	// 获取合约
-	contract := network.GetContract(chaincodeName)
-
-	// 创建Fabric客户端
-	DefaultFabricClient = &FabricClient{
-		Gateway:       gateway,
-		Network:       network,
-		Contract:      contract,
-		channelName:   channelName,
-		chaincodeName: chaincodeName,
+		utils.Log.Info(fmt.Sprintf("创建组织[%s]合约客户端成功", orgName))
 	}
 
 	return nil
 }
 
-// Close 关闭客户端连接
-func (c *FabricClient) Close() {
-	if c.Gateway != nil {
-		c.Gateway.Close()
+// GetContract 获取指定组织的合约客户端
+func GetContract(orgName string) (*client.Contract, error) {
+	contract, ok := contracts[orgName]
+	if !ok {
+		return nil, fmt.Errorf("组织[%s]合约客户端不存在", orgName)
 	}
-}
-
-// Invoke 调用合约方法
-func (c *FabricClient) Invoke(fcn string, args ...string) ([]byte, error) {
-	startTime := time.Now()
-
-	// 调用合约方法
-	result, err := c.Contract.SubmitTransaction(fcn, args...)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("调用合约方法失败: %s, args: %v, 耗时: %v, 错误: %v", fcn, args, time.Since(startTime), err))
-		return nil, err
-	}
-
-	utils.Log.Info(fmt.Sprintf("调用合约方法成功: %s, args: %v, 耗时: %v", fcn, args, time.Since(startTime)))
-	return result, nil
-}
-
-// Query 查询合约方法
-func (c *FabricClient) Query(fcn string, args ...string) ([]byte, error) {
-	startTime := time.Now()
-
-	// 查询合约方法
-	result, err := c.Contract.EvaluateTransaction(fcn, args...)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("查询合约方法失败: %s, args: %v, 耗时: %v, 错误: %v", fcn, args, time.Since(startTime), err))
-		return nil, err
-	}
-
-	utils.Log.Info(fmt.Sprintf("查询合约方法成功: %s, args: %v, 耗时: %v", fcn, args, time.Since(startTime)))
-	return result, nil
+	return contract, nil
 }
 
 // 加载证书
@@ -196,4 +135,85 @@ func loadTLSCertificate(tlsCertPath string) (*x509.CertPool, error) {
 		return nil, fmt.Errorf("TLS证书解析失败")
 	}
 	return certPool, nil
+}
+
+// newGrpcConnection 创建 gRPC 连接
+func newGrpcConnection(orgConfig config.OrganizationConfig) (*grpc.ClientConn, error) {
+	certificatePEM, err := os.ReadFile(orgConfig.TlsCertPath)
+	if err != nil {
+		return nil, fmt.Errorf("读取证书失败: %v", err)
+	}
+
+	certificate, err := identity.CertificateFromPEM(certificatePEM)
+	if err != nil {
+		return nil, fmt.Errorf("解析TLS证书失败: %v", err)
+	}
+
+	certPool := x509.NewCertPool()
+	certPool.AddCert(certificate)
+	transportCredentials := credentials.NewClientTLSFromCert(certPool, orgConfig.GatewayPeer)
+
+	connection, err := grpc.Dial(orgConfig.PeerEndpoint, grpc.WithTransportCredentials(transportCredentials))
+	if err != nil {
+		return nil, fmt.Errorf("创建grpc连接失败: %v", err)
+	}
+
+	return connection, nil
+}
+
+// newIdentity 创建身份
+func newIdentity(orgConfig config.OrganizationConfig) (*identity.X509Identity, error) {
+	utils.Log.Info(fmt.Sprintf("创建身份: %s", orgConfig.MspID))
+	certificatePEM, err := readFirstFile(orgConfig.CertPath)
+	if err != nil {
+		return nil, fmt.Errorf("读取证书失败: %v", err)
+	}
+
+	certificate, err := identity.CertificateFromPEM(certificatePEM)
+	if err != nil {
+		return nil, fmt.Errorf("解析TLS证书失败: %v", err)
+	}
+
+	id, err := identity.NewX509Identity(orgConfig.MspID, certificate)
+	if err != nil {
+		return nil, fmt.Errorf("创建身份失败: %v", err)
+	}
+
+	return id, nil
+}
+
+// newSign 创建签名函数
+func newSign(orgConfig config.OrganizationConfig) (identity.Sign, error) {
+	privateKeyPEM, err := readFirstFile(orgConfig.KeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("读取私钥文件失败：%w", err)
+	}
+
+	privateKey, err := identity.PrivateKeyFromPEM(privateKeyPEM)
+	if err != nil {
+		return nil, err
+	}
+
+	sign, err := identity.NewPrivateKeySign(privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return sign, nil
+}
+
+// readFirstFile 读取目录中的第一个文件
+func readFirstFile(dirPath string) ([]byte, error) {
+	dir, err := os.Open(dirPath)
+	if err != nil {
+		return nil, fmt.Errorf("打开目录失败: %v", err)
+	}
+	defer dir.Close()
+
+	fileNames, err := dir.Readdirnames(1)
+	if err != nil {
+		return nil, fmt.Errorf("读取目录失败: %v", err)
+	}
+
+	return os.ReadFile(filepath.Join(dirPath, fileNames[0]))
 }

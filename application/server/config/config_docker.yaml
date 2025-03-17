@@ -1,0 +1,73 @@
+# 服务器配置
+server:
+  port: 8080
+  mode: release
+
+# JWT配置
+jwt:
+  secret: grets_system_secret_key_2024
+  expiration: 86400
+
+# Fabric网络配置
+fabric:
+  channelName: gretschannel
+  chaincodeName: gretschaincode
+  organizations:
+    government:
+      mspID: GovernmentMSP
+      certPath: /network/crypto-config/peerOrganizations/government.grets.com/users/User1@government.grets.com/msp/signcerts
+      keyPath: /network/crypto-config/peerOrganizations/government.grets.com/users/User1@government.grets.com/msp/keystore
+      tlsCertPath: /network/crypto-config/peerOrganizations/government.grets.com/peers/peer0.government.grets.com/tls/ca.crt
+      peerEndpoint: peer0.government.grets.com:7051
+      gatewayPeer: peer0.government.grets.com
+    bank:
+      mspID: BankMSP
+      certPath: /network/crypto-config/peerOrganizations/bank.grets.com/users/User1@bank.grets.com/msp/signcerts
+      keyPath: /network/crypto-config/peerOrganizations/bank.grets.com/users/User1@bank.grets.com/msp/keystore
+      tlsCertPath: /network/crypto-config/peerOrganizations/bank.grets.com/peers/peer0.bank.grets.com/tls/ca.crt
+      peerEndpoint: peer0.bank.grets.com:7051
+      gatewayPeer: peer0.bank.grets.com
+    thirdparty:
+      mspID: ThirdPartyMSP
+      certPath: /network/crypto-config/peerOrganizations/thirdparty.grets.com/users/User1@thirdparty.grets.com/msp/signcerts
+      keyPath: /network/crypto-config/peerOrganizations/thirdparty.grets.com/users/User1@thirdparty.grets.com/msp/keystore
+      tlsCertPath: /network/crypto-config/peerOrganizations/thirdparty.grets.com/peers/peer0.thirdparty.grets.com/tls/ca.crt
+      peerEndpoint: peer0.thirdparty.grets.com:7051
+      gatewayPeer: peer0.thirdparty.grets.com 
+    audit:
+      mspID: AuditMSP
+      certPath: /network/crypto-config/peerOrganizations/audit.grets.com/users/User1@audit.grets.com/msp/signcerts
+      keyPath: /network/crypto-config/peerOrganizations/audit.grets.com/users/User1@audit.grets.com/msp/keystore
+      tlsCertPath: /network/crypto-config/peerOrganizations/audit.grets.com/peers/peer0.audit.grets.com/tls/ca.crt
+      peerEndpoint: peer0.audit.grets.com:7051
+      gatewayPeer: peer0.audit.grets.com
+    investor:
+      mspID: InvestorMSP
+      certPath: /network/crypto-config/peerOrganizations/investor.grets.com/users/User1@investor.grets.com/msp/signcerts
+      keyPath: /network/crypto-config/peerOrganizations/investor.grets.com/users/User1@investor.grets.com/msp/keystore
+      tlsCertPath: /network/crypto-config/peerOrganizations/investor.grets.com/peers/peer0.investor.grets.com/tls/ca.crt
+      peerEndpoint: peer0.investor.grets.com:7051
+      gatewayPeer: peer0.investor.grets.com
+    agency:
+      mspID: AgencyMSP
+      certPath: /network/crypto-config/peerOrganizations/agency.grets.com/users/User1@agency.grets.com/msp/signcerts
+      keyPath: /network/crypto-config/peerOrganizations/agency.grets.com/users/User1@agency.grets.com/msp/keystore
+      tlsCertPath: /network/crypto-config/peerOrganizations/agency.grets.com/peers/peer0.agency.grets.com/tls/ca.crt
+      peerEndpoint: peer0.agency.grets.com:7051
+      gatewayPeer: peer0.agency.grets.com 
+    administrator:
+      mspID: AdministratorMSP
+      certPath: /network/crypto-config/peerOrganizations/administrator.grets.com/users/User1@administrator.grets.com/msp/signcerts
+      keyPath: /network/crypto-config/peerOrganizations/administrator.grets.com/users/User1@administrator.grets.com/msp/keystore
+      tlsCertPath: /network/crypto-config/peerOrganizations/administrator.grets.com/peers/peer0.administrator.grets.com/tls/ca.crt
+      peerEndpoint: peer0.administrator.grets.com:7051
+      gatewayPeer: peer0.administrator.grets.com  
+      
+log:
+  level: debug
+  path: ./logs
+  filename: grets.log
+  max_size: 500
+  max_backups: 10
+  max_age: 28
+  compress: false 

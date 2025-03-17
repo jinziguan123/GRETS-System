@@ -44,8 +44,8 @@ CONFIG_PATH="${HYPERLEDGER_PATH}/config"
 CRYPTO_PATH="${HYPERLEDGER_PATH}/crypto-config"
 
 # 通道和链码配置
-ChannelName="mychannel"
-ChainCodeName="mychaincode"
+ChannelName="gretschannel"
+ChainCodeName="gretschaincode"
 Version="1.0.0"
 Sequence="1"
 CHAINCODE_PATH="/opt/gopath/src/chaincode"

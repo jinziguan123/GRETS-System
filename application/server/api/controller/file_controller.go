@@ -1,18 +1,15 @@
 package controller
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
+	"grets_server/service"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -23,91 +20,82 @@ const (
 	MaxFileSize = 10 * 1024 * 1024 // 10MB
 )
 
-// UploadFile 上传文件
-func UploadFile(c *gin.Context) {
-	// 获取当前用户
-	userId := c.GetString("userId")
-	if userId == "" {
-		utils.ResponseUnauthorized(c, "未获取到用户信息")
-		return
-	}
+// 文件控制器结构体
+type FileController struct {
+	fileService service.FileService
+}
 
-	// 获取上传文件
+// NewFileController 创建文件控制器实例
+func NewFileController() *FileController {
+	return &FileController{
+		fileService: service.NewFileService(),
+	}
+}
+
+// UploadFile 上传文件
+func (ctrl *FileController) UploadFile(c *gin.Context) {
+	// 获取上传的文件
 	file, header, err := c.Request.FormFile("file")
 	if err != nil {
-		utils.ResponseBadRequest(c, "获取上传文件失败: "+err.Error())
+		utils.ResponseBadRequest(c, "获取上传文件失败")
 		return
 	}
 	defer file.Close()
 
-	// 检查文件大小
-	if header.Size > MaxFileSize {
-		utils.ResponseBadRequest(c, "文件大小超过限制")
+	// 验证文件类型
+	ext := filepath.Ext(header.Filename)
+	allowedExts := []string{".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png"}
+	valid := false
+	for _, allowedExt := range allowedExts {
+		if ext == allowedExt {
+			valid = true
+			break
+		}
+	}
+	if !valid {
+		utils.ResponseBadRequest(c, "不支持的文件类型，仅支持PDF、Word和图片格式")
 		return
 	}
 
-	// 读取文件内容
-	fileData, err := ioutil.ReadAll(file)
-	if err != nil {
-		utils.ResponseInternalServerError(c, "读取文件内容失败: "+err.Error())
-		return
+	// 获取关联的业务对象
+	relationType := c.PostForm("relationType")
+	relationID := c.PostForm("relationId")
+	fileName := c.PostForm("fileName")
+	fileType := c.PostForm("fileType")
+	description := c.PostForm("description")
+
+	// 如果没有提供文件名，则使用原始文件名
+	if fileName == "" {
+		fileName = header.Filename
 	}
 
-	// 计算文件哈希值
-	hash := sha256.Sum256(fileData)
-	fileHash := hex.EncodeToString(hash[:])
-
-	// 创建上传目录
-	uploadDir := viper.GetString("upload.path")
-	if uploadDir == "" {
-		uploadDir = "uploads"
-	}
-	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		utils.ResponseInternalServerError(c, "创建上传目录失败: "+err.Error())
-		return
-	}
-
-	// 生成文件ID和文件名
-	fileID := strconv.FormatInt(time.Now().UnixNano(), 10)
-	fileExt := filepath.Ext(header.Filename)
-	fileName := fileID + fileExt
-	filePath := filepath.Join(uploadDir, fileName)
-
-	// 保存文件
-	if err := ioutil.WriteFile(filePath, fileData, 0644); err != nil {
-		utils.ResponseInternalServerError(c, "保存文件失败: "+err.Error())
-		return
-	}
-
-	// 获取文件类型
-	fileType := header.Header.Get("Content-Type")
-	if fileType == "" {
-		fileType = "application/octet-stream"
-	}
-
-	// 调用链码记录文件信息
-	_, err = blockchain.DefaultFabricClient.Invoke("CreateFile",
-		fileID,
-		header.Filename,
-		fileType,
-		strconv.FormatInt(header.Size, 10),
-		fileHash,
-		fileName,
-		userId)
-	if err != nil {
-		// 删除已上传文件
-		os.Remove(filePath)
-		utils.ResponseInternalServerError(c, "记录文件信息失败: "+err.Error())
-		return
-	}
-
-	// 返回文件信息
-	utils.ResponseWithData(c, gin.H{
-		"fileId":   fileID,
-		"fileName": header.Filename,
-		"fileSize": header.Size,
-		"fileHash": fileHash,
+	// 调用服务上传文件
+	fileID, err := ctrl.fileService.UploadFile(file, &service.FileUploadDTO{
+		FileName:     fileName,
+		FileSize:     header.Size,
+		FileType:     fileType,
+		RelationType: relationType,
+		RelationID:   relationID,
+		Description:  description,
 	})
+	if err != nil {
+		utils.ResponseInternalServerError(c, err.Error())
+		return
+	}
+
+	// 返回上传结果
+	utils.ResponseWithData(c, gin.H{
+		"fileId":  fileID,
+		"message": "文件上传成功",
+	})
+}
+
+// 创建控制器实例
+var File = NewFileController()
+
+// 为兼容现有路由，提供这些函数
+func UploadFile(c *gin.Context) {
+	File.UploadFile(c)
 }
 
 // GetFile 获取文件
