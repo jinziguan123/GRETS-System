@@ -1,182 +1,26 @@
-{"level":"INFO","time":"2025-03-14 11:03:03","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"ERROR","time":"2025-03-14 11:03:06","caller":"runtime/proc.go:283","msg":"初始化区块链客户端失败: 证书文件不存在: /peerOrganizations//users/@/msp/signcerts/cert.pem"}
-{"level":"INFO","time":"2025-03-14 11:03:32","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"ERROR","time":"2025-03-14 11:03:32","caller":"runtime/proc.go:283","msg":"初始化区块链客户端失败: 证书文件不存在: /peerOrganizations//users/@/msp/signcerts/cert.pem"}
-{"level":"INFO","time":"2025-03-14 11:10:54","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"ERROR","time":"2025-03-14 11:10:54","caller":"runtime/proc.go:283","msg":"初始化区块链客户端失败: 证书文件不存在: "}
-{"level":"INFO","time":"2025-03-14 11:11:23","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"ERROR","time":"2025-03-14 11:12:08","caller":"runtime/proc.go:283","msg":"初始化区块链客户端失败: 证书文件不存在: "}
-{"level":"INFO","time":"2025-03-14 11:12:11","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"INFO","time":"2025-03-14 11:19:20","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"INFO","time":"2025-03-17 20:40:05","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"INFO","time":"2025-03-17 20:40:05","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器"}
-{"level":"INFO","time":"2025-03-17 20:40:05","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器完成"}
-{"level":"ERROR","time":"2025-03-17 20:40:05","caller":"runtime/proc.go:283","msg":"初始化区块链客户端失败: 创建grpc连接失败: 读取证书失败: open ../../network/crypto-config/peerOrganizations/administrator.grets.com/users/User1@administrator.grets.com/msp/signcerts: no such file or directory"}
-{"level":"INFO","time":"2025-03-17 20:42:55","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"INFO","time":"2025-03-17 20:42:55","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器"}
-{"level":"INFO","time":"2025-03-17 20:42:55","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器完成"}
-{"level":"ERROR","time":"2025-03-17 20:42:55","caller":"runtime/proc.go:283","msg":"初始化区块链客户端失败: 创建grpc连接失败: 读取证书失败: open ../../network/crypto-config/peerOrganizations/bank.grets.com/peers/peer0.bank.grets.com/tls/ca.crt: no such file or directory"}
-{"level":"INFO","time":"2025-03-17 20:45:27","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"INFO","time":"2025-03-17 20:45:27","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器"}
-{"level":"INFO","time":"2025-03-17 20:45:27","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器完成"}
-{"level":"INFO","time":"2025-03-17 20:45:27","caller":"blockchain/fabric.go:42","msg":"创建身份: GovernmentMSP"}
-{"level":"ERROR","time":"2025-03-17 20:45:27","caller":"runtime/proc.go:283","msg":"初始化区块链客户端失败: 创建身份失败: 读取证书失败: read ../../network/crypto-config/peerOrganizations/government.grets.com/users/User1@government.grets.com/msp/signcerts: is a directory"}
-{"level":"INFO","time":"2025-03-17 20:47:18","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"INFO","time":"2025-03-17 20:47:18","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器"}
-{"level":"INFO","time":"2025-03-17 20:47:18","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器完成"}
-{"level":"INFO","time":"2025-03-17 20:47:25","caller":"blockchain/fabric.go:42","msg":"创建身份: ThirdPartyMSP"}
-{"level":"INFO","time":"2025-03-17 20:48:11","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"INFO","time":"2025-03-17 20:48:11","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器"}
-{"level":"INFO","time":"2025-03-17 20:48:11","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器完成"}
-{"level":"INFO","time":"2025-03-17 20:48:11","caller":"blockchain/fabric.go:42","msg":"创建身份: AgencyMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器完成"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/fabric.go:42","msg":"创建身份: AgencyMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"server/main.go:34","msg":"创建组织[agency]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[agency]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/fabric.go:42","msg":"创建身份: BankMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"server/main.go:34","msg":"创建组织[bank]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[bank]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/fabric.go:42","msg":"创建身份: ThirdPartyMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"server/main.go:34","msg":"创建组织[thirdparty]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[thirdparty]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/fabric.go:42","msg":"创建身份: AuditMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"server/main.go:34","msg":"创建组织[audit]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[audit]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/fabric.go:42","msg":"创建身份: InvestorMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"server/main.go:34","msg":"创建组织[investor]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[investor]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/fabric.go:42","msg":"创建身份: AdministratorMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"server/main.go:34","msg":"创建组织[administrator]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[administrator]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/fabric.go:42","msg":"创建身份: GovernmentMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"server/main.go:34","msg":"创建组织[government]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"runtime/proc.go:283","msg":"区块链客户端初始化成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[government]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"runtime/proc.go:283","msg":"Web服务器正在启动..."}
-{"level":"WARN","time":"2025-03-17 20:51:01","caller":"runtime/asm_arm64.s:1223","msg":"组织[investor]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.investor.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:01","caller":"runtime/asm_arm64.s:1223","msg":"组织[agency]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.agency.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:01","caller":"runtime/asm_arm64.s:1223","msg":"组织[thirdparty]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.thirdparty.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:01","caller":"runtime/asm_arm64.s:1223","msg":"组织[audit]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.audit.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:01","caller":"runtime/asm_arm64.s:1223","msg":"组织[administrator]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.administrator.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:01","caller":"runtime/asm_arm64.s:1223","msg":"组织[bank]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.bank.grets.com\""}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[0]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[1]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[2]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[3]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[4]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[5]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[6]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[7]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[8]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[9]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[10]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[11]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[12]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[13]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[14]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[15]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:01","caller":"blockchain/blockListener.go:204","msg":"组织[government]区块[16]保存成功"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器完成"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"blockchain/fabric.go:42","msg":"创建身份: ThirdPartyMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"server/main.go:34","msg":"创建组织[thirdparty]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[thirdparty]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"blockchain/fabric.go:42","msg":"创建身份: AuditMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"server/main.go:34","msg":"创建组织[audit]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[audit]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"blockchain/fabric.go:42","msg":"创建身份: AdministratorMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"server/main.go:34","msg":"创建组织[administrator]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[administrator]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"blockchain/fabric.go:42","msg":"创建身份: InvestorMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"server/main.go:34","msg":"创建组织[investor]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[investor]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"blockchain/fabric.go:42","msg":"创建身份: BankMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"server/main.go:34","msg":"创建组织[bank]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[bank]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"blockchain/fabric.go:42","msg":"创建身份: AgencyMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"server/main.go:34","msg":"创建组织[agency]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[agency]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"blockchain/fabric.go:42","msg":"创建身份: GovernmentMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"server/main.go:34","msg":"创建组织[government]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"runtime/proc.go:283","msg":"区块链客户端初始化成功"}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"runtime/proc.go:283","msg":"Web服务器正在启动..."}
-{"level":"INFO","time":"2025-03-17 20:51:29","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[government]的区块"}
-{"level":"WARN","time":"2025-03-17 20:51:29","caller":"runtime/asm_arm64.s:1223","msg":"组织[investor]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.investor.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:29","caller":"runtime/asm_arm64.s:1223","msg":"组织[bank]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.bank.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:29","caller":"runtime/asm_arm64.s:1223","msg":"组织[administrator]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.administrator.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:29","caller":"runtime/asm_arm64.s:1223","msg":"组织[thirdparty]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.thirdparty.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:29","caller":"runtime/asm_arm64.s:1223","msg":"组织[agency]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.agency.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:29","caller":"runtime/asm_arm64.s:1223","msg":"组织[audit]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.audit.grets.com\""}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器完成"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"blockchain/fabric.go:42","msg":"创建身份: BankMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"server/main.go:34","msg":"创建组织[bank]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[bank]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"blockchain/fabric.go:42","msg":"创建身份: AgencyMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"server/main.go:34","msg":"创建组织[agency]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[agency]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"blockchain/fabric.go:42","msg":"创建身份: GovernmentMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"server/main.go:34","msg":"创建组织[government]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[government]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"blockchain/fabric.go:42","msg":"创建身份: ThirdPartyMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"server/main.go:34","msg":"创建组织[thirdparty]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[thirdparty]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"blockchain/fabric.go:42","msg":"创建身份: AuditMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"server/main.go:34","msg":"创建组织[audit]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[audit]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"blockchain/fabric.go:42","msg":"创建身份: InvestorMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"server/main.go:34","msg":"创建组织[investor]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[investor]的区块"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"blockchain/fabric.go:42","msg":"创建身份: AdministratorMSP"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"server/main.go:34","msg":"创建组织[administrator]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"runtime/proc.go:283","msg":"区块链客户端初始化成功"}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"runtime/proc.go:283","msg":"Web服务器正在启动..."}
-{"level":"INFO","time":"2025-03-17 20:51:41","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[administrator]的区块"}
-{"level":"WARN","time":"2025-03-17 20:51:41","caller":"runtime/asm_arm64.s:1223","msg":"组织[thirdparty]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.thirdparty.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:41","caller":"runtime/asm_arm64.s:1223","msg":"组织[audit]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.audit.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:41","caller":"runtime/asm_arm64.s:1223","msg":"组织[bank]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.bank.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:41","caller":"runtime/asm_arm64.s:1223","msg":"组织[investor]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.investor.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:41","caller":"runtime/asm_arm64.s:1223","msg":"组织[agency]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.agency.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:51:41","caller":"runtime/asm_arm64.s:1223","msg":"组织[administrator]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.administrator.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:52:11","caller":"runtime/asm_arm64.s:1223","msg":"组织[investor]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.investor.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:52:11","caller":"runtime/asm_arm64.s:1223","msg":"组织[bank]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.bank.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:52:11","caller":"runtime/asm_arm64.s:1223","msg":"组织[thirdparty]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.thirdparty.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:52:11","caller":"runtime/asm_arm64.s:1223","msg":"组织[agency]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.agency.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:52:11","caller":"runtime/asm_arm64.s:1223","msg":"组织[audit]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.audit.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:52:11","caller":"runtime/asm_arm64.s:1223","msg":"组织[administrator]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.administrator.grets.com\""}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器完成"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"blockchain/fabric.go:42","msg":"创建身份: GovernmentMSP"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"server/main.go:34","msg":"创建组织[government]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[government]的区块"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"blockchain/fabric.go:42","msg":"创建身份: AgencyMSP"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"server/main.go:34","msg":"创建组织[agency]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[agency]的区块"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"blockchain/fabric.go:42","msg":"创建身份: ThirdPartyMSP"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"server/main.go:34","msg":"创建组织[thirdparty]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[thirdparty]的区块"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"blockchain/fabric.go:42","msg":"创建身份: InvestorMSP"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"server/main.go:34","msg":"创建组织[investor]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[investor]的区块"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"blockchain/fabric.go:42","msg":"创建身份: BankMSP"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"server/main.go:34","msg":"创建组织[bank]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[bank]的区块"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"blockchain/fabric.go:42","msg":"创建身份: AuditMSP"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"server/main.go:34","msg":"创建组织[audit]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[audit]的区块"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"blockchain/fabric.go:42","msg":"创建身份: AdministratorMSP"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"server/main.go:34","msg":"创建组织[administrator]合约客户端成功"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"runtime/proc.go:283","msg":"区块链客户端初始化成功"}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"runtime/proc.go:283","msg":"Web服务器正在启动..."}
-{"level":"INFO","time":"2025-03-17 20:55:02","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[administrator]的区块"}
-{"level":"WARN","time":"2025-03-17 20:55:02","caller":"runtime/asm_arm64.s:1223","msg":"组织[thirdparty]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.thirdparty.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:55:02","caller":"runtime/asm_arm64.s:1223","msg":"组织[investor]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.investor.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:55:02","caller":"runtime/asm_arm64.s:1223","msg":"组织[agency]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.agency.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:55:02","caller":"runtime/asm_arm64.s:1223","msg":"组织[audit]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.audit.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:55:02","caller":"runtime/asm_arm64.s:1223","msg":"组织[bank]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.bank.grets.com\""}
-{"level":"WARN","time":"2025-03-17 20:55:02","caller":"runtime/asm_arm64.s:1223","msg":"组织[administrator]监听区块失败(重试中): rpc error: code = Unavailable desc = connection error: desc = \"transport: authentication handshake failed: tls: failed to verify certificate: x509: certificate is valid for peer0.government.grets.com, peer0, not peer0.administrator.grets.com\""}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器完成"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"blockchain/fabric.go:42","msg":"创建身份: InvestorMSP"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"server/main.go:34","msg":"创建组织[investor]合约客户端成功"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[investor]的区块"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"blockchain/fabric.go:42","msg":"创建身份: GovernmentMSP"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"server/main.go:34","msg":"创建组织[government]合约客户端成功"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[government]的区块"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"blockchain/fabric.go:42","msg":"创建身份: BankMSP"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"server/main.go:34","msg":"创建组织[bank]合约客户端成功"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[bank]的区块"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"blockchain/fabric.go:42","msg":"创建身份: ThirdpartyMSP"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"server/main.go:34","msg":"创建组织[thirdparty]合约客户端成功"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[thirdparty]的区块"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"blockchain/fabric.go:42","msg":"创建身份: AuditMSP"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"server/main.go:34","msg":"创建组织[audit]合约客户端成功"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[audit]的区块"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"blockchain/fabric.go:42","msg":"创建身份: AdministratorMSP"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"server/main.go:34","msg":"创建组织[administrator]合约客户端成功"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[administrator]的区块"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"blockchain/fabric.go:42","msg":"创建身份: AgencyMSP"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"server/main.go:34","msg":"创建组织[agency]合约客户端成功"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"runtime/proc.go:283","msg":"区块链客户端初始化成功"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[agency]的区块"}
+{"level":"INFO","time":"2025-03-17 23:10:30","caller":"runtime/proc.go:283","msg":"Web服务器正在启动..."}

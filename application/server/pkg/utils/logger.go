@@ -21,7 +21,15 @@ func InitLogger(logPath, logLevel string) error {
 		return err
 	}
 
-	// 创建日志文件
+	// 检查日志文件是否存在，如果存在则删除
+	if _, err := os.Stat(logPath); err == nil {
+		if err := os.Remove(logPath); err != nil {
+			return err
+		}
+	}
+
+	// 创建新的日志文件
+
 	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return err

@@ -158,25 +158,24 @@ func (l *BlockListener) startBlockListener(orgName string) {
 	retryCount := 0
 	network := l.networks[orgName]
 	if network == nil {
-		utils.Log.Error(fmt.Sprintf("组织[%s]的网络未找到", orgName))
+		fmt.Printf("组织[%s]的网络未找到\n", orgName)
 		return
 	}
-
 	for {
 		lastBlockNum, exists := l.getLastBlockNum(orgName)
 		var startBlock uint64
 		if !exists {
-			// 首次启动
+			// 首次启动，从0开始
 			startBlock = 0
 		} else {
-			// 从上次保存的区块号开始
+			// 已有数据，从下一个开始
 			startBlock = lastBlockNum + 1
 		}
 
 		events, err := network.BlockEvents(l.ctx, client.WithStartBlock(startBlock))
 		if err != nil {
 			retryCount++
-			utils.Log.Warn(fmt.Sprintf("组织[%s]监听区块失败(重试中): %v", orgName, err))
+			fmt.Printf("创建区块事件请求失败（已重试%d次）：%v\n", retryCount, err)
 			select {
 			case <-l.ctx.Done():
 				return
@@ -192,7 +191,7 @@ func (l *BlockListener) startBlockListener(orgName string) {
 			case block, ok := <-events:
 				if !ok {
 					retryCount++
-					utils.Log.Warn(fmt.Sprintf("组织[%s]监听区块中断(已重试%d次)，准备重试...", orgName, retryCount))
+					fmt.Printf("组织[%s]的区块事件监听中断（已重试%d次），准备重试...\n", orgName, retryCount)
 					select {
 					case <-l.ctx.Done():
 						return
@@ -208,7 +207,6 @@ func (l *BlockListener) startBlockListener(orgName string) {
 	RETRY:
 		continue
 	}
-
 }
 
 // saveBlock 保存区块

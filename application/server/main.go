@@ -11,7 +11,7 @@ import (
 
 func main() {
 	// 打印服务名称
-	fmt.Println("======== 房地产交易系统后端服务 ========")
+	fmt.Println("======== 政府房地产交易系统后端服务 ========")
 
 	// 1. 加载配置文件
 	err := config.LoadConfig()
