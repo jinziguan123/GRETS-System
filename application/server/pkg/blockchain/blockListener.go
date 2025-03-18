@@ -22,7 +22,7 @@ const (
 	_BlocksBucket = "blocks"
 	_LatestBucket = "latestBucket"
 
-	_RetryInterval = 30 * time.Second
+	_RetryInterval = 3 * time.Second
 )
 
 // BlockData 区块数据
@@ -42,7 +42,7 @@ type LatestBlock struct {
 }
 
 // BlockListener 区块监听器
-type BlockListener struct {
+type blockListener struct {
 	db *bolt.DB
 	sync.RWMutex
 	networks map[string]*client.Network
@@ -52,7 +52,7 @@ type BlockListener struct {
 }
 
 var (
-	listener     *BlockListener
+	listener     *blockListener
 	listenerOnce sync.Once
 )
 
@@ -92,7 +92,7 @@ func initBlockchainListener(dataDir string) error {
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())
-		listener = &BlockListener{
+		listener = &blockListener{
 			networks: make(map[string]*client.Network),
 			db:       db,
 			dataDir:  dataDir,
@@ -106,14 +106,14 @@ func initBlockchainListener(dataDir string) error {
 }
 
 // GetBlockListener 获取区块监听器实例
-func GetBlockListener() *BlockListener {
+func GetBlockListener() *blockListener {
 	return listener
 }
 
 // addNetwork 添加网络
 func addNetwork(orgName string, network *client.Network) error {
 	if listener == nil {
-		return fmt.Errorf("区块链监听器未初始化")
+		return fmt.Errorf("区块监听器未初始化")
 	}
 
 	listener.Lock()
@@ -126,7 +126,7 @@ func addNetwork(orgName string, network *client.Network) error {
 }
 
 // getLastBlockNum 获取最后保存的区块号
-func (l *BlockListener) getLastBlockNum(orgName string) (uint64, bool) {
+func (l *blockListener) getLastBlockNum(orgName string) (uint64, bool) {
 	var lastBlock LatestBlock
 
 	err := l.db.View(func(tx *bolt.Tx) error {
@@ -152,7 +152,7 @@ func (l *BlockListener) getLastBlockNum(orgName string) (uint64, bool) {
 }
 
 // startBlockListener 开始监听区块
-func (l *BlockListener) startBlockListener(orgName string) {
+func (l *blockListener) startBlockListener(orgName string) {
 	utils.Log.Info(fmt.Sprintf("开始监听组织[%s]的区块", orgName))
 
 	retryCount := 0
@@ -174,8 +174,8 @@ func (l *BlockListener) startBlockListener(orgName string) {
 
 		events, err := network.BlockEvents(l.ctx, client.WithStartBlock(startBlock))
 		if err != nil {
-			retryCount++
 			fmt.Printf("创建区块事件请求失败（已重试%d次）：%v\n", retryCount, err)
+			retryCount++
 			select {
 			case <-l.ctx.Done():
 				return
@@ -190,8 +190,8 @@ func (l *BlockListener) startBlockListener(orgName string) {
 				return
 			case block, ok := <-events:
 				if !ok {
-					retryCount++
 					fmt.Printf("组织[%s]的区块事件监听中断（已重试%d次），准备重试...\n", orgName, retryCount)
+					retryCount++
 					select {
 					case <-l.ctx.Done():
 						return
@@ -210,7 +210,7 @@ func (l *BlockListener) startBlockListener(orgName string) {
 }
 
 // saveBlock 保存区块
-func (l *BlockListener) saveBlock(orgName string, block *common.Block) {
+func (l *blockListener) saveBlock(orgName string, block *common.Block) {
 	if block == nil {
 		return
 	}
@@ -284,7 +284,7 @@ func (l *BlockListener) saveBlock(orgName string, block *common.Block) {
 }
 
 // GetBlockByNumber 根据组织名和区块号查询区块
-func (l *BlockListener) GetBlockByNumber(orgName string, blockNum uint64) (*BlockData, error) {
+func (l *blockListener) GetBlockByNumber(orgName string, blockNum uint64) (*BlockData, error) {
 	var blockData BlockData
 
 	err := l.db.View(func(tx *bolt.Tx) error {
@@ -314,7 +314,7 @@ type BlockQueryResult struct {
 }
 
 // GetBlocksByOrg 分页查询组织的区块列表（按区块号降序）
-func (l *BlockListener) GetBlocksByOrg(orgName string, pageNum int, pageSize int) (*BlockQueryResult, error) {
+func (l *blockListener) GetBlocksByOrg(orgName string, pageNum int, pageSize int) (*BlockQueryResult, error) {
 	if pageNum <= 0 {
 		pageNum = 1
 	}

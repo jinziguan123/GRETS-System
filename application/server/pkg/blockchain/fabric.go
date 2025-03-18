@@ -61,19 +61,16 @@ func InitFabricClient() error {
 			client.WithCommitStatusTimeout(1*time.Minute),
 		)
 		if err != nil {
-			return fmt.Errorf("创建gateway客户端失败: %v", err)
+			return fmt.Errorf("连接组织[%s]的Fabric网关失败：%v", orgName, err)
 		}
 
 		network := gw.GetNetwork(config.GlobalConfig.Fabric.ChannelName)
-		contract := network.GetContract(config.GlobalConfig.Fabric.ChainCodeName)
+		contracts[orgName] = network.GetContract(config.GlobalConfig.Fabric.ChainCodeName)
 
 		// 添加网络到区块链监听器
 		if err := addNetwork(orgName, network); err != nil {
 			return fmt.Errorf("添加网络到区块链监听器失败: %v", err)
 		}
-
-		// 添加到合约客户端映射表
-		contracts[orgName] = contract
 
 		utils.Log.Info(fmt.Sprintf("创建组织[%s]合约客户端成功", orgName))
 	}

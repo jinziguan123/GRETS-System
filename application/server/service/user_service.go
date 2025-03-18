@@ -3,9 +3,14 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
 	"log"
 	"time"
+)
+
+const (
+	INVESTOR_ORG = "investor"
 )
 
 // LoginDTO 登录请求
@@ -75,21 +80,22 @@ type UserService interface {
 }
 
 // userService 用户服务实现
-type userService struct {
-	blockchainService BlockchainService
-}
+type userService struct{}
 
 // NewUserService 创建用户服务实例
 func NewUserService() UserService {
-	return &userService{
-		blockchainService: NewBlockchainService(),
-	}
+	return &userService{}
 }
 
 // Login 用户登录
 func (s *userService) Login(req *LoginDTO) (*UserDTO, string, error) {
 	// 调用链码查询用户
-	result, err := s.blockchainService.Query("GetUserByCredentials", req.CitizenID, req.Password, req.Organization)
+	contract, err := blockchain.GetContract(INVESTOR_ORG)
+	if err != nil {
+		log.Printf("Failed to get contract: %v", err)
+		return nil, "", fmt.Errorf("获取合约失败: %v", err)
+	}
+	result, err := contract.SubmitTransaction("GetUserByCredentials", req.CitizenID, req.Password, req.Organization)
 	if err != nil {
 		log.Printf("Failed to login: %v", err)
 		return nil, "", fmt.Errorf("登录失败: %v", err)
@@ -143,11 +149,16 @@ func (s *userService) Login(req *LoginDTO) (*UserDTO, string, error) {
 
 // Register 用户注册
 func (s *userService) Register(req *RegisterDTO) error {
+	contract, err := blockchain.GetContract(INVESTOR_ORG)
+	if err != nil {
+		log.Printf("Failed to get contract: %v", err)
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
 	// 生成用户ID
 	id := fmt.Sprintf("user_%d", time.Now().UnixNano())
 
 	// 调用链码注册用户
-	_, err := s.blockchainService.Invoke("RegisterUser",
+	_, err = contract.SubmitTransaction("RegisterUser",
 		id,
 		req.Name,
 		req.Role,
@@ -174,7 +185,12 @@ func (s *userService) GetUserList(query *QueryUserDTO) ([]*UserDTO, int, error) 
 	}
 
 	// 调用链码查询组织内的用户
-	result, err := s.blockchainService.Query("QueryUsersByOrganization", organization)
+	contract, err := blockchain.GetContract(INVESTOR_ORG)
+	if err != nil {
+		log.Printf("Failed to get contract: %v", err)
+		return nil, 0, fmt.Errorf("获取合约失败: %v", err)
+	}
+	result, err := contract.SubmitTransaction("QueryUsersByOrganization", organization)
 	if err != nil {
 		log.Printf("Failed to query user list: %v", err)
 		return nil, 0, fmt.Errorf("查询用户列表失败: %v", err)
@@ -216,7 +232,12 @@ func (s *userService) GetUserList(query *QueryUserDTO) ([]*UserDTO, int, error) 
 // GetUserByID 根据ID获取用户
 func (s *userService) GetUserByID(id string) (*UserDTO, error) {
 	// 调用链码查询用户
-	result, err := s.blockchainService.Query("QueryUser", id)
+	contract, err := blockchain.GetContract(INVESTOR_ORG)
+	if err != nil {
+		log.Printf("Failed to get contract: %v", err)
+		return nil, fmt.Errorf("获取合约失败: %v", err)
+	}
+	result, err := contract.SubmitTransaction("QueryUser", id)
 	if err != nil {
 		log.Printf("Failed to query user by ID: %v", err)
 		return nil, fmt.Errorf("查询用户失败: %v", err)
@@ -240,7 +261,12 @@ func (s *userService) GetUserByID(id string) (*UserDTO, error) {
 // GetUserByCitizenID 根据身份证号和组织获取用户
 func (s *userService) GetUserByCitizenID(citizenID, organization string) (*UserDTO, error) {
 	// 调用链码查询用户
-	result, err := s.blockchainService.Query("GetUserByCitizenID", citizenID, organization)
+	contract, err := blockchain.GetContract(INVESTOR_ORG)
+	if err != nil {
+		log.Printf("Failed to get contract: %v", err)
+		return nil, fmt.Errorf("获取合约失败: %v", err)
+	}
+	result, err := contract.SubmitTransaction("GetUserByCitizenID", citizenID, organization)
 	if err != nil {
 		log.Printf("Failed to query user by citizen ID: %v", err)
 		return nil, fmt.Errorf("查询用户失败: %v", err)
@@ -264,7 +290,12 @@ func (s *userService) GetUserByCitizenID(citizenID, organization string) (*UserD
 // UpdateUser 更新用户信息
 func (s *userService) UpdateUser(user *UpdateUserDTO) error {
 	// 调用链码更新用户
-	_, err := s.blockchainService.Invoke("UpdateUser",
+	contract, err := blockchain.GetContract(INVESTOR_ORG)
+	if err != nil {
+		log.Printf("Failed to get contract: %v", err)
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
+	_, err = contract.SubmitTransaction("UpdateUser",
 		user.ID,
 		user.Name,
 		user.Phone,
