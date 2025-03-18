@@ -27,6 +27,7 @@ func SetupRouter() *gin.Engine {
 	{
 		// 不需要认证的路由
 		v1.POST("/login", controller.Login)
+		v1.POST("/register", controller.Register)
 
 		// 需要认证的路由
 		auth := v1.Group("/")
@@ -36,6 +37,7 @@ func SetupRouter() *gin.Engine {
 			auth.GET("/users", controller.GetUserList)
 			auth.GET("/users/:id", controller.GetUserByID)
 			auth.PUT("/users/:id", controller.UpdateUser)
+			auth.GET("/users/citizen", controller.GetUserByCitizenID)
 
 			// 房产相关路由
 			auth.POST("/realties", controller.CreateRealty)

@@ -68,8 +68,11 @@ type User struct {
 	ID           string    `json:"id"`           // 用户ID
 	Name         string    `json:"name"`         // 用户名称
 	Role         string    `json:"role"`         // 用户角色
+	Password     string    `json:"password"`     // 用户密码
+	CitizenID    string    `json:"citizenID"`    // 公民身份证号
+	Phone        string    `json:"phone"`        // 联系电话
+	Email        string    `json:"email"`        // 电子邮箱
 	Organization string    `json:"organization"` // 所属组织
-	ContactInfo  string    `json:"contactInfo"`  // 联系信息
 	CreatedAt    time.Time `json:"createdAt"`    // 创建时间
 	LastUpdated  time.Time `json:"lastUpdated"`  // 最后更新时间
 	Status       string    `json:"status"`       // 状态（激活/禁用）
@@ -595,110 +598,256 @@ func (s *SmartContract) Hello(ctx contractapi.TransactionContextInterface) (stri
 	return "hello", nil
 }
 
-// CreateUser 创建用户（仅系统管理员可调用）
-func (s *SmartContract) CreateUser(ctx contractapi.TransactionContextInterface, id string, name string, role string, organization string, contactInfo string) error {
-	// 检查调用者身份
-	clientMSPID, err := s.getClientIdentityMSPID(ctx)
+// RegisterUser 注册用户
+func (s *SmartContract) RegisterUser(ctx contractapi.TransactionContextInterface, id, name, role, password, citizenID, phone, email, organization string) error {
+	// 检查必填参数
+	if len(citizenID) == 0 {
+		return fmt.Errorf("身份证号不能为空")
+	}
+	if len(organization) == 0 {
+		return fmt.Errorf("组织不能为空")
+	}
+	if len(password) == 0 {
+		return fmt.Errorf("密码不能为空")
+	}
+
+	// 生成复合键：组织-身份证号
+	compositeKey, err := ctx.GetStub().CreateCompositeKey("org-citizen", []string{organization, citizenID})
 	if err != nil {
-		return err
+		return fmt.Errorf("创建复合键失败: %v", err)
 	}
 
-	if clientMSPID != AdminMSP {
-		return fmt.Errorf("只有系统管理员可以创建用户")
-	}
-
-	// 创建用户信息复合键
-	key, err := s.createCompositeKey(ctx, DocTypeUser, []string{id}...)
+	// 检查该身份证号是否已在该组织注册
+	existingUserBytes, err := ctx.GetStub().GetState(compositeKey)
 	if err != nil {
-		return err
+		return fmt.Errorf("查询用户失败: %v", err)
+	}
+	if existingUserBytes != nil {
+		return fmt.Errorf("该身份证号已在此组织注册")
 	}
 
-	// 检查用户是否已存在
-	exists, err := ctx.GetStub().GetState(key)
-	if err != nil {
-		return fmt.Errorf("查询用户信息失败: %v", err)
-	}
-	if exists != nil {
-		return fmt.Errorf("用户ID %s 已存在", id)
-	}
-
-	// 创建用户信息
-	now := time.Now()
+	// 创建用户
 	user := User{
 		ID:           id,
 		Name:         name,
 		Role:         role,
+		Password:     password,
+		CitizenID:    citizenID,
+		Phone:        phone,
+		Email:        email,
 		Organization: organization,
-		ContactInfo:  contactInfo,
-		CreatedAt:    now,
-		LastUpdated:  now,
-		Status:       "ACTIVE",
+		CreatedAt:    time.Now(),
+		LastUpdated:  time.Now(),
+		Status:       "active",
 	}
 
-	// 序列化并保存
-	userJSON, err := json.Marshal(user)
+	// 序列化用户数据
+	userBytes, err := json.Marshal(user)
 	if err != nil {
-		return fmt.Errorf("序列化用户信息失败: %v", err)
+		return fmt.Errorf("序列化用户数据失败: %v", err)
 	}
 
-	return ctx.GetStub().PutState(key, userJSON)
+	// 保存用户数据，使用ID作为键
+	err = ctx.GetStub().PutState(id, userBytes)
+	if err != nil {
+		return fmt.Errorf("保存用户数据失败: %v", err)
+	}
+
+	// 保存组织-身份证号复合键到用户ID的映射
+	err = ctx.GetStub().PutState(compositeKey, []byte(id))
+	if err != nil {
+		return fmt.Errorf("保存身份证号映射失败: %v", err)
+	}
+
+	return nil
 }
 
-// QueryUser 查询用户信息
-func (s *SmartContract) QueryUser(ctx contractapi.TransactionContextInterface, id string) (*User, error) {
-	key, err := s.createCompositeKey(ctx, DocTypeUser, []string{id}...)
-	if err != nil {
-		return nil, err
+// GetUserByCredentials 根据身份证号和密码获取用户信息（用于登录）
+func (s *SmartContract) GetUserByCredentials(ctx contractapi.TransactionContextInterface, citizenID, password, organization string) (*User, error) {
+	// 检查必填参数
+	if len(citizenID) == 0 {
+		return nil, fmt.Errorf("身份证号不能为空")
+	}
+	if len(password) == 0 {
+		return nil, fmt.Errorf("密码不能为空")
+	}
+	if len(organization) == 0 {
+		return nil, fmt.Errorf("组织不能为空")
 	}
 
-	userBytes, err := ctx.GetStub().GetState(key)
+	// 生成复合键：组织-身份证号
+	compositeKey, err := ctx.GetStub().CreateCompositeKey("org-citizen", []string{organization, citizenID})
 	if err != nil {
-		return nil, fmt.Errorf("查询用户信息失败: %v", err)
+		return nil, fmt.Errorf("创建复合键失败: %v", err)
+	}
+
+	// 通过复合键查找用户ID
+	userIDBytes, err := ctx.GetStub().GetState(compositeKey)
+	if err != nil {
+		return nil, fmt.Errorf("查询用户ID失败: %v", err)
+	}
+	if userIDBytes == nil {
+		return nil, fmt.Errorf("用户不存在")
+	}
+
+	// 通过用户ID获取用户完整信息
+	userID := string(userIDBytes)
+	userBytes, err := ctx.GetStub().GetState(userID)
+	if err != nil {
+		return nil, fmt.Errorf("查询用户数据失败: %v", err)
 	}
 	if userBytes == nil {
-		return nil, fmt.Errorf("用户ID %s 不存在", id)
+		return nil, fmt.Errorf("用户数据不存在")
 	}
 
+	// 解析用户数据
 	var user User
 	err = json.Unmarshal(userBytes, &user)
 	if err != nil {
-		return nil, fmt.Errorf("解析用户信息失败: %v", err)
+		return nil, fmt.Errorf("解析用户数据失败: %v", err)
+	}
+
+	// 验证密码
+	if user.Password != password {
+		return nil, fmt.Errorf("密码错误")
 	}
 
 	return &user, nil
 }
 
-// UpdateUserStatus 更新用户状态（仅系统管理员可调用）
-func (s *SmartContract) UpdateUserStatus(ctx contractapi.TransactionContextInterface, id string, status string) error {
-	// 检查调用者身份
-	clientMSPID, err := s.getClientIdentityMSPID(ctx)
+// GetUserByCitizenID 根据身份证号和组织获取用户信息
+func (s *SmartContract) GetUserByCitizenID(ctx contractapi.TransactionContextInterface, citizenID, organization string) (*User, error) {
+	// 检查必填参数
+	if len(citizenID) == 0 {
+		return nil, fmt.Errorf("身份证号不能为空")
+	}
+	if len(organization) == 0 {
+		return nil, fmt.Errorf("组织不能为空")
+	}
+
+	// 生成复合键：组织-身份证号
+	compositeKey, err := ctx.GetStub().CreateCompositeKey("org-citizen", []string{organization, citizenID})
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("创建复合键失败: %v", err)
 	}
 
-	if clientMSPID != AdminMSP {
-		return fmt.Errorf("只有系统管理员可以更新用户状态")
-	}
-
-	user, err := s.QueryUser(ctx, id)
+	// 通过复合键查找用户ID
+	userIDBytes, err := ctx.GetStub().GetState(compositeKey)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("查询用户ID失败: %v", err)
+	}
+	if userIDBytes == nil {
+		return nil, fmt.Errorf("用户不存在")
 	}
 
-	user.Status = status
+	// 通过用户ID获取用户完整信息
+	userID := string(userIDBytes)
+	userBytes, err := ctx.GetStub().GetState(userID)
+	if err != nil {
+		return nil, fmt.Errorf("查询用户数据失败: %v", err)
+	}
+	if userBytes == nil {
+		return nil, fmt.Errorf("用户数据不存在")
+	}
+
+	// 解析用户数据
+	var user User
+	err = json.Unmarshal(userBytes, &user)
+	if err != nil {
+		return nil, fmt.Errorf("解析用户数据失败: %v", err)
+	}
+
+	return &user, nil
+}
+
+// UpdateUser 更新用户信息
+func (s *SmartContract) UpdateUser(ctx contractapi.TransactionContextInterface, userID, name, phone, email, password string) error {
+	// 检查用户ID
+	if len(userID) == 0 {
+		return fmt.Errorf("用户ID不能为空")
+	}
+
+	// 获取现有用户数据
+	userBytes, err := ctx.GetStub().GetState(userID)
+	if err != nil {
+		return fmt.Errorf("查询用户失败: %v", err)
+	}
+	if userBytes == nil {
+		return fmt.Errorf("用户不存在")
+	}
+
+	// 解析用户数据
+	var user User
+	err = json.Unmarshal(userBytes, &user)
+	if err != nil {
+		return fmt.Errorf("解析用户数据失败: %v", err)
+	}
+
+	// 更新用户数据
+	if len(name) > 0 {
+		user.Name = name
+	}
+	if len(phone) > 0 {
+		user.Phone = phone
+	}
+	if len(email) > 0 {
+		user.Email = email
+	}
+	if len(password) > 0 {
+		user.Password = password
+	}
 	user.LastUpdated = time.Now()
 
-	key, err := s.createCompositeKey(ctx, DocTypeUser, []string{id}...)
+	// 序列化并保存更新后的用户数据
+	updatedUserBytes, err := json.Marshal(user)
 	if err != nil {
-		return err
+		return fmt.Errorf("序列化用户数据失败: %v", err)
 	}
 
-	userJSON, err := json.Marshal(user)
+	err = ctx.GetStub().PutState(userID, updatedUserBytes)
 	if err != nil {
-		return fmt.Errorf("序列化用户信息失败: %v", err)
+		return fmt.Errorf("保存用户数据失败: %v", err)
 	}
 
-	return ctx.GetStub().PutState(key, userJSON)
+	return nil
+}
+
+// QueryUsersByOrganization 查询特定组织的用户
+func (s *SmartContract) QueryUsersByOrganization(ctx contractapi.TransactionContextInterface, organization string) ([]*User, error) {
+	// 检查组织参数
+	if len(organization) == 0 {
+		return nil, fmt.Errorf("组织不能为空")
+	}
+
+	// 获取所有用户
+	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
+	if err != nil {
+		return nil, fmt.Errorf("查询用户失败: %v", err)
+	}
+	defer resultsIterator.Close()
+
+	var users []*User
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return nil, fmt.Errorf("获取下一个用户失败: %v", err)
+		}
+
+		// 尝试解析为用户
+		var user User
+		err = json.Unmarshal(queryResponse.Value, &user)
+		if err != nil {
+			// 不是用户数据，可能是其他类型的数据或映射关系，跳过
+			continue
+		}
+
+		// 检查是否属于指定组织
+		if user.Organization == organization {
+			users = append(users, &user)
+		}
+	}
+
+	return users, nil
 }
 
 // CreateContract 创建合同（仅中介机构和政府机构可调用）
