@@ -25,42 +25,42 @@ fabric:
       certPath: ../../network/crypto-config/peerOrganizations/bank.grets.com/users/User1@bank.grets.com/msp/signcerts
       keyPath: ../../network/crypto-config/peerOrganizations/bank.grets.com/users/User1@bank.grets.com/msp/keystore
       tlsCertPath: ../../network/crypto-config/peerOrganizations/bank.grets.com/peers/peer0.bank.grets.com/tls/ca.crt
-      peerEndpoint: localhost:8051
+      peerEndpoint: localhost:9051
       gatewayPeer: peer0.bank.grets.com
     agency:
       mspID: AgencyMSP
       certPath: ../../network/crypto-config/peerOrganizations/agency.grets.com/users/User1@agency.grets.com/msp/signcerts
       keyPath: ../../network/crypto-config/peerOrganizations/agency.grets.com/users/User1@agency.grets.com/msp/keystore
       tlsCertPath: ../../network/crypto-config/peerOrganizations/agency.grets.com/peers/peer0.agency.grets.com/tls/ca.crt
-      peerEndpoint: localhost:9051
+      peerEndpoint: localhost:11051
       gatewayPeer: peer0.agency.grets.com 
     thirdparty:
       mspID: ThirdpartyMSP
       certPath: ../../network/crypto-config/peerOrganizations/thirdparty.grets.com/users/User1@thirdparty.grets.com/msp/signcerts
       keyPath: ../../network/crypto-config/peerOrganizations/thirdparty.grets.com/users/User1@thirdparty.grets.com/msp/keystore
       tlsCertPath: ../../network/crypto-config/peerOrganizations/thirdparty.grets.com/peers/peer0.thirdparty.grets.com/tls/ca.crt
-      peerEndpoint: localhost:10051
+      peerEndpoint: localhost:13051
       gatewayPeer: peer0.thirdparty.grets.com 
     audit:
       mspID: AuditMSP
       certPath: ../../network/crypto-config/peerOrganizations/audit.grets.com/users/User1@audit.grets.com/msp/signcerts
       keyPath: ../../network/crypto-config/peerOrganizations/audit.grets.com/users/User1@audit.grets.com/msp/keystore
       tlsCertPath: ../../network/crypto-config/peerOrganizations/audit.grets.com/peers/peer0.audit.grets.com/tls/ca.crt
-      peerEndpoint: localhost:11051
+      peerEndpoint: localhost:15051
       gatewayPeer: peer0.audit.grets.com
     investor:
       mspID: InvestorMSP
       certPath: ../../network/crypto-config/peerOrganizations/investor.grets.com/users/User1@investor.grets.com/msp/signcerts
       keyPath: ../../network/crypto-config/peerOrganizations/investor.grets.com/users/User1@investor.grets.com/msp/keystore
       tlsCertPath: ../../network/crypto-config/peerOrganizations/investor.grets.com/peers/peer0.investor.grets.com/tls/ca.crt
-      peerEndpoint: localhost:12051
+      peerEndpoint: localhost:17051
       gatewayPeer: peer0.investor.grets.com
     administrator:
       mspID: AdministratorMSP
       certPath: ../../network/crypto-config/peerOrganizations/administrator.grets.com/users/User1@administrator.grets.com/msp/signcerts
       keyPath: ../../network/crypto-config/peerOrganizations/administrator.grets.com/users/User1@administrator.grets.com/msp/keystore
       tlsCertPath: ../../network/crypto-config/peerOrganizations/administrator.grets.com/peers/peer0.administrator.grets.com/tls/ca.crt
-      peerEndpoint: localhost:13051
+      peerEndpoint: localhost:19051
       gatewayPeer: peer0.administrator.grets.com  
 
 log:

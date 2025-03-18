@@ -17,7 +17,7 @@ PeerOrgs:
     Domain: agency.grets.com
     EnableNodeOUs: true
     Template:
-      Count: 1
+      Count: 2
     Users:
       Count: 1
   
@@ -25,7 +25,7 @@ PeerOrgs:
     Domain: audit.grets.com
     EnableNodeOUs: true
     Template:
-      Count: 1
+      Count: 2  
     Users:
       Count: 1
 
@@ -33,7 +33,7 @@ PeerOrgs:
     Domain: bank.grets.com
     EnableNodeOUs: true
     Template:
-      Count: 1
+      Count: 2
     Users:
       Count: 1
 
@@ -41,7 +41,7 @@ PeerOrgs:
     Domain: government.grets.com
     EnableNodeOUs: true
     Template:
-      Count: 1
+      Count: 2
     Users:
       Count: 1
 
@@ -49,7 +49,7 @@ PeerOrgs:
     Domain: thirdparty.grets.com
     EnableNodeOUs: true
     Template:
-      Count: 1
+      Count: 2
     Users:
       Count: 1
 
@@ -57,7 +57,7 @@ PeerOrgs:
     Domain: investor.grets.com
     EnableNodeOUs: true
     Template:
-      Count: 1
+      Count: 2
     Users:
       Count: 1  
 
@@ -65,6 +65,6 @@ PeerOrgs:
     Domain: administrator.grets.com
     EnableNodeOUs: true
     Template:
-      Count: 1  
+      Count: 2
     Users:
       Count: 1  

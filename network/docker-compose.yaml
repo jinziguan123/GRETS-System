@@ -168,10 +168,33 @@ services:
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.government.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
     ports:
       - "7051:7051"
-      - "17051:17051"
+      - "7053:7053"
     volumes:
       - ./crypto-config/peerOrganizations/government.grets.com/peers/peer0.government.grets.com:/etc/hyperledger/peer
       - ./data/peer0.government.grets.com:/var/hyperledger/production
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com
+
+  peer1.government.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer1.government.grets.com
+    environment:
+      - CORE_PEER_ID=peer1.government.grets.com
+      - CORE_PEER_LOCALMSPID=GovernmentMSP
+      - CORE_PEER_ADDRESS=peer1.government.grets.com:7051  # peer节点的访问地址
+      - CORE_PEER_CHAINCODEADDRESS=peer1.government.grets.com:7052 # peer节点的链码访问地址
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.government.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.government.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
+    ports:
+      - "8051:7051"
+      - "8053:7053"
+    volumes:
+      - ./crypto-config/peerOrganizations/government.grets.com/peers/peer1.government.grets.com:/etc/hyperledger/peer
+      - ./data/peer1.government.grets.com:/var/hyperledger/production
     depends_on:
       - orderer1.grets.com
       - orderer2.grets.com
@@ -190,11 +213,34 @@ services:
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.bank.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.bank.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）  
     ports:
-      - "8051:7051"
-      - "18051:17051"
+      - "9051:7051"
+      - "9053:7053"
     volumes:
       - ./crypto-config/peerOrganizations/bank.grets.com/peers/peer0.bank.grets.com:/etc/hyperledger/peer
       - ./data/peer0.bank.grets.com:/var/hyperledger/production
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com
+
+  peer1.bank.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer1.bank.grets.com
+    environment:
+      - CORE_PEER_ID=peer1.bank.grets.com
+      - CORE_PEER_LOCALMSPID=BankMSP
+      - CORE_PEER_ADDRESS=peer1.bank.grets.com:7051  # peer节点的访问地址
+      - CORE_PEER_CHAINCODEADDRESS=peer1.bank.grets.com:7052 # peer节点的链码访问地址
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.bank.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.bank.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）  
+    ports:
+      - "10051:7051"
+      - "10053:7053"
+    volumes:
+      - ./crypto-config/peerOrganizations/bank.grets.com/peers/peer1.bank.grets.com:/etc/hyperledger/peer
+      - ./data/peer1.bank.grets.com:/var/hyperledger/production
     depends_on:
       - orderer1.grets.com
       - orderer2.grets.com
@@ -213,11 +259,34 @@ services:
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.agency.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.agency.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）    
     ports:
-      - "9051:7051"
-      - "19051:17051"
+      - "11051:7051"
+      - "11053:7053"
     volumes:
       - ./crypto-config/peerOrganizations/agency.grets.com/peers/peer0.agency.grets.com:/etc/hyperledger/peer
       - ./data/peer0.agency.grets.com:/var/hyperledger/production
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com
+
+  peer1.agency.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer1.agency.grets.com
+    environment:
+      - CORE_PEER_ID=peer1.agency.grets.com
+      - CORE_PEER_LOCALMSPID=AgencyMSP
+      - CORE_PEER_ADDRESS=peer1.agency.grets.com:7051  # peer节点的访问地址
+      - CORE_PEER_CHAINCODEADDRESS=peer1.agency.grets.com:7052 # peer节点的链码访问地址
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.agency.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.agency.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）    
+    ports:
+      - "12051:7051"
+      - "12053:7053"
+    volumes:
+      - ./crypto-config/peerOrganizations/agency.grets.com/peers/peer1.agency.grets.com:/etc/hyperledger/peer
+      - ./data/peer1.agency.grets.com:/var/hyperledger/production
     depends_on:
       - orderer1.grets.com
       - orderer2.grets.com
@@ -236,11 +305,34 @@ services:
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.thirdparty.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.thirdparty.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
     ports:
-      - "10051:7051"
-      - "20051:17051"
+      - "13051:7051"
+      - "13053:7053"
     volumes:
       - ./crypto-config/peerOrganizations/thirdparty.grets.com/peers/peer0.thirdparty.grets.com:/etc/hyperledger/peer
       - ./data/peer0.thirdparty.grets.com:/var/hyperledger/production
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com
+
+  peer1.thirdparty.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer1.thirdparty.grets.com
+    environment:
+      - CORE_PEER_ID=peer1.thirdparty.grets.com
+      - CORE_PEER_LOCALMSPID=ThirdpartyMSP
+      - CORE_PEER_ADDRESS=peer1.thirdparty.grets.com:7051  # peer节点的访问地址
+      - CORE_PEER_CHAINCODEADDRESS=peer1.thirdparty.grets.com:7052 # peer节点的链码访问地址
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.thirdparty.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.thirdparty.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
+    ports:
+      - "14051:7051"
+      - "14053:7053"
+    volumes:
+      - ./crypto-config/peerOrganizations/thirdparty.grets.com/peers/peer1.thirdparty.grets.com:/etc/hyperledger/peer
+      - ./data/peer1.thirdparty.grets.com:/var/hyperledger/production
     depends_on:
       - orderer1.grets.com
       - orderer2.grets.com
@@ -259,11 +351,34 @@ services:
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.audit.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.audit.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点） 
     ports:
-      - "11051:7051"
-      - "21051:17051"
+      - "15051:7051"
+      - "15053:7053"
     volumes:
       - ./crypto-config/peerOrganizations/audit.grets.com/peers/peer0.audit.grets.com:/etc/hyperledger/peer
       - ./data/peer0.audit.grets.com:/var/hyperledger/production
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com
+
+  peer1.audit.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer1.audit.grets.com
+    environment:
+      - CORE_PEER_ID=peer1.audit.grets.com
+      - CORE_PEER_LOCALMSPID=AuditMSP
+      - CORE_PEER_ADDRESS=peer1.audit.grets.com:7051  # peer节点的访问地址
+      - CORE_PEER_CHAINCODEADDRESS=peer1.audit.grets.com:7052 # peer节点的链码访问地址
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.audit.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.audit.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点） 
+    ports:
+      - "16051:7051"
+      - "16053:7053"
+    volumes:
+      - ./crypto-config/peerOrganizations/audit.grets.com/peers/peer1.audit.grets.com:/etc/hyperledger/peer
+      - ./data/peer1.audit.grets.com:/var/hyperledger/production
     depends_on:
       - orderer1.grets.com
       - orderer2.grets.com
@@ -282,8 +397,8 @@ services:
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.investor.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.investor.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
     ports:
-      - "12051:7051"
-      - "22051:17051"
+      - "17051:7051"
+      - "17053:7053"
     volumes:
       - ./crypto-config/peerOrganizations/investor.grets.com/peers/peer0.investor.grets.com:/etc/hyperledger/peer
       - ./data/peer0.investor.grets.com:/var/hyperledger/production 
@@ -291,6 +406,29 @@ services:
       - orderer1.grets.com
       - orderer2.grets.com
       - orderer3.grets.com  
+
+  peer1.investor.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer1.investor.grets.com  
+    environment:
+      - CORE_PEER_ID=peer1.investor.grets.com
+      - CORE_PEER_LOCALMSPID=InvestorMSP
+      - CORE_PEER_ADDRESS=peer1.investor.grets.com:7051  # peer节点的访问地址
+      - CORE_PEER_CHAINCODEADDRESS=peer1.investor.grets.com:7052 # peer节点的链码访问地址
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.investor.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.investor.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
+    ports:
+      - "18051:7051"
+      - "18053:7053"
+    volumes:
+      - ./crypto-config/peerOrganizations/investor.grets.com/peers/peer1.investor.grets.com:/etc/hyperledger/peer
+      - ./data/peer1.investor.grets.com:/var/hyperledger/production 
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com 
 
   peer0.administrator.grets.com:
     extends:
@@ -305,11 +443,34 @@ services:
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.administrator.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.administrator.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
     ports:
-      - "13051:7051"
-      - "23051:17051"
+      - "19051:7051"
+      - "19053:7053"
     volumes:
       - ./crypto-config/peerOrganizations/administrator.grets.com/peers/peer0.administrator.grets.com:/etc/hyperledger/peer
       - ./data/peer0.administrator.grets.com:/var/hyperledger/production  
+    depends_on:
+      - orderer1.grets.com
+      - orderer2.grets.com
+      - orderer3.grets.com  
+
+  peer1.administrator.grets.com:
+    extends:
+      file: docker-compose-base.yaml
+      service: peer-base
+    container_name: peer1.administrator.grets.com 
+    environment:
+      - CORE_PEER_ID=peer1.administrator.grets.com
+      - CORE_PEER_LOCALMSPID=AdministratorMSP
+      - CORE_PEER_ADDRESS=peer1.administrator.grets.com:7051  # peer节点的访问地址
+      - CORE_PEER_CHAINCODEADDRESS=peer1.administrator.grets.com:7052 # peer节点的链码访问地址
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.administrator.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer1.administrator.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
+    ports:
+      - "20051:7051"
+      - "20053:7053"
+    volumes:
+      - ./crypto-config/peerOrganizations/administrator.grets.com/peers/peer1.administrator.grets.com:/etc/hyperledger/peer
+      - ./data/peer1.administrator.grets.com:/var/hyperledger/production  
     depends_on:
       - orderer1.grets.com
       - orderer2.grets.com

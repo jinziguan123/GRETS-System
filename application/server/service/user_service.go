@@ -3,9 +3,15 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
 	"log"
 	"time"
+)
+
+// 定义组织名
+const (
+	INVESTOR_ORG = "investor"
 )
 
 // LoginDTO 登录请求
@@ -143,11 +149,16 @@ func (s *userService) Login(req *LoginDTO) (*UserDTO, string, error) {
 
 // Register 用户注册
 func (s *userService) Register(req *RegisterDTO) error {
+	contract, err := blockchain.GetContract(INVESTOR_ORG)
+	if err != nil {
+		log.Printf("Failed to get contract: %v", err)
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
 	// 生成用户ID
 	id := fmt.Sprintf("user_%d", time.Now().UnixNano())
 
 	// 调用链码注册用户
-	_, err := s.blockchainService.Invoke("RegisterUser",
+	_, err = contract.SubmitTransaction("RegisterUser",
 		id,
 		req.Name,
 		req.Role,

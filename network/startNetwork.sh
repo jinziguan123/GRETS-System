@@ -21,10 +21,10 @@ export CHANNEL_NAME=gretschannel
 ###########################################
 
 # 等待时间配置（秒）
-NETWORK_STARTUP_WAIT=30
-CHAINCODE_INIT_WAIT=10
+NETWORK_STARTUP_WAIT=60
+CHAINCODE_INIT_WAIT=15
 # 添加链码操作超时设置(秒)
-PEER_OPERATION_TIMEOUT=300s
+PEER_OPERATION_TIMEOUT=600s
 
 # 域名配置
 DOMAIN="grets.com"
@@ -113,7 +113,7 @@ OrganizationList=(
     "administrator"
 );
 
-peerNumber=1;
+peerNumber=2;
 
 for org in ${OrganizationList[@]}; do
     for ((i=0; i < $peerNumber; i++)); do
@@ -345,13 +345,11 @@ main() {
     # 更新锚节点
     show_progress 11 "更新锚节点" $start_time
     for org in ${OrganizationList[@]}; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
+        local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
+        local OrgPeerCli="${org_cap}Peer0Cli"
+        local cli_value=$(eval echo "\$${OrgPeerCli}")
             
-            execute_with_timer "更新${org_cap}锚节点" "$CLI_CMD \"${cli_value} peer channel update -o $ORDERER1_ADDRESS -c $ChannelName -f ${CONFIG_PATH}/${org_cap}Anchor.tx --tls --cafile $ORDERER1_CA\""
-        done
+        execute_with_timer "更新${org_cap}锚节点" "$CLI_CMD \"${cli_value} peer channel update -o $ORDERER1_ADDRESS -c $ChannelName -f ${CONFIG_PATH}/${org_cap}Anchor.tx --tls --cafile $ORDERER1_CA\""
     done
 
     # 打包链码
@@ -373,13 +371,11 @@ main() {
     show_progress 14 "批准链码" $start_time
     PackageID=$($CLI_CMD "${GovernmentPeer0Cli} peer lifecycle chaincode calculatepackageid ${CHAINCODE_PACKAGE}")
     for org in ${OrganizationList[@]}; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
+        local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
+        local OrgPeerCli="${org_cap}Peer0Cli"
+        local cli_value=$(eval echo "\$${OrgPeerCli}")
             
-            execute_with_timer "${org_cap}批准链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode approveformyorg -o $ORDERER1_ADDRESS --channelID $ChannelName --name $ChainCodeName --version $Version --package-id $PackageID --sequence $Sequence --tls --cafile $ORDERER1_CA --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
-        done
+        execute_with_timer "${org_cap}批准链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode approveformyorg -o $ORDERER1_ADDRESS --channelID $ChannelName --name $ChainCodeName --version $Version --package-id $PackageID --sequence $Sequence --tls --cafile $ORDERER1_CA --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
     done
 
     # 提交链码
