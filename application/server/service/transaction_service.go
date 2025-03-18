@@ -3,6 +3,8 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"grets_server/api/constants"
+	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
 )
 
@@ -41,21 +43,22 @@ type TransactionService interface {
 }
 
 // transactionService 交易服务实现
-type transactionService struct {
-	blockchainService BlockchainService
-}
+type transactionService struct{}
 
 // NewTransactionService 创建交易服务实例
 func NewTransactionService() TransactionService {
-	return &transactionService{
-		blockchainService: NewBlockchainService(),
-	}
+	return &transactionService{}
 }
 
 // CreateTransaction 创建交易
 func (s *transactionService) CreateTransaction(req *CreateTransactionDTO) error {
 	// 调用链码创建交易
-	_, err := s.blockchainService.Invoke("CreateTransaction",
+	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
+	_, err = contract.SubmitTransaction("CreateTransaction",
 		req.ID,
 		req.RealEstateID,
 		req.Seller,
@@ -75,7 +78,12 @@ func (s *transactionService) CreateTransaction(req *CreateTransactionDTO) error 
 // GetTransactionByID 根据ID获取交易信息
 func (s *transactionService) GetTransactionByID(id string) (map[string]interface{}, error) {
 	// 调用链码查询交易信息
-	resultBytes, err := s.blockchainService.Query("QueryTransaction", id)
+	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return nil, fmt.Errorf("获取合约失败: %v", err)
+	}
+	resultBytes, err := contract.SubmitTransaction("QueryTransaction", id)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("查询交易信息失败: %v", err))
 		return nil, fmt.Errorf("查询交易信息失败: %v", err)
@@ -104,7 +112,12 @@ func (s *transactionService) QueryTransactionList(query *QueryTransactionDTO) ([
 	}
 
 	// 调用链码查询交易列表
-	resultBytes, err := s.blockchainService.Query("QueryAllTransactions", queryParams...)
+	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return nil, 0, fmt.Errorf("获取合约失败: %v", err)
+	}
+	resultBytes, err := contract.SubmitTransaction("QueryAllTransactions", queryParams...)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("查询交易列表失败: %v", err))
 		return nil, 0, fmt.Errorf("查询交易列表失败: %v", err)
@@ -142,7 +155,12 @@ func (s *transactionService) QueryTransactionList(query *QueryTransactionDTO) ([
 // UpdateTransaction 更新交易信息
 func (s *transactionService) UpdateTransaction(id string, req *UpdateTransactionDTO) error {
 	// 调用链码更新交易状态
-	_, err := s.blockchainService.Invoke("UpdateTransaction",
+	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
+	_, err = contract.SubmitTransaction("UpdateTransaction",
 		id,
 		req.Status,
 		req.Description,
@@ -159,7 +177,12 @@ func (s *transactionService) UpdateTransaction(id string, req *UpdateTransaction
 // AuditTransaction 审计交易
 func (s *transactionService) AuditTransaction(id string, auditResult string, comments string) error {
 	// 调用链码审计交易
-	_, err := s.blockchainService.Invoke("AuditTransaction",
+	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
+	_, err = contract.SubmitTransaction("AuditTransaction",
 		id,
 		auditResult,
 		comments,
@@ -176,7 +199,12 @@ func (s *transactionService) AuditTransaction(id string, auditResult string, com
 // CompleteTransaction 完成交易
 func (s *transactionService) CompleteTransaction(id string) error {
 	// 调用链码完成交易
-	_, err := s.blockchainService.Invoke("CompleteTransaction", id)
+	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
+	_, err = contract.SubmitTransaction("CompleteTransaction", id)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("完成交易失败: %v", err))
 		return fmt.Errorf("完成交易失败: %v", err)

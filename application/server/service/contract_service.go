@@ -3,6 +3,8 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"grets_server/api/constants"
+	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
 )
 
@@ -35,21 +37,22 @@ type ContractService interface {
 }
 
 // contractService 合同服务实现
-type contractService struct {
-	blockchainService BlockchainService
-}
+type contractService struct{}
 
 // NewContractService 创建合同服务实例
 func NewContractService() ContractService {
-	return &contractService{
-		blockchainService: NewBlockchainService(),
-	}
+	return &contractService{}
 }
 
 // CreateContract 创建合同
 func (s *contractService) CreateContract(req *CreateContractDTO) error {
+	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
 	// 调用链码创建合同
-	_, err := s.blockchainService.Invoke("CreateContract",
+	_, err = contract.SubmitTransaction("CreateContract",
 		req.ID,
 		req.TransactionID,
 		req.Content,
@@ -68,7 +71,12 @@ func (s *contractService) CreateContract(req *CreateContractDTO) error {
 // GetContractByID 根据ID获取合同信息
 func (s *contractService) GetContractByID(id string) (map[string]interface{}, error) {
 	// 调用链码查询合同信息
-	resultBytes, err := s.blockchainService.Query("QueryContract", id)
+	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return nil, fmt.Errorf("获取合约失败: %v", err)
+	}
+	resultBytes, err := contract.SubmitTransaction("QueryContract", id)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("查询合同信息失败: %v", err))
 		return nil, fmt.Errorf("查询合同信息失败: %v", err)
@@ -95,7 +103,12 @@ func (s *contractService) QueryContractList(query *QueryContractDTO) ([]map[stri
 	}
 
 	// 调用链码查询合同列表
-	resultBytes, err := s.blockchainService.Query("QueryContractList", queryParams...)
+	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return nil, 0, fmt.Errorf("获取合约失败: %v", err)
+	}
+	resultBytes, err := contract.SubmitTransaction("QueryContractList", queryParams...)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("查询合同列表失败: %v", err))
 		return nil, 0, fmt.Errorf("查询合同列表失败: %v", err)
@@ -133,7 +146,12 @@ func (s *contractService) QueryContractList(query *QueryContractDTO) ([]map[stri
 // SignContract 签署合同
 func (s *contractService) SignContract(id string, req *SignContractDTO) error {
 	// 调用链码签署合同
-	_, err := s.blockchainService.Invoke("SignContract",
+	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
+	_, err = contract.SubmitTransaction("SignContract",
 		id,
 		req.SignerType,
 	)

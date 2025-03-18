@@ -3,6 +3,8 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"grets_server/api/constants"
+	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
 )
 
@@ -36,21 +38,22 @@ type PaymentService interface {
 }
 
 // paymentService 支付服务实现
-type paymentService struct {
-	blockchainService BlockchainService
-}
+type paymentService struct{}
 
 // NewPaymentService 创建支付服务实例
 func NewPaymentService() PaymentService {
-	return &paymentService{
-		blockchainService: NewBlockchainService(),
-	}
+	return &paymentService{}
 }
 
 // CreatePayment 创建支付
 func (s *paymentService) CreatePayment(req *CreatePaymentDTO) error {
 	// 调用链码创建支付
-	_, err := s.blockchainService.Invoke("CreatePayment",
+	contract, err := blockchain.GetContract(constants.BankOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
+	_, err = contract.SubmitTransaction("CreatePayment",
 		req.ID,
 		req.TransactionID,
 		fmt.Sprintf("%.2f", req.Amount),
@@ -71,7 +74,12 @@ func (s *paymentService) CreatePayment(req *CreatePaymentDTO) error {
 // GetPaymentByID 根据ID获取支付信息
 func (s *paymentService) GetPaymentByID(id string) (map[string]interface{}, error) {
 	// 调用链码查询支付信息
-	resultBytes, err := s.blockchainService.Query("QueryPayment", id)
+	contract, err := blockchain.GetContract(constants.BankOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return nil, fmt.Errorf("获取合约失败: %v", err)
+	}
+	resultBytes, err := contract.SubmitTransaction("QueryPayment", id)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("查询支付信息失败: %v", err))
 		return nil, fmt.Errorf("查询支付信息失败: %v", err)
@@ -100,7 +108,12 @@ func (s *paymentService) QueryPaymentList(query *QueryPaymentDTO) ([]map[string]
 	}
 
 	// 调用链码查询支付列表
-	resultBytes, err := s.blockchainService.Query("QueryPaymentList", queryParams...)
+	contract, err := blockchain.GetContract(constants.BankOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return nil, 0, fmt.Errorf("获取合约失败: %v", err)
+	}
+	resultBytes, err := contract.SubmitTransaction("QueryPaymentList", queryParams...)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("查询支付列表失败: %v", err))
 		return nil, 0, fmt.Errorf("查询支付列表失败: %v", err)
@@ -138,7 +151,12 @@ func (s *paymentService) QueryPaymentList(query *QueryPaymentDTO) ([]map[string]
 // VerifyPayment 验证支付
 func (s *paymentService) VerifyPayment(id string) error {
 	// 调用链码验证支付
-	_, err := s.blockchainService.Invoke("VerifyPayment", id)
+	contract, err := blockchain.GetContract(constants.BankOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
+	_, err = contract.SubmitTransaction("VerifyPayment", id)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("验证支付失败: %v", err))
 		return fmt.Errorf("验证支付失败: %v", err)
@@ -150,7 +168,12 @@ func (s *paymentService) VerifyPayment(id string) error {
 // CompletePayment 完成支付
 func (s *paymentService) CompletePayment(id string) error {
 	// 调用链码完成支付
-	_, err := s.blockchainService.Invoke("CompletePayment", id)
+	contract, err := blockchain.GetContract(constants.BankOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
+	_, err = contract.SubmitTransaction("CompletePayment", id)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("完成支付失败: %v", err))
 		return fmt.Errorf("完成支付失败: %v", err)

@@ -168,7 +168,7 @@ services:
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.government.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
     ports:
       - "7051:7051"
-      - "17051:17051"
+      - "7053:7053"
     volumes:
       - ./crypto-config/peerOrganizations/government.grets.com/peers/peer0.government.grets.com:/etc/hyperledger/peer
       - ./data/peer0.government.grets.com:/var/hyperledger/production
@@ -191,7 +191,7 @@ services:
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.bank.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）  
     ports:
       - "8051:7051"
-      - "18051:17051"
+      - "8053:7053"
     volumes:
       - ./crypto-config/peerOrganizations/bank.grets.com/peers/peer0.bank.grets.com:/etc/hyperledger/peer
       - ./data/peer0.bank.grets.com:/var/hyperledger/production
@@ -214,7 +214,7 @@ services:
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.agency.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）    
     ports:
       - "9051:7051"
-      - "19051:17051"
+      - "9053:7053"
     volumes:
       - ./crypto-config/peerOrganizations/agency.grets.com/peers/peer0.agency.grets.com:/etc/hyperledger/peer
       - ./data/peer0.agency.grets.com:/var/hyperledger/production
@@ -237,7 +237,7 @@ services:
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.thirdparty.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
     ports:
       - "10051:7051"
-      - "20051:17051"
+      - "10053:7053"
     volumes:
       - ./crypto-config/peerOrganizations/thirdparty.grets.com/peers/peer0.thirdparty.grets.com:/etc/hyperledger/peer
       - ./data/peer0.thirdparty.grets.com:/var/hyperledger/production
@@ -260,7 +260,7 @@ services:
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.audit.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点） 
     ports:
       - "11051:7051"
-      - "21051:17051"
+      - "11053:7053"
     volumes:
       - ./crypto-config/peerOrganizations/audit.grets.com/peers/peer0.audit.grets.com:/etc/hyperledger/peer
       - ./data/peer0.audit.grets.com:/var/hyperledger/production
@@ -283,7 +283,7 @@ services:
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.investor.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
     ports:
       - "12051:7051"
-      - "22051:17051"
+      - "12053:7053"
     volumes:
       - ./crypto-config/peerOrganizations/investor.grets.com/peers/peer0.investor.grets.com:/etc/hyperledger/peer
       - ./data/peer0.investor.grets.com:/var/hyperledger/production 
@@ -306,7 +306,7 @@ services:
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.administrator.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
     ports:
       - "13051:7051"
-      - "23051:17051"
+      - "13053:7053"
     volumes:
       - ./crypto-config/peerOrganizations/administrator.grets.com/peers/peer0.administrator.grets.com:/etc/hyperledger/peer
       - ./data/peer0.administrator.grets.com:/var/hyperledger/production  

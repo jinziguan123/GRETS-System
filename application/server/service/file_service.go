@@ -4,6 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"grets_server/api/constants"
+	"grets_server/pkg/blockchain"
+	"grets_server/pkg/utils"
 	"io/ioutil"
 	"log"
 	"mime/multipart"
@@ -32,15 +35,11 @@ type FileService interface {
 }
 
 // fileService 文件服务实现
-type fileService struct {
-	blockchainService BlockchainService
-}
+type fileService struct{}
 
 // NewFileService 创建文件服务实例
 func NewFileService() FileService {
-	return &fileService{
-		blockchainService: NewBlockchainService(),
-	}
+	return &fileService{}
 }
 
 // UploadFile 上传文件
@@ -106,8 +105,14 @@ func (s *fileService) UploadFile(file multipart.File, dto *FileUploadDTO) (strin
 		args = append(args, dto.Description)
 	}
 
+	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return "", fmt.Errorf("获取合约失败: %v", err)
+	}
+
 	// 调用链码创建文件记录
-	_, err = s.blockchainService.Invoke("CreateFile", args...)
+	_, err = contract.SubmitTransaction("CreateFile", args...)
 	if err != nil {
 		// 删除已上传文件
 		os.Remove(filePath)

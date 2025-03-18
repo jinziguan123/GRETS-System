@@ -3,14 +3,11 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"grets_server/api/constants"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
 	"log"
 	"time"
-)
-
-const (
-	INVESTOR_ORG = "investor"
 )
 
 // LoginDTO 登录请求
@@ -90,7 +87,7 @@ func NewUserService() UserService {
 // Login 用户登录
 func (s *userService) Login(req *LoginDTO) (*UserDTO, string, error) {
 	// 调用链码查询用户
-	contract, err := blockchain.GetContract(INVESTOR_ORG)
+	contract, err := blockchain.GetContract(constants.InvestorOrganization)
 	if err != nil {
 		log.Printf("Failed to get contract: %v", err)
 		return nil, "", fmt.Errorf("获取合约失败: %v", err)
@@ -149,7 +146,7 @@ func (s *userService) Login(req *LoginDTO) (*UserDTO, string, error) {
 
 // Register 用户注册
 func (s *userService) Register(req *RegisterDTO) error {
-	contract, err := blockchain.GetContract(INVESTOR_ORG)
+	contract, err := blockchain.GetContract(constants.InvestorOrganization)
 	if err != nil {
 		log.Printf("Failed to get contract: %v", err)
 		return fmt.Errorf("获取合约失败: %v", err)
@@ -185,7 +182,7 @@ func (s *userService) GetUserList(query *QueryUserDTO) ([]*UserDTO, int, error) 
 	}
 
 	// 调用链码查询组织内的用户
-	contract, err := blockchain.GetContract(INVESTOR_ORG)
+	contract, err := blockchain.GetContract(constants.InvestorOrganization)
 	if err != nil {
 		log.Printf("Failed to get contract: %v", err)
 		return nil, 0, fmt.Errorf("获取合约失败: %v", err)
@@ -232,7 +229,7 @@ func (s *userService) GetUserList(query *QueryUserDTO) ([]*UserDTO, int, error) 
 // GetUserByID 根据ID获取用户
 func (s *userService) GetUserByID(id string) (*UserDTO, error) {
 	// 调用链码查询用户
-	contract, err := blockchain.GetContract(INVESTOR_ORG)
+	contract, err := blockchain.GetContract(constants.InvestorOrganization)
 	if err != nil {
 		log.Printf("Failed to get contract: %v", err)
 		return nil, fmt.Errorf("获取合约失败: %v", err)
@@ -261,7 +258,7 @@ func (s *userService) GetUserByID(id string) (*UserDTO, error) {
 // GetUserByCitizenID 根据身份证号和组织获取用户
 func (s *userService) GetUserByCitizenID(citizenID, organization string) (*UserDTO, error) {
 	// 调用链码查询用户
-	contract, err := blockchain.GetContract(INVESTOR_ORG)
+	contract, err := blockchain.GetContract(constants.InvestorOrganization)
 	if err != nil {
 		log.Printf("Failed to get contract: %v", err)
 		return nil, fmt.Errorf("获取合约失败: %v", err)
@@ -290,7 +287,7 @@ func (s *userService) GetUserByCitizenID(citizenID, organization string) (*UserD
 // UpdateUser 更新用户信息
 func (s *userService) UpdateUser(user *UpdateUserDTO) error {
 	// 调用链码更新用户
-	contract, err := blockchain.GetContract(INVESTOR_ORG)
+	contract, err := blockchain.GetContract(constants.InvestorOrganization)
 	if err != nil {
 		log.Printf("Failed to get contract: %v", err)
 		return fmt.Errorf("获取合约失败: %v", err)

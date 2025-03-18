@@ -1,26 +1,26 @@
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器完成"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"blockchain/fabric.go:42","msg":"创建身份: InvestorMSP"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"server/main.go:34","msg":"创建组织[investor]合约客户端成功"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[investor]的区块"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"blockchain/fabric.go:42","msg":"创建身份: AdministratorMSP"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"server/main.go:34","msg":"创建组织[administrator]合约客户端成功"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[administrator]的区块"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"blockchain/fabric.go:42","msg":"创建身份: GovernmentMSP"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"server/main.go:34","msg":"创建组织[government]合约客户端成功"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[government]的区块"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"blockchain/fabric.go:42","msg":"创建身份: ThirdpartyMSP"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"server/main.go:34","msg":"创建组织[thirdparty]合约客户端成功"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[thirdparty]的区块"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"blockchain/fabric.go:42","msg":"创建身份: BankMSP"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"server/main.go:34","msg":"创建组织[bank]合约客户端成功"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[bank]的区块"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"blockchain/fabric.go:42","msg":"创建身份: AgencyMSP"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"server/main.go:34","msg":"创建组织[agency]合约客户端成功"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[agency]的区块"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"blockchain/fabric.go:42","msg":"创建身份: AuditMSP"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"server/main.go:34","msg":"创建组织[audit]合约客户端成功"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[audit]的区块"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"runtime/proc.go:283","msg":"区块链客户端初始化成功"}
-{"level":"INFO","time":"2025-03-18 16:58:51","caller":"runtime/proc.go:283","msg":"Web服务器正在启动..."}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"runtime/proc.go:283","msg":"日志初始化成功"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"blockchain/fabric.go:29","msg":"初始化区块链监听器完成"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"blockchain/fabric.go:42","msg":"创建身份: AuditMSP"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"server/main.go:34","msg":"创建组织[audit]合约客户端成功"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[audit]的区块"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"blockchain/fabric.go:42","msg":"创建身份: AdministratorMSP"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"server/main.go:34","msg":"创建组织[administrator]合约客户端成功"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[administrator]的区块"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"blockchain/fabric.go:42","msg":"创建身份: GovernmentMSP"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"server/main.go:34","msg":"创建组织[government]合约客户端成功"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[government]的区块"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"blockchain/fabric.go:42","msg":"创建身份: BankMSP"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"server/main.go:34","msg":"创建组织[bank]合约客户端成功"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[bank]的区块"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"blockchain/fabric.go:42","msg":"创建身份: ThirdpartyMSP"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"server/main.go:34","msg":"创建组织[thirdparty]合约客户端成功"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[thirdparty]的区块"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"blockchain/fabric.go:42","msg":"创建身份: InvestorMSP"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"server/main.go:34","msg":"创建组织[investor]合约客户端成功"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[investor]的区块"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"blockchain/fabric.go:42","msg":"创建身份: AgencyMSP"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"server/main.go:34","msg":"创建组织[agency]合约客户端成功"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"runtime/proc.go:283","msg":"区块链客户端初始化成功"}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"runtime/proc.go:283","msg":"Web服务器正在启动..."}
+{"level":"INFO","time":"2025-03-18 19:48:32","caller":"runtime/asm_arm64.s:1223","msg":"开始监听组织[agency]的区块"}

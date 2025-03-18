@@ -3,6 +3,8 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"grets_server/api/constants"
+	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
 )
 
@@ -57,15 +59,11 @@ type RealtyService interface {
 }
 
 // realtyService 房产服务实现
-type realtyService struct {
-	blockchainService BlockchainService
-}
+type realtyService struct{}
 
 // NewRealtyService 创建房产服务实例
 func NewRealtyService() RealtyService {
-	return &realtyService{
-		blockchainService: NewBlockchainService(),
-	}
+	return &realtyService{}
 }
 
 // CreateRealty 创建房产
@@ -82,7 +80,12 @@ func (s *realtyService) CreateRealty(req *CreateRealtyDTO) error {
 	}
 
 	// 调用链码创建房产
-	_, err = s.blockchainService.Invoke("CreateRealEstate",
+	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
+	_, err = contract.SubmitTransaction("CreateRealEstate",
 		req.ID,
 		req.Location,
 		fmt.Sprintf("%.2f", req.Area),
@@ -107,7 +110,12 @@ func (s *realtyService) CreateRealty(req *CreateRealtyDTO) error {
 // GetRealtyByID 根据ID获取房产信息
 func (s *realtyService) GetRealtyByID(id string) (map[string]interface{}, error) {
 	// 调用链码查询房产信息
-	resultBytes, err := s.blockchainService.Query("QueryRealEstate", id)
+	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return nil, fmt.Errorf("获取合约失败: %v", err)
+	}
+	resultBytes, err := contract.SubmitTransaction("QueryRealEstate", id)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("查询房产信息失败: %v", err))
 		return nil, fmt.Errorf("查询房产信息失败: %v", err)
@@ -139,7 +147,12 @@ func (s *realtyService) QueryRealtyList(query *QueryRealtyDTO) ([]map[string]int
 	}
 
 	// 调用链码查询房产列表
-	resultBytes, err := s.blockchainService.Query("QueryRealEstates", queryParams...)
+	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return nil, 0, fmt.Errorf("获取合约失败: %v", err)
+	}
+	resultBytes, err := contract.SubmitTransaction("QueryRealEstates", queryParams...)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("查询房产列表失败: %v", err))
 		return nil, 0, fmt.Errorf("查询房产列表失败: %v", err)
@@ -188,7 +201,12 @@ func (s *realtyService) UpdateRealty(id string, req *UpdateRealtyDTO) error {
 	}
 
 	// 调用链码更新房产
-	_, err = s.blockchainService.Invoke("UpdateRealEstate",
+	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
+	_, err = contract.SubmitTransaction("UpdateRealEstate",
 		id,
 		req.Location,
 		req.RealtyType,
