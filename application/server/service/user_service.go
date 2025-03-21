@@ -1,10 +1,8 @@
 package service
 
 import (
-	"encoding/json"
 	"fmt"
-	"grets_server/api/constants"
-	"grets_server/pkg/blockchain"
+	"grets_server/dao"
 	"grets_server/pkg/utils"
 	"log"
 	"time"
@@ -77,48 +75,32 @@ type UserService interface {
 }
 
 // userService 用户服务实现
-type userService struct{}
+type userService struct {
+	userDAO *dao.UserDAO
+}
+
+// 全局用户服务
+var GlobalUserService UserService
+
+// InitUserService 初始化用户服务
+func InitUserService(userDAO *dao.UserDAO) {
+	GlobalUserService = NewUserService(userDAO)
+}
 
 // NewUserService 创建用户服务实例
-func NewUserService() UserService {
-	return &userService{}
+func NewUserService(userDAO *dao.UserDAO) UserService {
+	return &userService{
+		userDAO: userDAO,
+	}
 }
 
 // Login 用户登录
 func (s *userService) Login(req *LoginDTO) (*UserDTO, string, error) {
-	// 调用链码查询用户
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
-	if err != nil {
-		log.Printf("Failed to get contract: %v", err)
-		return nil, "", fmt.Errorf("获取合约失败: %v", err)
-	}
-	result, err := contract.SubmitTransaction("GetUserByCredentials", req.CitizenID, req.Password, req.Organization)
+	// 从本地数据库查询用户
+	user, err := s.userDAO.GetUserByCredentials(req.CitizenID, req.Password, req.Organization)
 	if err != nil {
 		log.Printf("Failed to login: %v", err)
 		return nil, "", fmt.Errorf("登录失败: %v", err)
-	}
-
-	// 检查是否找到用户
-	if len(result) == 0 {
-		return nil, "", fmt.Errorf("身份证号或密码错误")
-	}
-
-	// 解析用户数据
-	var user struct {
-		ID           string    `json:"id"`
-		Name         string    `json:"name"`
-		Role         string    `json:"role"`
-		CitizenID    string    `json:"citizenID"`
-		Phone        string    `json:"phone"`
-		Email        string    `json:"email"`
-		Organization string    `json:"organization"`
-		CreatedAt    time.Time `json:"createdAt"`
-		LastUpdated  time.Time `json:"lastUpdated"`
-		Status       string    `json:"status"`
-	}
-	if err := json.Unmarshal(result, &user); err != nil {
-		log.Printf("Failed to unmarshal user data: %v", err)
-		return nil, "", fmt.Errorf("解析用户数据失败: %v", err)
 	}
 
 	// 生成JWT令牌
@@ -141,31 +123,35 @@ func (s *userService) Login(req *LoginDTO) (*UserDTO, string, error) {
 		LastUpdated:  user.LastUpdated,
 		Status:       user.Status,
 	}
+
 	return userDTO, token, nil
 }
 
 // Register 用户注册
 func (s *userService) Register(req *RegisterDTO) error {
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
-	if err != nil {
-		log.Printf("Failed to get contract: %v", err)
-		return fmt.Errorf("获取合约失败: %v", err)
-	}
 	// 生成用户ID
-	id := fmt.Sprintf("user_%d", time.Now().UnixNano())
+	id := s.userDAO.GetUserKey(req.CitizenID, req.Organization)
+	if _, err := s.userDAO.GetUserByID(id); err == nil {
+		return fmt.Errorf("用户已存在")
+	}
 
-	// 调用链码注册用户
-	_, err = contract.SubmitTransaction("RegisterUser",
-		id,
-		req.Name,
-		req.Role,
-		req.Password,
-		req.CitizenID,
-		req.Phone,
-		req.Email,
-		req.Organization,
-	)
-	if err != nil {
+	// 创建用户对象
+	user := &dao.User{
+		ID:           id,
+		Name:         req.Name,
+		Role:         req.Role,
+		Password:     req.Password,
+		CitizenID:    req.CitizenID,
+		Phone:        req.Phone,
+		Email:        req.Email,
+		Organization: req.Organization,
+		CreatedAt:    time.Now(),
+		LastUpdated:  time.Now(),
+		Status:       "active",
+	}
+
+	// 保存到本地数据库
+	if err := s.userDAO.SaveUser(user); err != nil {
 		log.Printf("Failed to register user: %v", err)
 		return fmt.Errorf("用户注册失败: %v", err)
 	}
@@ -181,39 +167,32 @@ func (s *userService) GetUserList(query *QueryUserDTO) ([]*UserDTO, int, error) 
 		return nil, 0, fmt.Errorf("必须提供组织参数")
 	}
 
-	// 调用链码查询组织内的用户
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
-	if err != nil {
-		log.Printf("Failed to get contract: %v", err)
-		return nil, 0, fmt.Errorf("获取合约失败: %v", err)
-	}
-	result, err := contract.SubmitTransaction("QueryUsersByOrganization", organization)
+	// 从本地数据库查询用户
+	users, err := s.userDAO.QueryUsers(organization, query.Role, query.CitizenID)
 	if err != nil {
 		log.Printf("Failed to query user list: %v", err)
 		return nil, 0, fmt.Errorf("查询用户列表失败: %v", err)
 	}
 
-	// 解析响应数据
-	var users []*UserDTO
-	if err := json.Unmarshal(result, &users); err != nil {
-		log.Printf("Failed to unmarshal response data: %v", err)
-		return nil, 0, fmt.Errorf("解析响应数据失败: %v", err)
-	}
-
-	// 过滤用户
-	var filteredUsers []*UserDTO
+	// 转换为DTO
+	var userDTOs []*UserDTO
 	for _, user := range users {
-		if query.CitizenID != "" && user.CitizenID != query.CitizenID {
-			continue
-		}
-		if query.Role != "" && user.Role != query.Role {
-			continue
-		}
-		filteredUsers = append(filteredUsers, user)
+		userDTOs = append(userDTOs, &UserDTO{
+			ID:           user.ID,
+			Name:         user.Name,
+			Role:         user.Role,
+			CitizenID:    user.CitizenID,
+			Phone:        user.Phone,
+			Email:        user.Email,
+			Organization: user.Organization,
+			CreatedAt:    user.CreatedAt,
+			LastUpdated:  user.LastUpdated,
+			Status:       user.Status,
+		})
 	}
 
 	// 计算分页
-	total := len(filteredUsers)
+	total := len(userDTOs)
 	startIndex := (query.PageNumber - 1) * query.PageSize
 	endIndex := startIndex + query.PageSize
 	if startIndex >= total {
@@ -223,83 +202,83 @@ func (s *userService) GetUserList(query *QueryUserDTO) ([]*UserDTO, int, error) 
 		endIndex = total
 	}
 
-	return filteredUsers[startIndex:endIndex], total, nil
+	return userDTOs[startIndex:endIndex], total, nil
 }
 
 // GetUserByID 根据ID获取用户
 func (s *userService) GetUserByID(id string) (*UserDTO, error) {
-	// 调用链码查询用户
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
-	if err != nil {
-		log.Printf("Failed to get contract: %v", err)
-		return nil, fmt.Errorf("获取合约失败: %v", err)
-	}
-	result, err := contract.SubmitTransaction("QueryUser", id)
+	// 从本地数据库查询用户
+	user, err := s.userDAO.GetUserByID(id)
 	if err != nil {
 		log.Printf("Failed to query user by ID: %v", err)
 		return nil, fmt.Errorf("查询用户失败: %v", err)
 	}
 
-	// 检查是否找到用户
-	if len(result) == 0 {
-		return nil, fmt.Errorf("用户不存在")
+	// 转换为DTO
+	userDTO := &UserDTO{
+		ID:           user.ID,
+		Name:         user.Name,
+		Role:         user.Role,
+		CitizenID:    user.CitizenID,
+		Phone:        user.Phone,
+		Email:        user.Email,
+		Organization: user.Organization,
+		CreatedAt:    user.CreatedAt,
+		LastUpdated:  user.LastUpdated,
+		Status:       user.Status,
 	}
 
-	// 解析用户数据
-	var user UserDTO
-	if err := json.Unmarshal(result, &user); err != nil {
-		log.Printf("Failed to unmarshal user data: %v", err)
-		return nil, fmt.Errorf("解析用户数据失败: %v", err)
-	}
-
-	return &user, nil
+	return userDTO, nil
 }
 
 // GetUserByCitizenID 根据身份证号和组织获取用户
 func (s *userService) GetUserByCitizenID(citizenID, organization string) (*UserDTO, error) {
-	// 调用链码查询用户
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+	// 从本地数据库查询用户
+	user, err := s.userDAO.GetUserByCitizenID(citizenID, organization)
 	if err != nil {
-		log.Printf("Failed to get contract: %v", err)
-		return nil, fmt.Errorf("获取合约失败: %v", err)
-	}
-	result, err := contract.SubmitTransaction("GetUserByCitizenID", citizenID, organization)
-	if err != nil {
-		log.Printf("Failed to query user by citizen ID: %v", err)
+		log.Printf("Failed to query user by citizenID: %v", err)
 		return nil, fmt.Errorf("查询用户失败: %v", err)
 	}
 
-	// 检查是否找到用户
-	if len(result) == 0 {
-		return nil, fmt.Errorf("用户不存在")
+	// 转换为DTO
+	userDTO := &UserDTO{
+		ID:           user.ID,
+		Name:         user.Name,
+		Role:         user.Role,
+		CitizenID:    user.CitizenID,
+		Phone:        user.Phone,
+		Email:        user.Email,
+		Organization: user.Organization,
+		CreatedAt:    user.CreatedAt,
+		LastUpdated:  user.LastUpdated,
+		Status:       user.Status,
 	}
 
-	// 解析用户数据
-	var user UserDTO
-	if err := json.Unmarshal(result, &user); err != nil {
-		log.Printf("Failed to unmarshal user data: %v", err)
-		return nil, fmt.Errorf("解析用户数据失败: %v", err)
-	}
-
-	return &user, nil
+	return userDTO, nil
 }
 
 // UpdateUser 更新用户信息
-func (s *userService) UpdateUser(user *UpdateUserDTO) error {
-	// 调用链码更新用户
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+func (s *userService) UpdateUser(req *UpdateUserDTO) error {
+	// 查询原用户
+	existingUser, err := s.userDAO.GetUserByID(req.ID)
 	if err != nil {
-		log.Printf("Failed to get contract: %v", err)
-		return fmt.Errorf("获取合约失败: %v", err)
+		log.Printf("Failed to query user to update: %v", err)
+		return fmt.Errorf("查询用户失败: %v", err)
 	}
-	_, err = contract.SubmitTransaction("UpdateUser",
-		user.ID,
-		user.Name,
-		user.Phone,
-		user.Email,
-		user.Password,
-	)
-	if err != nil {
+
+	// 更新用户对象
+	updatedUser := &dao.User{
+		ID:           existingUser.ID,
+		CitizenID:    existingUser.CitizenID,
+		Organization: existingUser.Organization,
+		Name:         req.Name,
+		Email:        req.Email,
+		Phone:        req.Phone,
+		Password:     req.Password,
+	}
+
+	// 保存到本地数据库
+	if err := s.userDAO.UpdateUser(updatedUser); err != nil {
 		log.Printf("Failed to update user: %v", err)
 		return fmt.Errorf("更新用户失败: %v", err)
 	}

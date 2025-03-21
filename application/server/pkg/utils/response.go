@@ -13,8 +13,8 @@ type Response struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-// ResponseWithData 返回带数据的成功响应
-func ResponseWithData(c *gin.Context, data interface{}) {
+// ResponseSuccess 返回成功响应
+func ResponseSuccess(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusOK, Response{
 		Code:    200,
 		Message: "操作成功",
@@ -22,11 +22,11 @@ func ResponseWithData(c *gin.Context, data interface{}) {
 	})
 }
 
-// ResponseSuccess 返回成功响应
-func ResponseSuccess(c *gin.Context) {
+// ResponseError 返回错误响应
+func ResponseError(c *gin.Context, code int, message string) {
 	c.JSON(http.StatusOK, Response{
-		Code:    200,
-		Message: "操作成功",
+		Code:    code,
+		Message: message,
 	})
 }
 

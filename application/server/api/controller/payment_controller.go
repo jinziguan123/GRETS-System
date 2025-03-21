@@ -36,7 +36,7 @@ func (ctrl *PaymentController) CreatePayment(c *gin.Context) {
 	}
 
 	// 返回成功结果
-	utils.ResponseWithData(c, gin.H{
+	utils.ResponseSuccess(c, gin.H{
 		"paymentId": req.ID,
 		"message":   "支付创建成功",
 	})
@@ -70,7 +70,7 @@ func (ctrl *PaymentController) QueryPaymentList(c *gin.Context) {
 	}
 
 	// 返回查询结果
-	utils.ResponseWithData(c, gin.H{
+	utils.ResponseSuccess(c, gin.H{
 		"items": payments,
 		"total": total,
 		"page":  query.PageNumber,
@@ -95,7 +95,7 @@ func (ctrl *PaymentController) GetPaymentByID(c *gin.Context) {
 	}
 
 	// 返回支付信息
-	utils.ResponseWithData(c, payment)
+	utils.ResponseSuccess(c, payment)
 }
 
 // VerifyPayment 验证支付
@@ -114,7 +114,7 @@ func (ctrl *PaymentController) VerifyPayment(c *gin.Context) {
 	}
 
 	// 返回成功结果
-	utils.ResponseWithData(c, gin.H{
+	utils.ResponseSuccess(c, gin.H{
 		"paymentId": id,
 		"message":   "支付验证成功",
 	})
@@ -136,7 +136,7 @@ func (ctrl *PaymentController) CompletePayment(c *gin.Context) {
 	}
 
 	// 返回成功结果
-	utils.ResponseWithData(c, gin.H{
+	utils.ResponseSuccess(c, gin.H{
 		"paymentId": id,
 		"message":   "支付完成成功",
 	})

@@ -84,7 +84,7 @@ func (ctrl *FileController) UploadFile(c *gin.Context) {
 	}
 
 	// 返回上传结果
-	utils.ResponseWithData(c, gin.H{
+	utils.ResponseSuccess(c, gin.H{
 		"fileId":  fileID,
 		"message": "文件上传成功",
 	})

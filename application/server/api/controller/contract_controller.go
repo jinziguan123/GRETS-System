@@ -36,7 +36,7 @@ func (ctrl *ContractController) CreateContract(c *gin.Context) {
 	}
 
 	// 返回成功结果
-	utils.ResponseWithData(c, gin.H{
+	utils.ResponseSuccess(c, gin.H{
 		"contractId": req.ID,
 		"message":    "合同创建成功",
 	})
@@ -68,7 +68,7 @@ func (ctrl *ContractController) QueryContractList(c *gin.Context) {
 	}
 
 	// 返回查询结果
-	utils.ResponseWithData(c, gin.H{
+	utils.ResponseSuccess(c, gin.H{
 		"items": contracts,
 		"total": total,
 		"page":  query.PageNumber,
@@ -93,7 +93,7 @@ func (ctrl *ContractController) GetContractByID(c *gin.Context) {
 	}
 
 	// 返回合同信息
-	utils.ResponseWithData(c, contract)
+	utils.ResponseSuccess(c, contract)
 }
 
 // SignContract 签署合同
@@ -119,7 +119,7 @@ func (ctrl *ContractController) SignContract(c *gin.Context) {
 	}
 
 	// 返回成功结果
-	utils.ResponseWithData(c, gin.H{
+	utils.ResponseSuccess(c, gin.H{
 		"contractId": id,
 		"message":    "合同签署成功",
 	})

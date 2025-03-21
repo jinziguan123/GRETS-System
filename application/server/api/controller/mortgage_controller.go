@@ -56,7 +56,7 @@ func CreateMortgage(c *gin.Context) {
 	}
 
 	// 返回结果
-	utils.ResponseSuccess(c)
+	utils.ResponseSuccess(c, nil)
 }
 
 // QueryMortgageListRequest 查询抵押贷款列表请求
@@ -124,7 +124,7 @@ func QueryMortgageList(c *gin.Context) {
 	}
 
 	// 返回结果
-	utils.ResponseWithData(c, resp)
+	utils.ResponseSuccess(c, resp)
 }
 
 // GetMortgageByID 根据ID获取抵押贷款信息
@@ -157,7 +157,7 @@ func GetMortgageByID(c *gin.Context) {
 	}
 
 	// 返回结果
-	utils.ResponseWithData(c, mortgage)
+	utils.ResponseSuccess(c, mortgage)
 }
 
 // ApproveMortgageRequest 审批抵押贷款请求
@@ -203,5 +203,5 @@ func ApproveMortgage(c *gin.Context) {
 	}
 
 	// 返回结果
-	utils.ResponseSuccess(c)
+	utils.ResponseSuccess(c, nil)
 }

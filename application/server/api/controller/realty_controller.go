@@ -36,7 +36,7 @@ func (ctrl *RealtyController) CreateRealty(c *gin.Context) {
 	}
 
 	// 返回成功结果
-	utils.ResponseWithData(c, gin.H{
+	utils.ResponseSuccess(c, gin.H{
 		"realtyId": req.ID,
 		"message":  "房产创建成功",
 	})
@@ -81,7 +81,7 @@ func (ctrl *RealtyController) QueryRealtyList(c *gin.Context) {
 	}
 
 	// 返回查询结果
-	utils.ResponseWithData(c, gin.H{
+	utils.ResponseSuccess(c, gin.H{
 		"items": realtyList,
 		"total": total,
 		"page":  query.PageNumber,
@@ -106,7 +106,7 @@ func (ctrl *RealtyController) GetRealtyByID(c *gin.Context) {
 	}
 
 	// 返回房产信息
-	utils.ResponseWithData(c, realty)
+	utils.ResponseSuccess(c, realty)
 }
 
 // UpdateRealty 更新房产信息
@@ -132,7 +132,7 @@ func (ctrl *RealtyController) UpdateRealty(c *gin.Context) {
 	}
 
 	// 返回成功结果
-	utils.ResponseWithData(c, gin.H{
+	utils.ResponseSuccess(c, gin.H{
 		"realtyId": id,
 		"message":  "房产更新成功",
 	})

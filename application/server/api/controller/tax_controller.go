@@ -52,7 +52,7 @@ func CreateTax(c *gin.Context) {
 	}
 
 	// 返回结果
-	utils.ResponseSuccess(c)
+	utils.ResponseSuccess(c, nil)
 }
 
 // QueryTaxListRequest 查询税费列表请求
@@ -120,7 +120,7 @@ func QueryTaxList(c *gin.Context) {
 	}
 
 	// 返回结果
-	utils.ResponseWithData(c, resp)
+	utils.ResponseSuccess(c, resp)
 }
 
 // GetTaxByID 根据ID获取税费信息
@@ -153,7 +153,7 @@ func GetTaxByID(c *gin.Context) {
 	}
 
 	// 返回结果
-	utils.ResponseWithData(c, tax)
+	utils.ResponseSuccess(c, tax)
 }
 
 // PayTaxRequest 缴纳税费请求
@@ -199,5 +199,5 @@ func PayTax(c *gin.Context) {
 	}
 
 	// 返回结果
-	utils.ResponseSuccess(c)
+	utils.ResponseSuccess(c, nil)
 }

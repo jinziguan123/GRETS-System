@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"grets_server/pkg/utils"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,16 +17,8 @@ func JWTAuth() gin.HandlerFunc {
 			return
 		}
 
-		// 检查令牌格式
-		parts := strings.SplitN(authHeader, " ", 2)
-		if !(len(parts) == 2 && parts[0] == "Bearer") {
-			utils.ResponseUnauthorized(c, "令牌格式不正确")
-			c.Abort()
-			return
-		}
-
 		// 解析令牌
-		claims, err := utils.ParseToken(parts[1])
+		claims, err := utils.ParseToken(authHeader)
 		if err != nil {
 			utils.ResponseUnauthorized(c, err.Error())
 			c.Abort()

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"grets_server/api/constants"
 	"grets_server/pkg/utils"
 	"grets_server/service"
 	"strconv"
@@ -8,200 +9,186 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// 用户控制器结构体
+// UserController 用户控制器
 type UserController struct {
 	userService service.UserService
 }
 
-// NewUserController 创建用户控制器实例
-func NewUserController() *UserController {
+// NewUserController 创建用户控制器
+func NewUserController(userService service.UserService) *UserController {
 	return &UserController{
-		userService: service.NewUserService(),
+		userService: userService,
 	}
-}
-
-// Login 用户登录
-func (ctrl *UserController) Login(c *gin.Context) {
-	// 解析请求参数
-	var req service.LoginDTO
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ResponseBadRequest(c, "无效的请求参数")
-		return
-	}
-
-	// 调用服务进行登录
-	user, token, err := ctrl.userService.Login(&req)
-	if err != nil {
-		utils.ResponseUnauthorized(c, err.Error())
-		return
-	}
-
-	// 返回登录结果
-	utils.ResponseWithData(c, gin.H{
-		"token": token,
-		"user":  user,
-	})
 }
 
 // Register 用户注册
-func (ctrl *UserController) Register(c *gin.Context) {
-	// 解析请求参数
+func (c *UserController) Register(ctx *gin.Context) {
+	// 绑定请求参数
 	var req service.RegisterDTO
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ResponseBadRequest(c, "无效的请求参数")
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
 		return
 	}
 
-	// 调用服务进行注册
-	if err := ctrl.userService.Register(&req); err != nil {
-		utils.ResponseInternalServerError(c, err.Error())
+	// 调用服务层注册用户
+	if err := c.userService.Register(&req); err != nil {
+		utils.ResponseError(ctx, constants.ServiceError, err.Error())
 		return
 	}
 
-	// 返回注册结果
-	utils.ResponseWithData(c, gin.H{
-		"message":      "注册成功",
-		"citizenID":    req.CitizenID,
-		"organization": req.Organization,
+	utils.ResponseSuccess(ctx, nil)
+}
+
+// Login 用户登录
+func (c *UserController) Login(ctx *gin.Context) {
+	// 绑定请求参数
+	var req service.LoginDTO
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
+		return
+	}
+
+	// 调用服务层登录
+	userDTO, token, err := c.userService.Login(&req)
+	if err != nil {
+		utils.ResponseError(ctx, constants.ServiceError, err.Error())
+		return
+	}
+
+	// 返回用户信息和token
+	utils.ResponseSuccess(ctx, gin.H{
+		"user":  userDTO,
+		"token": token,
 	})
 }
 
 // GetUserList 获取用户列表
-func (ctrl *UserController) GetUserList(c *gin.Context) {
+func (c *UserController) GetUserList(ctx *gin.Context) {
 	// 解析查询参数
-	query := &service.QueryUserDTO{
-		CitizenID:    c.Query("citizenID"),
-		Organization: c.Query("organization"),
-		Role:         c.Query("role"),
-		PageSize:     10,
-		PageNumber:   1,
-	}
+	organization := ctx.Query("organization")
+	role := ctx.Query("role")
+	citizenID := ctx.Query("citizenID")
 
-	// 获取数值类型参数
-	if pageSize, err := strconv.Atoi(c.Query("pageSize")); err == nil && pageSize > 0 {
-		query.PageSize = pageSize
-	}
-	if pageNum, err := strconv.Atoi(c.Query("pageNumber")); err == nil && pageNum > 0 {
-		query.PageNumber = pageNum
-	}
+	// 解析分页参数
+	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("pageSize", "10"))
+	pageNumber, _ := strconv.Atoi(ctx.DefaultQuery("pageNumber", "1"))
 
-	// 检查组织参数
-	if query.Organization == "" {
-		utils.ResponseBadRequest(c, "必须提供组织参数")
-		return
-	}
+	// 调用服务层查询用户列表
+	users, total, err := c.userService.GetUserList(&service.QueryUserDTO{
+		Organization: organization,
+		Role:         role,
+		CitizenID:    citizenID,
+		PageSize:     pageSize,
+		PageNumber:   pageNumber,
+	})
 
-	// 获取用户列表
-	users, total, err := ctrl.userService.GetUserList(query)
 	if err != nil {
-		utils.ResponseInternalServerError(c, err.Error())
+		utils.ResponseError(ctx, constants.ServiceError, err.Error())
 		return
 	}
 
-	// 返回用户列表
-	utils.ResponseWithData(c, gin.H{
-		"items": users,
+	// 返回用户列表和总数
+	utils.ResponseSuccess(ctx, gin.H{
+		"users": users,
 		"total": total,
-		"page":  query.PageNumber,
-		"size":  query.PageSize,
 	})
 }
 
 // GetUserByID 根据ID获取用户
-func (ctrl *UserController) GetUserByID(c *gin.Context) {
-	// 获取路径参数
-	id := c.Param("id")
+func (c *UserController) GetUserByID(ctx *gin.Context) {
+	// 获取用户ID
+	id := ctx.Param("id")
 	if id == "" {
-		utils.ResponseBadRequest(c, "用户ID不能为空")
+		utils.ResponseError(ctx, constants.ParamError, "用户ID不能为空")
 		return
 	}
 
-	// 调用服务获取用户信息
-	user, err := ctrl.userService.GetUserByID(id)
+	// 调用服务层查询用户
+	user, err := c.userService.GetUserByID(id)
 	if err != nil {
-		utils.ResponseInternalServerError(c, err.Error())
+		utils.ResponseError(ctx, constants.ServiceError, err.Error())
 		return
 	}
 
-	// 返回用户信息
-	utils.ResponseWithData(c, user)
+	utils.ResponseSuccess(ctx, user)
+}
+
+// GetUserByCitizenID 根据身份证号获取用户
+func (c *UserController) GetUserByCitizenID(ctx *gin.Context) {
+	// 获取请求参数
+	citizenID := ctx.Query("citizenID")
+	organization := ctx.Query("organization")
+
+	if citizenID == "" || organization == "" {
+		utils.ResponseError(ctx, constants.ParamError, "身份证号和组织不能为空")
+		return
+	}
+
+	// 调用服务层查询用户
+	user, err := c.userService.GetUserByCitizenID(citizenID, organization)
+	if err != nil {
+		utils.ResponseError(ctx, constants.ServiceError, err.Error())
+		return
+	}
+
+	utils.ResponseSuccess(ctx, user)
 }
 
 // UpdateUser 更新用户信息
-func (ctrl *UserController) UpdateUser(c *gin.Context) {
-	// 获取路径参数
-	id := c.Param("id")
-	if id == "" {
-		utils.ResponseBadRequest(c, "用户ID不能为空")
+func (c *UserController) UpdateUser(ctx *gin.Context) {
+	// 绑定请求参数
+	var req service.UpdateUserDTO
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
 		return
 	}
 
-	// 解析请求参数
-	var req service.UpdateUserDTO
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ResponseBadRequest(c, "无效的请求参数")
+	// 获取用户ID
+	id := ctx.Param("id")
+	if id == "" {
+		utils.ResponseError(ctx, constants.ParamError, "用户ID不能为空")
 		return
 	}
 	req.ID = id
 
-	// 调用服务更新用户信息
-	if err := ctrl.userService.UpdateUser(&req); err != nil {
-		utils.ResponseInternalServerError(c, err.Error())
+	// 调用服务层更新用户
+	if err := c.userService.UpdateUser(&req); err != nil {
+		utils.ResponseError(ctx, constants.ServiceError, err.Error())
 		return
 	}
 
-	// 返回成功结果
-	utils.ResponseWithData(c, gin.H{
-		"message": "用户更新成功",
-	})
+	utils.ResponseSuccess(ctx, nil)
 }
 
-// GetUserByCitizenID 根据身份证号和组织获取用户
-func (ctrl *UserController) GetUserByCitizenID(c *gin.Context) {
-	// 获取参数
-	citizenID := c.Query("citizenID")
-	organization := c.Query("organization")
+// 创建全局用户控制器实例
+var GlobalUserController *UserController
 
-	if citizenID == "" || organization == "" {
-		utils.ResponseBadRequest(c, "身份证号和组织不能为空")
-		return
-	}
-
-	// 调用服务获取用户
-	user, err := ctrl.userService.GetUserByCitizenID(citizenID, organization)
-	if err != nil {
-		utils.ResponseInternalServerError(c, err.Error())
-		return
-	}
-
-	// 返回用户信息
-	utils.ResponseWithData(c, user)
+// 初始化用户控制器
+func InitUserController() {
+	GlobalUserController = NewUserController(service.GlobalUserService)
 }
-
-// 创建控制器实例
-var User = NewUserController()
 
 // 为兼容现有路由，提供这些函数
 func Login(c *gin.Context) {
-	User.Login(c)
+	GlobalUserController.Login(c)
 }
 
 func Register(c *gin.Context) {
-	User.Register(c)
+	GlobalUserController.Register(c)
 }
 
 func GetUserList(c *gin.Context) {
-	User.GetUserList(c)
+	GlobalUserController.GetUserList(c)
 }
 
 func GetUserByID(c *gin.Context) {
-	User.GetUserByID(c)
+	GlobalUserController.GetUserByID(c)
 }
 
 func UpdateUser(c *gin.Context) {
-	User.UpdateUser(c)
+	GlobalUserController.UpdateUser(c)
 }
 
 func GetUserByCitizenID(c *gin.Context) {
-	User.GetUserByCitizenID(c)
+	GlobalUserController.GetUserByCitizenID(c)
 }

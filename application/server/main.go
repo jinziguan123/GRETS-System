@@ -5,8 +5,10 @@ import (
 	"grets_server/api/router"
 	"grets_server/config"
 	"grets_server/pkg/blockchain"
+	"grets_server/pkg/db"
 	"grets_server/pkg/utils"
 	"path/filepath"
+	"strconv"
 )
 
 func main() {
@@ -30,16 +32,36 @@ func main() {
 	}
 	utils.Log.Info("日志初始化成功")
 
-	// 3. 初始化区块链客户端
+	// 3. 初始化数据库
+	dbPath := filepath.Join("data", "grets", "grets.db")
+	_, err = db.InitBoltDB(dbPath)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("初始化数据库失败: %v", err))
+		return
+	}
+	defer db.GlobalDB.Close() // 确保程序退出时关闭数据库
+	utils.Log.Info(fmt.Sprintf("数据库初始化成功，路径: %s", dbPath))
+
+	// 4. 初始化区块链客户端
 	if err := blockchain.InitFabricClient(); err != nil {
 		utils.Log.Error(fmt.Sprintf("初始化区块链客户端失败: %v", err))
 		return
 	}
 	utils.Log.Info("区块链客户端初始化成功")
 
-	// 4. 启动Web服务器
+	// 5. 初始化服务和控制器
+	if err := router.InitServices(db.GlobalDB); err != nil {
+		utils.Log.Error(fmt.Sprintf("初始化服务失败: %v", err))
+		return
+	}
+	utils.Log.Info("服务和控制器初始化成功")
+
+	// 6. 启动Web服务器
 	utils.Log.Info("Web服务器正在启动...")
-	if err := router.Run(); err != nil {
+
+	r := router.SetupRouter()
+	port := config.GlobalConfig.Server.Port
+	if err := r.Run(":" + strconv.Itoa(port)); err != nil {
 		utils.Log.Error(fmt.Sprintf("Web服务器启动失败: %v", err))
 		return
 	}

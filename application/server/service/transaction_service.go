@@ -1,11 +1,8 @@
 package service
 
 import (
-	"encoding/json"
-	"fmt"
 	"grets_server/api/constants"
-	"grets_server/pkg/blockchain"
-	"grets_server/pkg/utils"
+	"grets_server/dao"
 )
 
 // 交易请求和响应结构体
@@ -34,181 +31,85 @@ type QueryTransactionDTO struct {
 
 // TransactionService 交易服务接口
 type TransactionService interface {
-	CreateTransaction(req *CreateTransactionDTO) error
-	GetTransactionByID(id string) (map[string]interface{}, error)
-	QueryTransactionList(query *QueryTransactionDTO) ([]map[string]interface{}, int, error)
-	UpdateTransaction(id string, req *UpdateTransactionDTO) error
-	AuditTransaction(id string, auditResult string, comments string) error
-	CompleteTransaction(id string) error
+	CreateTransaction(userID string, req *CreateTransactionDTO) error
+	GetTransactionByID(userID, id string) (map[string]interface{}, error)
+	QueryTransactionList(userID string, query *QueryTransactionDTO) ([]map[string]interface{}, int, error)
+	UpdateTransaction(userID, id string, req *UpdateTransactionDTO) error
+	AuditTransaction(userID, id string, auditResult string, comments string) error
+	CompleteTransaction(userID, id string) error
 }
 
 // transactionService 交易服务实现
-type transactionService struct{}
+type transactionService struct {
+	txDAO *dao.TransactionDAO
+}
+
+// 全局交易服务
+var GlobalTransactionService TransactionService
+
+// InitTransactionService 初始化交易服务
+func InitTransactionService(txDAO *dao.TransactionDAO) {
+	GlobalTransactionService = NewTransactionService(txDAO)
+}
 
 // NewTransactionService 创建交易服务实例
-func NewTransactionService() TransactionService {
-	return &transactionService{}
+func NewTransactionService(txDAO *dao.TransactionDAO) TransactionService {
+	return &transactionService{
+		txDAO: txDAO,
+	}
 }
 
 // CreateTransaction 创建交易
-func (s *transactionService) CreateTransaction(req *CreateTransactionDTO) error {
-	// 调用链码创建交易
-	contract, err := blockchain.GetContract(constants.AgencyOrganization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return fmt.Errorf("获取合约失败: %v", err)
-	}
-	_, err = contract.SubmitTransaction("CreateTransaction",
-		req.ID,
-		req.RealEstateID,
-		req.Seller,
-		req.Buyer,
-		fmt.Sprintf("%.2f", req.Price),
-		req.Description,
-	)
-
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("创建交易失败: %v", err))
-		return fmt.Errorf("创建交易失败: %v", err)
+func (s *transactionService) CreateTransaction(userID string, req *CreateTransactionDTO) error {
+	// 创建交易
+	tx := &dao.Transaction{
+		ID:           req.ID,
+		RealEstateID: req.RealEstateID,
+		Seller:       req.Seller,
+		Buyer:        req.Buyer,
+		Price:        req.Price,
+		Status:       "CREATED",
+		Description:  req.Description,
 	}
 
-	return nil
+	// 调用DAO层创建交易
+	return s.txDAO.CreateTransaction(tx, constants.AgencyOrganization)
 }
 
 // GetTransactionByID 根据ID获取交易信息
-func (s *transactionService) GetTransactionByID(id string) (map[string]interface{}, error) {
-	// 调用链码查询交易信息
-	contract, err := blockchain.GetContract(constants.AgencyOrganization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return nil, fmt.Errorf("获取合约失败: %v", err)
-	}
-	resultBytes, err := contract.SubmitTransaction("QueryTransaction", id)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("查询交易信息失败: %v", err))
-		return nil, fmt.Errorf("查询交易信息失败: %v", err)
-	}
-
-	// 解析返回结果
-	var result map[string]interface{}
-	if err := json.Unmarshal(resultBytes, &result); err != nil {
-		utils.Log.Error(fmt.Sprintf("解析交易信息失败: %v", err))
-		return nil, fmt.Errorf("解析交易信息失败: %v", err)
-	}
-
-	return result, nil
+func (s *transactionService) GetTransactionByID(userID, id string) (map[string]interface{}, error) {
+	// 调用DAO层查询交易
+	return s.txDAO.GetTransactionByID(id, constants.AgencyOrganization)
 }
 
 // QueryTransactionList 查询交易列表
-func (s *transactionService) QueryTransactionList(query *QueryTransactionDTO) ([]map[string]interface{}, int, error) {
-	// 构建查询参数
-	queryParams := []string{
+func (s *transactionService) QueryTransactionList(userID string, query *QueryTransactionDTO) ([]map[string]interface{}, int, error) {
+	// 调用DAO层查询交易列表
+	return s.txDAO.QueryTransactions(
 		query.Status,
 		query.RealEstateID,
 		query.Seller,
 		query.Buyer,
-		fmt.Sprintf("%d", query.PageSize),
-		fmt.Sprintf("%d", query.PageNumber),
-	}
-
-	// 调用链码查询交易列表
-	contract, err := blockchain.GetContract(constants.AgencyOrganization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return nil, 0, fmt.Errorf("获取合约失败: %v", err)
-	}
-	resultBytes, err := contract.SubmitTransaction("QueryAllTransactions", queryParams...)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("查询交易列表失败: %v", err))
-		return nil, 0, fmt.Errorf("查询交易列表失败: %v", err)
-	}
-
-	// 解析返回结果
-	var result map[string]interface{}
-	if err := json.Unmarshal(resultBytes, &result); err != nil {
-		utils.Log.Error(fmt.Sprintf("解析交易列表失败: %v", err))
-		return nil, 0, fmt.Errorf("解析交易列表失败: %v", err)
-	}
-
-	// 提取交易列表和总数
-	records, ok := result["records"].([]interface{})
-	if !ok {
-		return []map[string]interface{}{}, 0, nil
-	}
-
-	var txList []map[string]interface{}
-	for _, record := range records {
-		if txMap, ok := record.(map[string]interface{}); ok {
-			txList = append(txList, txMap)
-		}
-	}
-
-	// 获取总记录数
-	totalCount := 0
-	if count, ok := result["recordsCount"].(float64); ok {
-		totalCount = int(count)
-	}
-
-	return txList, totalCount, nil
+		query.PageSize,
+		query.PageNumber,
+		constants.AgencyOrganization,
+	)
 }
 
 // UpdateTransaction 更新交易信息
-func (s *transactionService) UpdateTransaction(id string, req *UpdateTransactionDTO) error {
-	// 调用链码更新交易状态
-	contract, err := blockchain.GetContract(constants.AgencyOrganization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return fmt.Errorf("获取合约失败: %v", err)
-	}
-	_, err = contract.SubmitTransaction("UpdateTransaction",
-		id,
-		req.Status,
-		req.Description,
-	)
-
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("更新交易失败: %v", err))
-		return fmt.Errorf("更新交易失败: %v", err)
-	}
-
-	return nil
+func (s *transactionService) UpdateTransaction(userID, id string, req *UpdateTransactionDTO) error {
+	// 调用DAO层更新交易
+	return s.txDAO.UpdateTransaction(id, req.Status, req.Description, constants.AgencyOrganization)
 }
 
 // AuditTransaction 审计交易
-func (s *transactionService) AuditTransaction(id string, auditResult string, comments string) error {
-	// 调用链码审计交易
-	contract, err := blockchain.GetContract(constants.AgencyOrganization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return fmt.Errorf("获取合约失败: %v", err)
-	}
-	_, err = contract.SubmitTransaction("AuditTransaction",
-		id,
-		auditResult,
-		comments,
-	)
-
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("审计交易失败: %v", err))
-		return fmt.Errorf("审计交易失败: %v", err)
-	}
-
-	return nil
+func (s *transactionService) AuditTransaction(userID, id string, auditResult string, comments string) error {
+	// 调用DAO层审计交易
+	return s.txDAO.AuditTransaction(id, auditResult, comments, constants.AgencyOrganization)
 }
 
 // CompleteTransaction 完成交易
-func (s *transactionService) CompleteTransaction(id string) error {
-	// 调用链码完成交易
-	contract, err := blockchain.GetContract(constants.AgencyOrganization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return fmt.Errorf("获取合约失败: %v", err)
-	}
-	_, err = contract.SubmitTransaction("CompleteTransaction", id)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("完成交易失败: %v", err))
-		return fmt.Errorf("完成交易失败: %v", err)
-	}
-
-	return nil
+func (s *transactionService) CompleteTransaction(userID, id string) error {
+	// 调用DAO层完成交易
+	return s.txDAO.CompleteTransaction(id, constants.AgencyOrganization)
 }
