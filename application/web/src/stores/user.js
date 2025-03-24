@@ -9,13 +9,13 @@ export const useUserStore = defineStore('user', () => {
 
   // 状态
   const token = ref(localStorage.getItem('token') || '')
-  const user = ref(JSON.parse(localStorage.getItem('user') || '{}'))
+  const user = ref(JSON.parse(localStorage.getItem('userInfo') || '{}'))
 
   // 计算属性
   const isLoggedIn = computed(() => !!token.value)
   const userRole = computed(() => user.value.role || '')
   const userId = computed(() => user.value.id || '')
-  const username = computed(() => user.value.username || '')
+  const username = computed(() => user.value.name || '')
 
   // 判断是否有权限
   const hasRole = (roles) => {
@@ -55,8 +55,7 @@ export const useUserStore = defineStore('user', () => {
 
     // 清除localStorage
     localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    localStorage.removeItem('userRole')
+    localStorage.removeItem('userInfo')
 
     // 清除axios默认头部
     delete axios.defaults.headers.common['Authorization']
@@ -69,7 +68,7 @@ export const useUserStore = defineStore('user', () => {
   // 更新用户信息
   const updateUserInfo = (newUserInfo) => {
     user.value = { ...user.value, ...newUserInfo }
-    localStorage.setItem('user', JSON.stringify(user.value))
+    localStorage.setItem('userInfo', JSON.stringify(user.value))
   }
 
   // 初始化axios头部

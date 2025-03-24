@@ -100,8 +100,8 @@
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item @click="$router.push('/user/profile')">个人信息</el-dropdown-item>
-                <el-dropdown-item @click="$router.push('/user/password')">修改密码</el-dropdown-item>
+                <el-dropdown-item @click="router.push('/user/profile')">个人信息</el-dropdown-item>
+                <el-dropdown-item @click="router.push('/user/password')">修改密码</el-dropdown-item>
                 <el-dropdown-item divided @click="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -148,8 +148,8 @@ const router = useRouter()
 const userStore = useUserStore()
 
 // 用户信息
-const username = computed(() => userStore.username)
-const userRole = computed(() => userStore.userRole)
+const username = userStore.username
+const userRole = userStore.userRole
 
 // 侧边栏折叠状态
 const isCollapse = ref(false)

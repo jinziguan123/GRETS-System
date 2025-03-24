@@ -256,7 +256,6 @@ router.beforeEach((to, from, next) => {
   
   // 获取token
   const token = localStorage.getItem('token')
-  const userRole = localStorage.getItem('userRole')
   
   // 检查是否需要认证
   if (to.meta.requiresAuth && !token) {
@@ -264,7 +263,7 @@ router.beforeEach((to, from, next) => {
     next({ name: 'Login' })
   } 
   // 检查角色权限
-  else if (to.meta.roles && !to.meta.roles.includes(userRole)) {
+  else if (to.meta.roles) {
     // 没有权限访问该页面
     next({ name: 'Dashboard' })
   } 

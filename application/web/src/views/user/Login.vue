@@ -85,7 +85,6 @@ import { login } from './api'
 import {useLocalStorage} from "@vueuse/core";
 
 const router = useRouter()
-const userStore = useUserStore()
 const formRef = ref(null)
 const loading = ref(false)
 
@@ -117,6 +116,10 @@ const loginRules = reactive({
   ]
 })
 
+if (localStorage.getItem('token') !== null) {
+  router.push({ path: '/' })
+}
+
 // 处理登录
 const handleLogin = () => {
   if (formRef.value) {
@@ -133,7 +136,10 @@ const handleLogin = () => {
           }).then(res => {
             if (res.code === 200) {
               ElMessage.success('登录成功')
+              // 保存token
               localStorage.setItem('token', res.data.token)
+              // 保存用户信息
+              localStorage.setItem('userInfo', JSON.stringify(res.data.user))
               // 重定向到仪表盘或之前访问的页面
               const redirect = router.currentRoute.value.query.redirect || '/'
               router.push(redirect)
