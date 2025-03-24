@@ -1,10 +1,12 @@
+<template>
+  <div>
+    <router-view />
+  </div>
+</template>
+
 <script setup>
 // App.vue 是应用的根组件，只需要包含路由视图
 </script>
-
-<template>
-  <router-view />
-</template>
 
 <style>
 /* 全局样式 */
@@ -15,7 +17,8 @@
 }
 
 html, body {
-  height: 100%;
+  height: 100vh;
+  width: 100vw;
   font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -26,7 +29,8 @@ html, body {
 }
 
 #app {
-  height: 100%;
+  height: 100vh;
+  width: 100vw;
 }
 
 /* 常用辅助类 */

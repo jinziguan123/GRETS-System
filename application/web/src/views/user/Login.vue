@@ -10,12 +10,12 @@
       class="login-form"
     >
       <!-- 用户名输入框 -->
-      <el-form-item prop="username">
+      <el-form-item prop="citizenID">
         <el-input
-          v-model="loginForm.username"
-          placeholder="请输入用户名"
+          v-model="loginForm.citizenID"
+          placeholder="请输入身份证号"
           prefix-icon="User"
-          autocomplete="username"
+          autocomplete="citizenID"
         />
       </el-form-item>
       
@@ -70,7 +70,7 @@
       <!-- 注册链接 -->
       <el-form-item class="register-link">
         <span>还没有账号？</span>
-        <el-button type="text" @click="$router.push('/register')">立即注册</el-button>
+        <el-button type="text" @click="router.push('register')">立即注册</el-button>
       </el-form-item>
     </el-form>
   </div>
@@ -80,8 +80,9 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { User, Lock } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { login } from './api'
+import {useLocalStorage} from "@vueuse/core";
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -90,7 +91,7 @@ const loading = ref(false)
 
 // 登录表单数据
 const loginForm = reactive({
-  username: '',
+  citizenID: '',
   password: '',
   organization: '',
   remember: false
@@ -98,22 +99,18 @@ const loginForm = reactive({
 
 // 可选组织列表
 const organizations = [
-  { label: '系统管理员', value: 'AdminMSP' },
-  { label: '政府监管部门', value: 'GovernmentMSP' },
-  { label: '房产中介机构', value: 'AgencyMSP' },
-  { label: '投资者/买家', value: 'InvestorMSP' },
-  { label: '银行机构', value: 'BankMSP' }
+  { label: '系统管理员', value: 'administrator' },
+  { label: '政府监管部门', value: 'government' },
+  { label: '房产中介机构', value: 'agency' },
+  { label: '投资者/买家', value: 'investor' },
+  { label: '银行机构', value: 'bank' }
 ]
 
 // 表单验证规则
 const loginRules = reactive({
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '用户名长度应为3-20个字符', trigger: 'blur' }
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '密码长度应为6-20个字符', trigger: 'blur' }
+  citizenID: [
+    { required: true, message: '请输入身份证号', trigger: 'blur' },
+    { min: 18, max: 18, message: '身份证号长度应为18个字符', trigger: 'blur' }
   ],
   organization: [
     { required: true, message: '请选择组织', trigger: 'change' }
@@ -128,20 +125,22 @@ const handleLogin = () => {
         loading.value = true
         try {
           // 调用登录接口
-          await userStore.login({
-            username: loginForm.username,
+          await login({
+            citizenID: loginForm.citizenID,
             password: loginForm.password,
             organization: loginForm.organization,
             remember: loginForm.remember
+          }).then(res => {
+            if (res.code === 200) {
+              ElMessage.success('登录成功')
+              localStorage.setItem('token', res.data.token)
+              // 重定向到仪表盘或之前访问的页面
+              const redirect = router.currentRoute.value.query.redirect || '/'
+              router.push(redirect)
+            }else{
+              ElMessage.error('用户不存在，请先注册')
+            }
           })
-          
-          ElMessage.success('登录成功')
-          
-          // 重定向到仪表盘或之前访问的页面
-          const redirect = router.currentRoute.value.query.redirect || '/'
-          router.push(redirect)
-        } catch (error) {
-          ElMessage.error(error.message || '登录失败，请检查您的凭据')
         } finally {
           loading.value = false
         }

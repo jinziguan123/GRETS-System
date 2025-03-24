@@ -134,7 +134,6 @@ import {
   Money,
   Wallet
 } from '@element-plus/icons-vue'
-import { dashboardApi } from '@/api'
 
 // 注册必要的ECharts组件
 echarts.use([

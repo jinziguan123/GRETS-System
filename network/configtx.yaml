@@ -66,27 +66,6 @@ Organizations:
             - Host: peer0.bank.grets.com
               Port: 7051
 
-    - &Agency
-        Name: Agency
-        ID: AgencyMSP
-        MSPDir: crypto-config/peerOrganizations/agency.grets.com/msp
-        Policies:
-            Readers:
-                Type: Signature
-                Rule: "OR('AgencyMSP.admin', 'AgencyMSP.peer', 'AgencyMSP.client')"
-            Writers:
-                Type: Signature
-                Rule: "OR('AgencyMSP.admin', 'AgencyMSP.client')"
-            Admins:
-                Type: Signature
-                Rule: "OR('AgencyMSP.admin')"
-            Endorsement:
-                Type: Signature
-                Rule: "OR('AgencyMSP.peer')"
-        AnchorPeers:
-            - Host: peer0.agency.grets.com
-              Port: 7051
-
     - &Thirdparty
         Name: Thirdparty
         ID: ThirdpartyMSP
@@ -203,10 +182,10 @@ Application: &ApplicationDefaults
             Rule: "MAJORITY Admins"
         LifecycleEndorsement:
             Type: ImplicitMeta
-            Rule: "ANY Endorsement"
+            Rule: "MAJORITY Endorsement"
         Endorsement:
             Type: ImplicitMeta
-            Rule: "ANY Endorsement"
+            Rule: "MAJORITY Endorsement"
     Capabilities:
         <<: *ApplicationCapabilities
 
@@ -295,7 +274,6 @@ Profiles:
                 Organizations:
                     - *Government
                     - *Bank
-                    - *Agency
                     - *Thirdparty
                     - *Audit
                     - *Investor
@@ -310,7 +288,6 @@ Profiles:
             Organizations:
                 - *Government
                 - *Bank
-                - *Agency
                 - *Thirdparty
                 - *Audit
                 - *Investor

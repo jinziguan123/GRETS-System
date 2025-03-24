@@ -13,8 +13,8 @@ OrdererOrgs:
         CommonName: "{{.Hostname}}.{{.Domain}}"
 
 PeerOrgs:
-  - Name: Agency
-    Domain: agency.grets.com
+  - Name: Government
+    Domain: government.grets.com
     EnableNodeOUs: true
     Template:
       Count: 1
@@ -31,14 +31,6 @@ PeerOrgs:
 
   - Name: Bank
     Domain: bank.grets.com
-    EnableNodeOUs: true
-    Template:
-      Count: 1
-    Users:
-      Count: 1
-
-  - Name: Government
-    Domain: government.grets.com
     EnableNodeOUs: true
     Template:
       Count: 1

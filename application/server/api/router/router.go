@@ -50,7 +50,7 @@ func SetupRouter() *gin.Engine {
 		api.POST("/login", controller.Login)
 
 		// 用户相关接口
-		users := api.Group("/users")
+		users := api.Group("/user")
 		users.Use(middleware.JWTAuth())
 		{
 			// 获取用户详情

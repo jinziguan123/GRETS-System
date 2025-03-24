@@ -10,14 +10,23 @@
       class="register-form"
     >
       <!-- 用户名 -->
-      <el-form-item prop="username">
+      <el-form-item prop="name">
         <el-input
-          v-model="registerForm.username"
-          placeholder="请输入用户名"
+          v-model="registerForm.name"
+          placeholder="请输入姓名"
           prefix-icon="User"
         />
       </el-form-item>
       
+      <!-- 身份证号 -->
+      <el-form-item prop="citizenID">
+        <el-input
+          v-model="registerForm.citizenID"
+          placeholder="请输入身份证号"
+          prefix-icon="User"
+        />
+      </el-form-item>
+
       <!-- 密码 -->
       <el-form-item prop="password">
         <el-input
@@ -99,7 +108,7 @@
       <!-- 登录链接 -->
       <el-form-item class="login-link">
         <span>已有账号？</span>
-        <el-button type="text" @click="$router.push('/login')">立即登录</el-button>
+        <el-button type="text" @click="router.push('login')">立即登录</el-button>
       </el-form-item>
     </el-form>
     
@@ -198,9 +207,8 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Lock, Message, Phone } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { userApi } from '@/api'
+import { register } from './api.js'
 
 const router = useRouter()
 const formRef = ref(null)
@@ -210,7 +218,8 @@ const privacyDialogVisible = ref(false)
 
 // 注册表单数据
 const registerForm = reactive({
-  username: '',
+  name: '',
+  citizenID: '',
   password: '',
   confirmPassword: '',
   email: '',
@@ -221,9 +230,11 @@ const registerForm = reactive({
 
 // 可选组织列表
 const organizations = [
-  { label: '房产中介机构', value: 'AgencyMSP' },
-  { label: '投资者/买家', value: 'InvestorMSP' },
-  { label: '银行机构', value: 'BankMSP' }
+  { label: '系统管理员', value: 'administrator' },
+  { label: '政府监管部门', value: 'government' },
+  { label: '房产中介机构', value: 'agency' },
+  { label: '投资者/买家', value: 'investor' },
+  { label: '银行机构', value: 'bank' }
 ]
 
 // 验证密码是否一致
@@ -267,13 +278,13 @@ const validateEmail = (rule, value, callback) => {
 
 // 表单验证规则
 const registerRules = reactive({
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '用户名长度应为3-20个字符', trigger: 'blur' }
+  name: [
+    { required: true, message: '请输入姓名', trigger: 'blur' },
+    { min: 3, max: 20, message: '姓名长度应为3-20个字符', trigger: 'blur' }
   ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '密码长度应为6-20个字符', trigger: 'blur' }
+  citizenID: [
+    { required: true, message: '请输入身份证号', trigger: 'blur' },
+    { min: 18, max: 18, message: '身份证号长度应为18个字符', trigger: 'blur' }
   ],
   confirmPassword: [
     { required: true, message: '请确认密码', trigger: 'blur' },
@@ -313,16 +324,18 @@ const handleRegister = () => {
         loading.value = true
         try {
           // 调用注册接口
-          await userApi.register({
-            username: registerForm.username,
+          await register({
+            name: registerForm.name,
+            citizenID: registerForm.citizenID,
             password: registerForm.password,
             email: registerForm.email,
             phone: registerForm.phone,
+            role: 'user',
             organization: registerForm.organization
           })
           
           ElMessage.success('注册成功，请登录')
-          router.push('/login')
+          await router.push('/login')
         } catch (error) {
           ElMessage.error(error.message || '注册失败，请稍后再试')
         } finally {
