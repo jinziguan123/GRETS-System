@@ -119,8 +119,6 @@ func (s *userService) Login(req *LoginDTO) (*UserDTO, string, error) {
 		Phone:        user.Phone,
 		Email:        user.Email,
 		Organization: user.Organization,
-		CreatedAt:    user.CreatedAt,
-		LastUpdated:  user.LastUpdated,
 		Status:       user.Status,
 	}
 
