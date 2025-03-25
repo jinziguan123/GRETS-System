@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: grets_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: grets123
+      MYSQL_DATABASE: grets
+      MYSQL_USER: grets_user
+      MYSQL_PASSWORD: grets_password
+      TZ: Asia/Shanghai
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/conf.d:/etc/mysql/conf.d
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - grets_network
+
+networks:
+  grets_network:
+    driver: bridge 

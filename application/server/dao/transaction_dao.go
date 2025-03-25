@@ -1,180 +1,118 @@
 package dao
 
 import (
-	"encoding/json"
 	"fmt"
-	"grets_server/pkg/blockchain"
-	"grets_server/pkg/utils"
+	"grets_server/db"
+	"time"
+
+	"gorm.io/gorm"
 )
 
-// Transaction 交易模型
-type Transaction struct {
-	ID           string  `json:"id"`
-	RealEstateID string  `json:"realEstateId"`
-	Seller       string  `json:"seller"`
-	Buyer        string  `json:"buyer"`
-	Price        float64 `json:"price"`
-	Status       string  `json:"status"`
-	Description  string  `json:"description"`
-}
-
 // TransactionDAO 交易数据访问对象
-type TransactionDAO struct{}
-
-// NewTransactionDAO 创建交易DAO
-func NewTransactionDAO() *TransactionDAO {
-	return &TransactionDAO{}
+type TransactionDAO struct {
+	mysqlDB *gorm.DB
+	boltDB  *db.BoltDB
 }
 
-// CreateTransaction 创建交易
-func (dao *TransactionDAO) CreateTransaction(tx *Transaction, organization string) error {
-	// 调用链码创建交易
-	contract, err := blockchain.GetContract(organization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return fmt.Errorf("获取合约失败: %v", err)
-	}
-	_, err = contract.SubmitTransaction("CreateTransaction",
-		tx.ID,
-		tx.RealEstateID,
-		tx.Seller,
-		tx.Buyer,
-		fmt.Sprintf("%.2f", tx.Price),
-		tx.Description,
-	)
+func (dao *TransactionDAO) AuditTransaction(id string, auditResult string, comments string, organization string) error {
+	panic("unimplemented")
+}
 
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("创建交易失败: %v", err))
-		return fmt.Errorf("创建交易失败: %v", err)
+func (dao *TransactionDAO) CompleteTransaction(id string, organization string) error {
+	panic("unimplemented")
+}
+
+// 创建新的TransactionDAO实例
+func NewTransactionDAO() *TransactionDAO {
+	return &TransactionDAO{
+		mysqlDB: db.GlobalMysql,
+		boltDB:  db.GlobalBoltDB,
+	}
+}
+
+// CreateTransaction 创建交易记录
+func (dao *TransactionDAO) CreateTransaction(tx *db.Transaction) error {
+	// 保存到MySQL数据库
+	if err := dao.mysqlDB.Create(tx).Error; err != nil {
+		return fmt.Errorf("创建交易记录失败: %v", err)
+	}
+
+	// 保存状态到BoltDB
+	txState := map[string]interface{}{
+		"id":         tx.ID,
+		"status":     tx.Status,
+		"updated_at": time.Now(),
+	}
+	if err := dao.boltDB.Put("transaction_states", tx.ID, txState); err != nil {
+		return fmt.Errorf("保存交易状态失败: %v", err)
 	}
 
 	return nil
 }
 
 // GetTransactionByID 根据ID获取交易
-func (dao *TransactionDAO) GetTransactionByID(id string, organization string) (map[string]interface{}, error) {
-	// 调用链码查询交易
-	contract, err := blockchain.GetContract(organization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return nil, fmt.Errorf("获取合约失败: %v", err)
+func (dao *TransactionDAO) GetTransactionByID(id string) (*db.Transaction, error) {
+	var tx db.Transaction
+	if err := dao.mysqlDB.First(&tx, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("根据ID查询交易失败: %v", err)
 	}
-	resultBytes, err := contract.SubmitTransaction("QueryTransaction", id)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("查询交易失败: %v", err))
-		return nil, fmt.Errorf("查询交易失败: %v", err)
+	return &tx, nil
+}
+
+// UpdateTransaction 更新交易信息
+func (dao *TransactionDAO) UpdateTransaction(tx *db.Transaction) error {
+	// 更新MySQL数据库
+	if err := dao.mysqlDB.Save(tx).Error; err != nil {
+		return fmt.Errorf("更新交易记录失败: %v", err)
 	}
 
-	// 解析返回结果
-	var result map[string]interface{}
-	if err := json.Unmarshal(resultBytes, &result); err != nil {
-		utils.Log.Error(fmt.Sprintf("解析交易信息失败: %v", err))
-		return nil, fmt.Errorf("解析交易信息失败: %v", err)
+	// 更新状态到BoltDB
+	txState := map[string]interface{}{
+		"id":         tx.ID,
+		"status":     tx.Status,
+		"updated_at": time.Now(),
+	}
+	if err := dao.boltDB.Put("transaction_states", tx.ID, txState); err != nil {
+		return fmt.Errorf("更新交易状态失败: %v", err)
 	}
 
-	return result, nil
+	return nil
 }
 
 // QueryTransactions 查询交易列表
-func (dao *TransactionDAO) QueryTransactions(status, realEstateID, seller, buyer string, pageSize, pageNumber int, organization string) ([]map[string]interface{}, int, error) {
-	// 构建查询参数
-	queryParams := []string{
-		status,
-		realEstateID,
-		seller,
-		buyer,
-		fmt.Sprintf("%d", pageSize),
-		fmt.Sprintf("%d", pageNumber),
+func (dao *TransactionDAO) QueryTransactions(buyerCitizenID, sellerCitizenID, realEstateID, status string) ([]*db.Transaction, error) {
+	var transactions []*db.Transaction
+	query := dao.mysqlDB.Model(&db.Transaction{})
+
+	// 添加查询条件
+	if buyerCitizenID != "" {
+		query = query.Where("buyer_citizen_id = ?", buyerCitizenID)
+	}
+	if sellerCitizenID != "" {
+		query = query.Where("seller_citizen_id = ?", sellerCitizenID)
+	}
+	if realEstateID != "" {
+		query = query.Where("real_estate_id = ?", realEstateID)
+	}
+	if status != "" {
+		query = query.Where("status = ?", status)
 	}
 
-	// 调用链码查询交易列表
-	contract, err := blockchain.GetContract(organization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return nil, 0, fmt.Errorf("获取合约失败: %v", err)
-	}
-	resultBytes, err := contract.SubmitTransaction("QueryAllTransactions", queryParams...)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("查询交易列表失败: %v", err))
-		return nil, 0, fmt.Errorf("查询交易列表失败: %v", err)
+	// 执行查询
+	if err := query.Find(&transactions).Error; err != nil {
+		return nil, fmt.Errorf("查询交易列表失败: %v", err)
 	}
 
-	// 解析返回结果
-	var result map[string]interface{}
-	if err := json.Unmarshal(resultBytes, &result); err != nil {
-		utils.Log.Error(fmt.Sprintf("解析交易列表失败: %v", err))
-		return nil, 0, fmt.Errorf("解析交易列表失败: %v", err)
-	}
-
-	// 提取交易列表和总数
-	records, ok := result["records"].([]interface{})
-	if !ok {
-		return []map[string]interface{}{}, 0, nil
-	}
-
-	var txList []map[string]interface{}
-	for _, record := range records {
-		if txMap, ok := record.(map[string]interface{}); ok {
-			txList = append(txList, txMap)
-		}
-	}
-
-	// 获取总记录数
-	totalCount := 0
-	if count, ok := result["recordsCount"].(float64); ok {
-		totalCount = int(count)
-	}
-
-	return txList, totalCount, nil
+	return transactions, nil
 }
 
-// UpdateTransaction 更新交易
-func (dao *TransactionDAO) UpdateTransaction(id, status, description string, organization string) error {
-	// 调用链码更新交易
-	contract, err := blockchain.GetContract(organization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return fmt.Errorf("获取合约失败: %v", err)
+// UpdateTransactionOnChainStatus 更新交易的上链状态
+func (dao *TransactionDAO) UpdateTransactionOnChainStatus(id, txID string, onChain bool) error {
+	if err := dao.mysqlDB.Model(&db.Transaction{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"on_chain":    onChain,
+		"chain_tx_id": txID,
+	}).Error; err != nil {
+		return fmt.Errorf("更新交易上链状态失败: %v", err)
 	}
-	_, err = contract.SubmitTransaction("UpdateTransaction", id, status, description)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("更新交易失败: %v", err))
-		return fmt.Errorf("更新交易失败: %v", err)
-	}
-
-	return nil
-}
-
-// AuditTransaction 审计交易
-func (dao *TransactionDAO) AuditTransaction(id, auditResult, comments string, organization string) error {
-	// 调用链码审计交易
-	contract, err := blockchain.GetContract(organization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return fmt.Errorf("获取合约失败: %v", err)
-	}
-	_, err = contract.SubmitTransaction("AuditTransaction", id, auditResult, comments)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("审计交易失败: %v", err))
-		return fmt.Errorf("审计交易失败: %v", err)
-	}
-
-	return nil
-}
-
-// CompleteTransaction 完成交易
-func (dao *TransactionDAO) CompleteTransaction(id string, organization string) error {
-	// 调用链码完成交易
-	contract, err := blockchain.GetContract(organization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return fmt.Errorf("获取合约失败: %v", err)
-	}
-	_, err = contract.SubmitTransaction("CompleteTransaction", id)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("完成交易失败: %v", err))
-		return fmt.Errorf("完成交易失败: %v", err)
-	}
-
 	return nil
 }

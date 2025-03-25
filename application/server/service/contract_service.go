@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"grets_server/api/constants"
+	"grets_server/dao"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
 )
@@ -28,20 +29,38 @@ type SignContractDTO struct {
 	SignerType string `json:"signerType"`
 }
 
+type AuditContractDTO struct {
+	Result               string `json:"result"`               // 审核结果：approved/rejected/needRevision
+	Comments             string `json:"comments"`             // 审核意见
+	RevisionRequirements string `json:"revisionRequirements"` // 修改要求
+	RejectionReason      string `json:"rejectionReason"`      // 拒绝理由
+}
+
+// 全局合同服务实例
+var GlobalContractService ContractService
+
+// InitContractService 初始化合同服务
+func InitContractService(contractDAO *dao.ContractDAO) {
+	GlobalContractService = NewContractService(contractDAO)
+}
+
 // ContractService 合同服务接口
 type ContractService interface {
 	CreateContract(req *CreateContractDTO) error
 	GetContractByID(id string) (map[string]interface{}, error)
 	QueryContractList(query *QueryContractDTO) ([]map[string]interface{}, int, error)
 	SignContract(id string, req *SignContractDTO) error
+	AuditContract(id string, req *AuditContractDTO) error
 }
 
 // contractService 合同服务实现
-type contractService struct{}
+type contractService struct {
+	contractDAO *dao.ContractDAO
+}
 
 // NewContractService 创建合同服务实例
-func NewContractService() ContractService {
-	return &contractService{}
+func NewContractService(contractDAO *dao.ContractDAO) ContractService {
+	return &contractService{contractDAO: contractDAO}
 }
 
 // CreateContract 创建合同
@@ -159,6 +178,32 @@ func (s *contractService) SignContract(id string, req *SignContractDTO) error {
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("签署合同失败: %v", err))
 		return fmt.Errorf("签署合同失败: %v", err)
+	}
+
+	return nil
+}
+
+// AuditContract 审核合同
+func (s *contractService) AuditContract(id string, req *AuditContractDTO) error {
+	// 调用链码审核合同
+	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
+
+	// 构建审核参数
+	_, err = contract.SubmitTransaction("AuditContract",
+		id,
+		req.Result,
+		req.Comments,
+		req.RevisionRequirements,
+		req.RejectionReason,
+	)
+
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("审核合同失败: %v", err))
+		return fmt.Errorf("审核合同失败: %v", err)
 	}
 
 	return nil

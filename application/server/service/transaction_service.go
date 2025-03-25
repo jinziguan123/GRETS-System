@@ -3,6 +3,7 @@ package service
 import (
 	"grets_server/api/constants"
 	"grets_server/dao"
+	"grets_server/db"
 )
 
 // 交易请求和响应结构体
@@ -32,8 +33,8 @@ type QueryTransactionDTO struct {
 // TransactionService 交易服务接口
 type TransactionService interface {
 	CreateTransaction(userID string, req *CreateTransactionDTO) error
-	GetTransactionByID(userID, id string) (map[string]interface{}, error)
-	QueryTransactionList(userID string, query *QueryTransactionDTO) ([]map[string]interface{}, int, error)
+	GetTransactionByID(userID, id string) (*db.Transaction, error)
+	QueryTransactionList(userID string, query *QueryTransactionDTO) ([]*db.Transaction, error)
 	UpdateTransaction(userID, id string, req *UpdateTransactionDTO) error
 	AuditTransaction(userID, id string, auditResult string, comments string) error
 	CompleteTransaction(userID, id string) error
@@ -62,44 +63,49 @@ func NewTransactionService(txDAO *dao.TransactionDAO) TransactionService {
 // CreateTransaction 创建交易
 func (s *transactionService) CreateTransaction(userID string, req *CreateTransactionDTO) error {
 	// 创建交易
-	tx := &dao.Transaction{
-		ID:           req.ID,
-		RealEstateID: req.RealEstateID,
-		Seller:       req.Seller,
-		Buyer:        req.Buyer,
-		Price:        req.Price,
-		Status:       "CREATED",
-		Description:  req.Description,
+	tx := &db.Transaction{
+		ID:              req.ID,
+		RealEstateID:    req.RealEstateID,
+		SellerCitizenID: req.Seller,
+		BuyerCitizenID:  req.Buyer,
+		Price:           req.Price,
+		Status:          "CREATED",
 	}
 
 	// 调用DAO层创建交易
-	return s.txDAO.CreateTransaction(tx, constants.AgencyOrganization)
+	return s.txDAO.CreateTransaction(tx)
 }
 
 // GetTransactionByID 根据ID获取交易信息
-func (s *transactionService) GetTransactionByID(userID, id string) (map[string]interface{}, error) {
+func (s *transactionService) GetTransactionByID(userID, id string) (*db.Transaction, error) {
 	// 调用DAO层查询交易
-	return s.txDAO.GetTransactionByID(id, constants.AgencyOrganization)
+	return s.txDAO.GetTransactionByID(id)
 }
 
 // QueryTransactionList 查询交易列表
-func (s *transactionService) QueryTransactionList(userID string, query *QueryTransactionDTO) ([]map[string]interface{}, int, error) {
+func (s *transactionService) QueryTransactionList(userID string, query *QueryTransactionDTO) ([]*db.Transaction, error) {
 	// 调用DAO层查询交易列表
 	return s.txDAO.QueryTransactions(
-		query.Status,
-		query.RealEstateID,
-		query.Seller,
 		query.Buyer,
-		query.PageSize,
-		query.PageNumber,
-		constants.AgencyOrganization,
+		query.Seller,
+		query.RealEstateID,
+		query.Status,
 	)
 }
 
 // UpdateTransaction 更新交易信息
 func (s *transactionService) UpdateTransaction(userID, id string, req *UpdateTransactionDTO) error {
+	// 查询交易
+	tx, err := s.txDAO.GetTransactionByID(id)
+	if err != nil {
+		return err
+	}
+
+	// 更新交易
+	tx.Status = req.Status
+
 	// 调用DAO层更新交易
-	return s.txDAO.UpdateTransaction(id, req.Status, req.Description, constants.AgencyOrganization)
+	return s.txDAO.UpdateTransaction(tx)
 }
 
 // AuditTransaction 审计交易

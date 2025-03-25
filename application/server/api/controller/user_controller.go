@@ -4,6 +4,7 @@ import (
 	"grets_server/api/constants"
 	"grets_server/pkg/utils"
 	"grets_server/service"
+	userDto "grets_server/service/dto/user_dto"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +25,7 @@ func NewUserController(userService service.UserService) *UserController {
 // Register 用户注册
 func (c *UserController) Register(ctx *gin.Context) {
 	// 绑定请求参数
-	var req service.RegisterDTO
+	var req userDto.RegisterDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
 		return
@@ -42,7 +43,7 @@ func (c *UserController) Register(ctx *gin.Context) {
 // Login 用户登录
 func (c *UserController) Login(ctx *gin.Context) {
 	// 绑定请求参数
-	var req service.LoginDTO
+	var req userDto.LoginDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
 		return
@@ -74,7 +75,7 @@ func (c *UserController) GetUserList(ctx *gin.Context) {
 	pageNumber, _ := strconv.Atoi(ctx.DefaultQuery("pageNumber", "1"))
 
 	// 调用服务层查询用户列表
-	users, total, err := c.userService.GetUserList(&service.QueryUserDTO{
+	users, total, err := c.userService.GetUserList(&userDto.QueryUserDTO{
 		Organization: organization,
 		Role:         role,
 		CitizenID:    citizenID,
@@ -137,7 +138,7 @@ func (c *UserController) GetUserByCitizenID(ctx *gin.Context) {
 // UpdateUser 更新用户信息
 func (c *UserController) UpdateUser(ctx *gin.Context) {
 	// 绑定请求参数
-	var req service.UpdateUserDTO
+	var req userDto.UpdateUserDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
 		return

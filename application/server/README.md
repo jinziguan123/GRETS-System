@@ -9,8 +9,13 @@ server/
 │   ├── middleware/       # 中间件，如认证、日志等
 │   └── router/           # 路由配置
 ├── config/               # 配置文件和配置加载
+├── data/                 # 数据存储目录
+├── docker/               # Docker相关文件
+│   ├── mysql/            # MySQL配置和数据
+│   └── docker-compose.yml# Docker Compose配置
 ├── pkg/                  # 通用工具包
 │   ├── blockchain/       # 区块链交互
+│   ├── db/               # 数据库操作
 │   └── utils/            # 工具函数
 ├── service/              # 业务服务层
 │   ├── blockchain_service.go  # 区块链服务
@@ -37,9 +42,10 @@ server/
    - `service/`: 各种业务服务的接口和实现
    - 每个业务领域有独立的服务文件，如房产服务、交易服务等
 
-3. **数据层（区块链交互层）**：与区块链网络交互
+3. **数据层（区块链交互层和数据库层）**：与区块链网络交互和本地数据存储
    - `pkg/blockchain/`: 区块链客户端和交互逻辑
    - `service/blockchain_service.go`: 封装区块链操作的服务接口
+   - `pkg/db/`: 数据库接口和实现，使用MySQL数据库
 
 ### 主要服务说明
 
@@ -68,6 +74,64 @@ server/
   }
   ```
 
+## 数据库支持
+
+系统使用MySQL数据库来存储上链数据和其他系统数据。上链数据包括：
+1. 交易信息
+2. 合同操作记录
+3. 审核过程和结果 
+4. 房产操作记录
+
+### MySQL数据库
+
+MySQL数据库使用Docker容器运行，配置如下:
+
+- 端口: 3307 (映射到主机的3307端口)
+- 用户名: grets_user
+- 密码: grets_password
+- 数据库名: grets
+
+#### 数据表结构
+
+MySQL包含了多个表来存储系统数据，主要包括：
+- users: 用户信息
+- organizations: 组织信息
+- realties: 房产信息
+- realty_assessments: 房产评估
+- transactions: 交易记录
+- transaction_chats: 交易聊天记录
+- contracts: 合同信息
+- contract_audits: 合同审核
+- payments: 支付记录
+- mortgages: 抵押贷款
+- taxes: 税费信息
+- operation_logs: 操作日志
+- system_events: 系统事件
+
+#### MySQL管理
+
+1. **启动MySQL**:
+   ```bash
+   cd docker
+   docker-compose up -d
+   ```
+
+2. **停止MySQL**:
+   ```bash
+   cd docker
+   docker-compose down
+   ```
+
+3. **查看MySQL日志**:
+   ```bash
+   docker logs grets_mysql
+   ```
+
+4. **连接到MySQL**:
+   ```bash
+   docker exec -it grets_mysql mysql -ugrets_user -pgrets_password grets
+   ```
+
 ## 开发指南
 
 ### 添加新功能
@@ -78,12 +142,33 @@ server/
 
 ### 编译和运行
 
+系统现在提供了简化的启动脚本，会自动启动MySQL并运行后端服务：
+
 ```bash
+# 使用启动脚本（推荐方式）
+cd docker
+./start_server.sh
+```
+
+或者手动编译和运行：
+
+```bash
+# 确保MySQL已运行
+cd docker
+docker-compose up -d
+
 # 编译
 go build -o server main.go
 
 # 运行
 ./server
+```
+
+另外也可以直接运行源码：
+
+```bash
+# 确保MySQL已运行
+go run main.go
 ```
 
 ## 修改说明
@@ -95,4 +180,5 @@ go build -o server main.go
 3. 创建了service文件夹，并为每个业务领域创建了对应的service文件
 4. 将向区块链网络发送请求的代码移至service文件中
 5. 统一使用驼峰命名法命名JSON字段
-6. 增强了代码的可维护性和可扩展性 
+6. 增强了代码的可维护性和可扩展性
+7. 改用MySQL数据库存储上链数据，不再使用BoltDB 

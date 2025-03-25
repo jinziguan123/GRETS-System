@@ -3,6 +3,7 @@ package controller
 import (
 	"grets_server/pkg/utils"
 	"grets_server/service"
+	realtyDto "grets_server/service/dto/realty_dto"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -14,16 +15,16 @@ type RealtyController struct {
 }
 
 // NewRealtyController 创建房产控制器实例
-func NewRealtyController() *RealtyController {
+func NewRealtyController(realtyService service.RealtyService) *RealtyController {
 	return &RealtyController{
-		realtyService: service.NewRealtyService(),
+		realtyService: realtyService,
 	}
 }
 
 // CreateRealty 创建房产信息
 func (ctrl *RealtyController) CreateRealty(c *gin.Context) {
 	// 解析请求参数
-	var req service.CreateRealtyDTO
+	var req realtyDto.CreateRealtyDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ResponseBadRequest(c, "无效的请求参数")
 		return
@@ -45,7 +46,7 @@ func (ctrl *RealtyController) CreateRealty(c *gin.Context) {
 // QueryRealtyList 查询房产列表
 func (ctrl *RealtyController) QueryRealtyList(c *gin.Context) {
 	// 解析查询参数
-	query := &service.QueryRealtyDTO{
+	query := &realtyDto.QueryRealtyDTO{
 		Status:     c.Query("status"),
 		Type:       c.Query("type"),
 		Location:   c.Query("location"),
@@ -119,7 +120,7 @@ func (ctrl *RealtyController) UpdateRealty(c *gin.Context) {
 	}
 
 	// 解析请求参数
-	var req service.UpdateRealtyDTO
+	var req realtyDto.UpdateRealtyDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ResponseBadRequest(c, "无效的请求参数")
 		return
@@ -138,22 +139,27 @@ func (ctrl *RealtyController) UpdateRealty(c *gin.Context) {
 	})
 }
 
-// 创建控制器实例
-var Realty = NewRealtyController()
+// 创建全局房产控制器实例
+var GlobalRealtyController *RealtyController
+
+// 初始化房产控制器
+func InitRealtyController() {
+	GlobalRealtyController = NewRealtyController(service.GlobalRealtyService)
+}
 
 // 为兼容现有路由，提供这些函数
 func CreateRealty(c *gin.Context) {
-	Realty.CreateRealty(c)
+	GlobalRealtyController.CreateRealty(c)
 }
 
 func QueryRealtyList(c *gin.Context) {
-	Realty.QueryRealtyList(c)
+	GlobalRealtyController.QueryRealtyList(c)
 }
 
 func GetRealtyByID(c *gin.Context) {
-	Realty.GetRealtyByID(c)
+	GlobalRealtyController.GetRealtyByID(c)
 }
 
 func UpdateRealty(c *gin.Context) {
-	Realty.UpdateRealty(c)
+	GlobalRealtyController.UpdateRealty(c)
 }

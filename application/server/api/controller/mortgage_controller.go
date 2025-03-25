@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
+	"grets_server/service"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -204,4 +205,24 @@ func ApproveMortgage(c *gin.Context) {
 
 	// 返回结果
 	utils.ResponseSuccess(c, nil)
+}
+
+// 创建全局抵押贷款控制器实例
+var GlobalMortgageController *MortgageController
+
+// 初始化抵押贷款控制器
+func InitMortgageController() {
+	GlobalMortgageController = NewMortgageController(service.GlobalMortgageService)
+}
+
+// 抵押贷款控制器结构体
+type MortgageController struct {
+	mortgageService service.MortgageService
+}
+
+// NewMortgageController 创建抵押贷款控制器实例
+func NewMortgageController(mortgageService service.MortgageService) *MortgageController {
+	return &MortgageController{
+		mortgageService: mortgageService,
+	}
 }

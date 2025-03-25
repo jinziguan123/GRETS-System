@@ -94,7 +94,7 @@ func (c *TransactionController) QueryTransactionList(ctx *gin.Context) {
 	}
 
 	// 调用服务层查询交易列表
-	txList, total, err := c.transactionService.QueryTransactionList(userID, &service.QueryTransactionDTO{
+	txList, err := c.transactionService.QueryTransactionList(userID, &service.QueryTransactionDTO{
 		Status:       status,
 		RealEstateID: realEstateID,
 		Seller:       seller,
@@ -111,7 +111,7 @@ func (c *TransactionController) QueryTransactionList(ctx *gin.Context) {
 	// 返回交易列表和总数
 	utils.ResponseSuccess(ctx, gin.H{
 		"transactions": txList,
-		"total":        total,
+		"total":        len(txList),
 	})
 }
 

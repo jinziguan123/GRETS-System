@@ -1,186 +1,110 @@
 package dao
 
 import (
-	"encoding/json"
 	"fmt"
-	"grets_server/pkg/db"
-	"strings"
-	"time"
+	"grets_server/db"
+
+	"gorm.io/gorm"
 )
 
-// User 用户模型
-type User struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Role         string    `json:"role"`
-	CitizenID    string    `json:"citizenID"`
-	Password     string    `json:"password"`
-	Phone        string    `json:"phone"`
-	Email        string    `json:"email"`
-	Organization string    `json:"organization"`
-	CreatedAt    time.Time `json:"createdAt"`
-	LastUpdated  time.Time `json:"lastUpdated"`
-	Status       string    `json:"status"`
-}
-
-const (
-	// 用户表
-	UserBucket = "users"
-)
-
-// UserDAO 用户数据访问对象
+// User 数据访问对象
 type UserDAO struct {
-	DB *db.BoltDB
+	mysqlDB *gorm.DB
 }
 
-// NewUserDAO 创建用户DAO
-func NewUserDAO(db *db.BoltDB) *UserDAO {
-	// 确保用户桶存在
-	if err := db.CreateBucketIfNotExists(UserBucket); err != nil {
-		return nil
+// 创建新的UserDAO实例
+func NewUserDAO() *UserDAO {
+	return &UserDAO{
+		mysqlDB: db.GlobalMysql,
 	}
-	return &UserDAO{DB: db}
 }
 
-// 根据用户身份证号和组织生成唯一键
-func (dao *UserDAO) GetUserKey(citizenID, organization string) string {
-	return fmt.Sprintf("citizenID:%s_organization:%s", citizenID, organization)
-}
+// SaveUser 保存用户信息到数据库
+func (dao *UserDAO) SaveUser(user *db.User) error {
+	tx := dao.mysqlDB.Begin()
+	if err := tx.Error; err != nil {
+		return fmt.Errorf("开启事务失败: %v", err)
+	}
+	defer tx.Rollback()
 
-// SaveUser 保存用户
-func (dao *UserDAO) SaveUser(user *User) error {
-	// 生成主键
-	key := dao.GetUserKey(user.CitizenID, user.Organization)
-
-	// 更新时间
-	user.LastUpdated = time.Now()
-	if user.CreatedAt.IsZero() {
-		user.CreatedAt = user.LastUpdated
+	// 保存到MySQL数据库
+	if err := tx.Create(user).Error; err != nil {
+		return fmt.Errorf("保存用户信息失败: %v", err)
 	}
 
-	// 保存到数据库
-	return dao.DB.Put(UserBucket, key, user)
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("提交事务失败: %v", err)
+	}
+
+	return nil
 }
 
 // GetUserByID 根据ID获取用户
-func (dao *UserDAO) GetUserByID(id string) (*User, error) {
-	// 查询所有用户
-	var users []*User
-	err := dao.DB.Query(UserBucket, func(k, v []byte) bool {
-		var user User
-		if err := json.Unmarshal(v, &user); err == nil {
-			return user.ID == id
-		}
-		return false
-	}, &users)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if len(users) == 0 {
-		return nil, fmt.Errorf("用户不存在")
-	}
-
-	return users[0], nil
-}
-
-// GetUserByCitizenID 根据身份证号和组织获取用户
-func (dao *UserDAO) GetUserByCitizenID(citizenID, organization string) (*User, error) {
-	key := dao.GetUserKey(citizenID, organization)
-	var user User
-	err := dao.DB.Get(UserBucket, key, &user)
-	if err != nil {
-		return nil, err
+func (dao *UserDAO) GetUserByID(id string) (*db.User, error) {
+	var user db.User
+	if err := dao.mysqlDB.First(&user, "id = ?", id).Error; err != nil {
+		return nil, fmt.Errorf("根据ID查询用户失败: %v", err)
 	}
 	return &user, nil
 }
 
-// GetUserByCredentials 根据身份证号、密码和组织获取用户
-func (dao *UserDAO) GetUserByCredentials(citizenID, password, organization string) (*User, error) {
-	user, err := dao.GetUserByCitizenID(citizenID, organization)
-	if err != nil {
-		return nil, err
+// GetUserByCitizenID 根据身份证号和组织获取用户
+func (dao *UserDAO) GetUserByCitizenID(citizenID, organization string) (*db.User, error) {
+	var user db.User
+	if err := dao.mysqlDB.First(&user, "citizen_id = ? AND organization = ?", citizenID, organization).Error; err != nil {
+		return nil, fmt.Errorf("根据身份证号查询用户失败: %v", err)
+	}
+	return &user, nil
+}
+
+// GetUserByCredentials 根据身份证号、密码和组织获取用户（用于登录验证）
+func (dao *UserDAO) GetUserByCredentials(citizenID, password, organization string) (*db.User, error) {
+	var user db.User
+	if err := dao.mysqlDB.First(&user, "citizen_id = ? AND password = ? AND organization = ?", citizenID, password, organization).Error; err != nil {
+		return nil, fmt.Errorf("用户名或密码错误: %v", err)
+	}
+	return &user, nil
+}
+
+// UpdateUser 更新用户信息
+func (dao *UserDAO) UpdateUser(user *db.User) error {
+	tx := dao.mysqlDB.Begin()
+	if err := tx.Error; err != nil {
+		return fmt.Errorf("开启事务失败: %v", err)
+	}
+	defer tx.Rollback()
+
+	if err := tx.Save(user).Error; err != nil {
+		return fmt.Errorf("更新用户信息失败: %v", err)
 	}
 
-	// 验证密码
-	if user.Password != password {
-		return nil, fmt.Errorf("密码错误")
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("提交事务失败: %v", err)
 	}
 
-	return user, nil
+	return nil
 }
 
 // QueryUsers 查询用户列表
-func (dao *UserDAO) QueryUsers(organization, role string, citizenID string) ([]*User, error) {
-	var users []*User
-	err := dao.DB.Query(UserBucket, func(k, v []byte) bool {
-		var user User
-		if err := json.Unmarshal(v, &user); err != nil {
-			return false
-		}
+func (dao *UserDAO) QueryUsers(organization, role, citizenID string) ([]*db.User, error) {
+	var users []*db.User
+	query := dao.mysqlDB.Model(&db.User{})
 
-		// 过滤条件
-		if organization != "" && user.Organization != organization {
-			return false
-		}
-		if role != "" && user.Role != role {
-			return false
-		}
-		if citizenID != "" && !strings.Contains(user.CitizenID, citizenID) {
-			return false
-		}
-
-		return true
-	}, &users)
-
-	return users, err
-}
-
-// UpdateUser 更新用户
-func (dao *UserDAO) UpdateUser(user *User) error {
-	// 查找原用户
-	existingUser, err := dao.GetUserByCitizenID(user.CitizenID, user.Organization)
-	if err != nil {
-		return err
+	// 添加查询条件
+	if organization != "" {
+		query = query.Where("organization = ?", organization)
+	}
+	if role != "" {
+		query = query.Where("role = ?", role)
+	}
+	if citizenID != "" {
+		query = query.Where("citizen_id LIKE ?", "%"+citizenID+"%")
 	}
 
-	// 更新不为空的字段
-	if user.Name != "" {
-		existingUser.Name = user.Name
-	}
-	if user.Phone != "" {
-		existingUser.Phone = user.Phone
-	}
-	if user.Email != "" {
-		existingUser.Email = user.Email
-	}
-	if user.Password != "" {
-		existingUser.Password = user.Password
-	}
-	if user.Status != "" {
-		existingUser.Status = user.Status
+	// 执行查询
+	if err := query.Find(&users).Error; err != nil {
+		return nil, fmt.Errorf("查询用户列表失败: %v", err)
 	}
 
-	// 更新时间
-	existingUser.LastUpdated = time.Now()
-
-	// 保存到数据库
-	key := dao.GetUserKey(existingUser.CitizenID, existingUser.Organization)
-	return dao.DB.Put(UserBucket, key, existingUser)
-}
-
-// DeleteUser 删除用户
-func (dao *UserDAO) DeleteUser(citizenID, organization string) error {
-	key := dao.GetUserKey(citizenID, organization)
-	return dao.DB.Delete(UserBucket, key)
-}
-
-// CountUsers 统计用户数量
-func (dao *UserDAO) CountUsers(organization string) (int, error) {
-	users, err := dao.QueryUsers(organization, "", "")
-	if err != nil {
-		return 0, err
-	}
-	return len(users), nil
+	return users, nil
 }

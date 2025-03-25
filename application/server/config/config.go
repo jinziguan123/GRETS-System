@@ -33,16 +33,34 @@ type Fabric struct {
 }
 
 type Log struct {
-	Level    string `mapstructure:"level"`
-	Path     string `mapstructure:"path"`
-	Filename string `mapstructure:"filename"`
+	Level      string `mapstructure:"level"`
+	Path       string `mapstructure:"path"`
+	Filename   string `mapstructure:"filename"`
+	MaxSize    int    `mapstructure:"max_size"`
+	MaxBackups int    `mapstructure:"max_backups"`
+	MaxAge     int    `mapstructure:"max_age"`
+	Compress   bool   `mapstructure:"compress"`
+}
+
+type Database struct {
+	Type     string `mapstructure:"type"`     // 数据库类型：bolt/mysql
+	BoltPath string `mapstructure:"boltPath"` // BoltDB文件路径
+	MySQL    struct {
+		Host     string `mapstructure:"host"`
+		Port     int    `mapstructure:"port"`
+		User     string `mapstructure:"user"`
+		Password string `mapstructure:"password"`
+		DBName   string `mapstructure:"dbname"`
+		Params   string `mapstructure:"params"`
+	} `mapstructure:"mysql"`
 }
 
 type Config struct {
-	Server Server `mapstructure:"server"`
-	Jwt    Jwt    `mapstructure:"jwt"`
-	Fabric Fabric `mapstructure:"fabric"`
-	Log    Log    `mapstructure:"log"`
+	Server   Server   `mapstructure:"server"`
+	Jwt      Jwt      `mapstructure:"jwt"`
+	Fabric   Fabric   `mapstructure:"fabric"`
+	Log      Log      `mapstructure:"log"`
+	Database Database `mapstructure:"database"`
 }
 
 var GlobalConfig *Config
@@ -80,4 +98,16 @@ func LoadConfig() error {
 	}
 
 	return nil
+}
+
+// GetMySQLDSN 生成MySQL数据源名称
+func (db *Database) GetMySQLDSN() string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?%s",
+		db.MySQL.User,
+		db.MySQL.Password,
+		db.MySQL.Host,
+		db.MySQL.Port,
+		db.MySQL.DBName,
+		db.MySQL.Params,
+	)
 }

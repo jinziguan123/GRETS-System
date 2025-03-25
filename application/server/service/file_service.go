@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"grets_server/api/constants"
+	"grets_server/dao"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
 	"io/ioutil"
@@ -28,6 +29,14 @@ type FileUploadDTO struct {
 	Description  string `json:"description"`
 }
 
+// 全局文件服务实例
+var GlobalFileService FileService
+
+// InitFileService 初始化文件服务
+func InitFileService(fileDAO *dao.FileDAO) {
+	GlobalFileService = NewFileService(fileDAO)
+}
+
 // FileService 文件服务接口
 type FileService interface {
 	// UploadFile 上传文件
@@ -35,11 +44,13 @@ type FileService interface {
 }
 
 // fileService 文件服务实现
-type fileService struct{}
+type fileService struct {
+	fileDAO *dao.FileDAO
+}
 
 // NewFileService 创建文件服务实例
-func NewFileService() FileService {
-	return &fileService{}
+func NewFileService(fileDAO *dao.FileDAO) FileService {
+	return &fileService{fileDAO: fileDAO}
 }
 
 // UploadFile 上传文件

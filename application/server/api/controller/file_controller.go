@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"grets_server/dao"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
 	"grets_server/service"
@@ -28,7 +29,7 @@ type FileController struct {
 // NewFileController 创建文件控制器实例
 func NewFileController() *FileController {
 	return &FileController{
-		fileService: service.NewFileService(),
+		fileService: service.NewFileService(dao.NewFileDAO()),
 	}
 }
 
@@ -165,4 +166,12 @@ func GetFile(c *gin.Context) {
 
 	// 发送文件内容
 	io.Copy(c.Writer, file)
+}
+
+// 创建全局文件控制器实例
+var GlobalFileController *FileController
+
+// 初始化文件控制器
+func InitFileController() {
+	GlobalFileController = NewFileController()
 }

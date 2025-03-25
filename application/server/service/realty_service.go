@@ -4,70 +4,40 @@ import (
 	"encoding/json"
 	"fmt"
 	"grets_server/api/constants"
+	"grets_server/dao"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
+	realtyDto "grets_server/service/dto/realty_dto"
 )
 
-// 房产请求和响应结构体
-type CreateRealtyDTO struct {
-	ID             string   `json:"id"`
-	PropertyRight  string   `json:"propertyRight"`
-	Location       string   `json:"location"`
-	Area           float64  `json:"area"`
-	TotalPrice     float64  `json:"totalPrice"`
-	UnitPrice      float64  `json:"unitPrice"`
-	RealtyType     string   `json:"realtyType"`
-	RealtyStatus   string   `json:"realtyStatus"`
-	PropertyOwner  string   `json:"propertyOwner"`
-	Attributes     []string `json:"attributes"`
-	ImageURL       string   `json:"imageUrl"`
-	OwnershipCerts []string `json:"ownershipCerts"`
-}
+// 全局房产服务实例
+var GlobalRealtyService RealtyService
 
-type UpdateRealtyDTO struct {
-	PropertyRight  string   `json:"propertyRight"`
-	Location       string   `json:"location"`
-	Area           float64  `json:"area"`
-	TotalPrice     float64  `json:"totalPrice"`
-	UnitPrice      float64  `json:"unitPrice"`
-	RealtyType     string   `json:"realtyType"`
-	RealtyStatus   string   `json:"realtyStatus"`
-	PropertyOwner  string   `json:"propertyOwner"`
-	Attributes     []string `json:"attributes"`
-	ImageURL       string   `json:"imageUrl"`
-	OwnershipCerts []string `json:"ownershipCerts"`
-}
-
-type QueryRealtyDTO struct {
-	Status     string  `json:"status"`
-	Type       string  `json:"type"`
-	MinPrice   float64 `json:"minPrice"`
-	MaxPrice   float64 `json:"maxPrice"`
-	MinArea    float64 `json:"minArea"`
-	MaxArea    float64 `json:"maxArea"`
-	Location   string  `json:"location"`
-	PageSize   int     `json:"pageSize"`
-	PageNumber int     `json:"pageNumber"`
+// InitRealtyService 初始化房产服务
+func InitRealtyService(realtyDAO *dao.RealEstateDAO) {
+	GlobalRealtyService = NewRealtyService(realtyDAO)
 }
 
 // RealtyService 房产服务接口
 type RealtyService interface {
-	CreateRealty(req *CreateRealtyDTO) error
+	CreateRealty(req *realtyDto.CreateRealtyDTO) error
 	GetRealtyByID(id string) (map[string]interface{}, error)
-	QueryRealtyList(query *QueryRealtyDTO) ([]map[string]interface{}, int, error)
-	UpdateRealty(id string, req *UpdateRealtyDTO) error
+	QueryRealtyList(query *realtyDto.QueryRealtyDTO) ([]map[string]interface{}, int, error)
+	UpdateRealty(id string, req *realtyDto.UpdateRealtyDTO) error
 }
 
 // realtyService 房产服务实现
-type realtyService struct{}
+type realtyService struct {
+	realtyDAO *dao.RealEstateDAO
+}
 
 // NewRealtyService 创建房产服务实例
-func NewRealtyService() RealtyService {
-	return &realtyService{}
+func NewRealtyService(realtyDAO *dao.RealEstateDAO) RealtyService {
+	return &realtyService{realtyDAO: realtyDAO}
 }
 
 // CreateRealty 创建房产
-func (s *realtyService) CreateRealty(req *CreateRealtyDTO) error {
+func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 	// 准备房产属性和证书的JSON字符串
 	attrJson, err := json.Marshal(req.Attributes)
 	if err != nil {
@@ -132,7 +102,7 @@ func (s *realtyService) GetRealtyByID(id string) (map[string]interface{}, error)
 }
 
 // QueryRealtyList 查询房产列表
-func (s *realtyService) QueryRealtyList(query *QueryRealtyDTO) ([]map[string]interface{}, int, error) {
+func (s *realtyService) QueryRealtyList(query *realtyDto.QueryRealtyDTO) ([]map[string]interface{}, int, error) {
 	// 构建查询参数
 	queryParams := []string{
 		query.Status,
@@ -188,7 +158,7 @@ func (s *realtyService) QueryRealtyList(query *QueryRealtyDTO) ([]map[string]int
 }
 
 // UpdateRealty 更新房产信息
-func (s *realtyService) UpdateRealty(id string, req *UpdateRealtyDTO) error {
+func (s *realtyService) UpdateRealty(id string, req *realtyDto.UpdateRealtyDTO) error {
 	// 准备房产属性和证书的JSON字符串
 	attrJson, err := json.Marshal(req.Attributes)
 	if err != nil {

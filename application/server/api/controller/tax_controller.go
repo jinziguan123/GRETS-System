@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
+	"grets_server/service"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -200,4 +201,24 @@ func PayTax(c *gin.Context) {
 
 	// 返回结果
 	utils.ResponseSuccess(c, nil)
+}
+
+// 创建全局税费控制器实例
+var GlobalTaxController *TaxController
+
+// 初始化税费控制器
+func InitTaxController() {
+	GlobalTaxController = NewTaxController(service.GlobalTaxService)
+}
+
+// 税费控制器结构体
+type TaxController struct {
+	taxService service.TaxService
+}
+
+// NewRealtyController 创建房产控制器实例
+func NewTaxController(taxService service.TaxService) *TaxController {
+	return &TaxController{
+		taxService: taxService,
+	}
 }

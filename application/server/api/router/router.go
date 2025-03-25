@@ -2,27 +2,47 @@ package router
 
 import (
 	"grets_server/api/controller"
-	"grets_server/api/middleware"
 	"grets_server/dao"
-	"grets_server/pkg/db"
+
+	"grets_server/middleware"
 	"grets_server/service"
 
 	"github.com/gin-gonic/gin"
 )
 
 // InitServices 初始化服务和控制器
-func InitServices(boltDB *db.BoltDB) error {
+func InitServices() error {
 	// 初始化DAO
-	userDAO := dao.NewUserDAO(boltDB)
+	userDAO := dao.NewUserDAO()
 	txDAO := dao.NewTransactionDAO()
+	realEstateDAO := dao.NewRealEstateDAO()
+	contractDAO := dao.NewContractDAO()
+	paymentDAO := dao.NewPaymentDAO()
+	taxDAO := dao.NewTaxDAO()
+	auditDAO := dao.NewAuditDAO()
+	mortgageDAO := dao.NewMortgageDAO()
+	fileDAO := dao.NewFileDAO()
 
 	// 初始化服务
 	service.InitUserService(userDAO)
 	service.InitTransactionService(txDAO)
+	service.InitRealtyService(realEstateDAO)
+	service.InitContractService(contractDAO)
+	service.InitPaymentService(paymentDAO)
+	service.InitTaxService(taxDAO)
+	service.InitAuditService(auditDAO)
+	service.InitMortgageService(mortgageDAO)
+	service.InitFileService(fileDAO)
 
 	// 初始化控制器
 	controller.InitUserController()
 	controller.InitTransactionController()
+	controller.InitRealtyController()
+	controller.InitContractController()
+	controller.InitPaymentController()
+	controller.InitTaxController()
+	controller.InitMortgageController()
+	controller.InitFileController()
 
 	return nil
 }
@@ -32,7 +52,7 @@ func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
 	// 跨域中间件
-	r.Use(middleware.CORSMiddleware())
+	r.Use(middleware.Cors())
 
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {
@@ -80,38 +100,39 @@ func SetupRouter() *gin.Engine {
 			transactions.POST("/:id/complete", controller.CompleteTransaction)
 		}
 
-		// // 房产相关接口
-		// realEstates := api.Group("/realEstates")
-		// realEstates.Use(middleware.JWTAuth())
-		// {
-		// 	realEstates.POST("", controller.CreateRealEstate)
-		// 	realEstates.GET("", controller.GetRealEstateList)
-		// 	realEstates.GET("/:id", controller.GetRealEstateByID)
-		// 	realEstates.PUT("/:id", controller.UpdateRealEstate)
-		// 	realEstates.POST("/:id/audit", controller.AuditRealEstate)
-		// }
+		// 房产相关接口
+		realEstates := api.Group("/realty")
+		realEstates.Use(middleware.JWTAuth())
+		{
+			realEstates.POST("/createRealty", controller.CreateRealty)
+			realEstates.GET("/queryRealtyList", controller.QueryRealtyList)
+			realEstates.GET("/:id", controller.GetRealtyByID)
+			realEstates.PUT("/:id", controller.UpdateRealty)
+			// 暂时注释审核接口，等待实现
+			// realEstates.POST("/:id/audit", controller.AuditRealEstate)
+		}
 
-		// // 支付相关接口
-		// payments := api.Group("/payments")
-		// payments.Use(middleware.JWTAuth())
-		// {
-		// 	payments.POST("", controller.CreatePayment)
-		// 	payments.GET("", controller.QueryPaymentList)
-		// 	payments.GET("/:id", controller.GetPaymentByID)
-		// 	payments.POST("/:id/verify", controller.VerifyPayment)
-		// 	payments.POST("/:id/complete", controller.CompletePayment)
-		// }
+		// 支付相关接口
+		payments := api.Group("/payments")
+		payments.Use(middleware.JWTAuth())
+		{
+			payments.POST("", controller.CreatePayment)
+			payments.GET("", controller.QueryPaymentList)
+			payments.GET("/:id", controller.GetPaymentByID)
+			payments.POST("/:id/verify", controller.VerifyPayment)
+			payments.POST("/:id/complete", controller.ConfirmPayment)
+		}
 
-		// // 合同相关接口
-		// contracts := api.Group("/contracts")
-		// contracts.Use(middleware.JWTAuth())
-		// {
-		// 	contracts.POST("", controller.CreateContract)
-		// 	contracts.GET("", controller.QueryContractList)
-		// 	contracts.GET("/:id", controller.GetContractByID)
-		// 	contracts.POST("/:id/sign", controller.SignContract)
-		// 	contracts.POST("/:id/audit", controller.AuditContract)
-		// }
+		// 合同相关接口
+		contracts := api.Group("/contracts")
+		contracts.Use(middleware.JWTAuth())
+		{
+			contracts.POST("", controller.CreateContract)
+			contracts.GET("", controller.QueryContractList)
+			contracts.GET("/:id", controller.GetContractByID)
+			contracts.POST("/:id/sign", controller.SignContract)
+			contracts.POST("/:id/audit", controller.AuditContract)
+		}
 
 		// 文件相关接口
 		files := api.Group("/files")

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"grets_server/dao"
 	"grets_server/pkg/utils"
 	"grets_server/service"
 	"strconv"
@@ -16,7 +17,7 @@ type ContractController struct {
 // NewContractController 创建合同控制器实例
 func NewContractController() *ContractController {
 	return &ContractController{
-		contractService: service.NewContractService(),
+		contractService: service.NewContractService(dao.NewContractDAO()),
 	}
 }
 
@@ -125,22 +126,60 @@ func (ctrl *ContractController) SignContract(c *gin.Context) {
 	})
 }
 
-// 创建控制器实例
-var Contract = NewContractController()
+// AuditContract 审核合同
+func (ctrl *ContractController) AuditContract(c *gin.Context) {
+	// 获取路径参数
+	id := c.Param("id")
+	if id == "" {
+		utils.ResponseBadRequest(c, "合同ID不能为空")
+		return
+	}
+
+	// 解析请求参数
+	var req service.AuditContractDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ResponseBadRequest(c, "无效的请求参数")
+		return
+	}
+
+	// 调用服务审核合同
+	if err := ctrl.contractService.AuditContract(id, &req); err != nil {
+		utils.ResponseInternalServerError(c, err.Error())
+		return
+	}
+
+	// 返回成功结果
+	utils.ResponseSuccess(c, gin.H{
+		"contractId": id,
+		"message":    "合同审核完成",
+	})
+}
+
+// 创建全局合同控制器实例
+var GlobalContractController *ContractController
+
+// 初始化合同控制器
+func InitContractController() {
+	GlobalContractController = NewContractController()
+}
 
 // 为兼容现有路由，提供这些函数
 func CreateContract(c *gin.Context) {
-	Contract.CreateContract(c)
+	GlobalContractController.CreateContract(c)
 }
 
 func QueryContractList(c *gin.Context) {
-	Contract.QueryContractList(c)
+	GlobalContractController.QueryContractList(c)
 }
 
 func GetContractByID(c *gin.Context) {
-	Contract.GetContractByID(c)
+	GlobalContractController.GetContractByID(c)
 }
 
 func SignContract(c *gin.Context) {
-	Contract.SignContract(c)
+	GlobalContractController.SignContract(c)
+}
+
+func AuditContract(c *gin.Context) {
+	GlobalContractController.AuditContract(c)
 }

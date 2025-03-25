@@ -26,7 +26,7 @@ func JWTAuth() gin.HandlerFunc {
 		}
 
 		// 将用户信息保存到上下文
-		c.Set("userId", claims.UserID)
+		c.Set("citizenID", claims.CitizenID)
 		c.Set("userName", claims.Username)
 		c.Set("role", claims.Role)
 

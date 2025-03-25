@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"grets_server/dao"
 	"grets_server/pkg/utils"
 	"grets_server/service"
 	"strconv"
@@ -16,7 +17,7 @@ type PaymentController struct {
 // NewPaymentController 创建支付控制器实例
 func NewPaymentController() *PaymentController {
 	return &PaymentController{
-		paymentService: service.NewPaymentService(),
+		paymentService: service.NewPaymentService(dao.NewPaymentDAO()),
 	}
 }
 
@@ -142,26 +143,31 @@ func (ctrl *PaymentController) CompletePayment(c *gin.Context) {
 	})
 }
 
-// 创建控制器实例
-var Payment = NewPaymentController()
+// 创建全局支付控制器实例
+var GlobalPaymentController *PaymentController
+
+// 初始化支付控制器
+func InitPaymentController() {
+	GlobalPaymentController = NewPaymentController()
+}
 
 // 为兼容现有路由，提供这些函数
 func CreatePayment(c *gin.Context) {
-	Payment.CreatePayment(c)
+	GlobalPaymentController.CreatePayment(c)
 }
 
 func QueryPaymentList(c *gin.Context) {
-	Payment.QueryPaymentList(c)
+	GlobalPaymentController.QueryPaymentList(c)
 }
 
 func GetPaymentByID(c *gin.Context) {
-	Payment.GetPaymentByID(c)
+	GlobalPaymentController.GetPaymentByID(c)
 }
 
 func VerifyPayment(c *gin.Context) {
-	Payment.VerifyPayment(c)
+	GlobalPaymentController.VerifyPayment(c)
 }
 
 func ConfirmPayment(c *gin.Context) {
-	Payment.CompletePayment(c)
+	GlobalPaymentController.CompletePayment(c)
 }

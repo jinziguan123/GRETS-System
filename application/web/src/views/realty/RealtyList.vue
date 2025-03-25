@@ -13,31 +13,46 @@
 
     <!-- 搜索条件 -->
     <el-card class="filter-container">
-      <el-form :model="searchForm" label-width="80px" inline>
-        <el-form-item label="地区">
-          <el-select v-model="searchForm.district" placeholder="选择地区" clearable>
-            <el-option v-for="item in districtOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="户型">
-          <el-select v-model="searchForm.roomType" placeholder="选择户型" clearable>
-            <el-option v-for="item in roomTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="面积">
-          <el-input-number v-model="searchForm.minArea" :min="0" :step="10" placeholder="最小" />
-          <span class="separator">-</span>
-          <el-input-number v-model="searchForm.maxArea" :min="0" :step="10" placeholder="最大" />
-        </el-form-item>
-        <el-form-item label="价格">
-          <el-input-number v-model="searchForm.minPrice" :min="0" :step="50000" :formatter="formatPrice" placeholder="最小" />
-          <span class="separator">-</span>
-          <el-input-number v-model="searchForm.maxPrice" :min="0" :step="50000" :formatter="formatPrice" placeholder="最大" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
-        </el-form-item>
+      <el-form :model="searchForm" label-width="80px">
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="地区">
+              <el-select v-model="searchForm.district" placeholder="选择地区" clearable>
+                <el-option v-for="item in districtOptions" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="户型">
+              <el-select v-model="searchForm.roomType" placeholder="选择户型" clearable>
+                <el-option v-for="item in roomTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="面积">
+              <el-input-number v-model="searchForm.minArea" :min="0" :step="10" placeholder="最小" />
+              <span class="separator">-</span>
+              <el-input-number v-model="searchForm.maxArea" :min="0" :step="10" placeholder="最大" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="价格">
+              <el-input-number v-model="searchForm.minPrice" :min="0" :step="50000" :formatter="formatPrice" placeholder="最小" />
+              <span class="separator">-</span>
+              <el-input-number v-model="searchForm.maxPrice" :min="0" :step="50000" :formatter="formatPrice" placeholder="最大" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <div style="float: right">
+          <el-form-item>
+            <el-button type="primary" @click="handleSearch">搜索</el-button>
+            <el-button @click="resetSearch">重置</el-button>
+          </el-form-item>
+        </div>
       </el-form>
     </el-card>
 

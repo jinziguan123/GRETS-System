@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"grets_server/api/constants"
+	"grets_server/dao"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
 )
@@ -28,6 +29,14 @@ type QueryPaymentDTO struct {
 	PageNumber    int    `json:"pageNumber"`
 }
 
+// 全局支付服务实例
+var GlobalPaymentService PaymentService
+
+// InitPaymentService 初始化支付服务
+func InitPaymentService(paymentDAO *dao.PaymentDAO) {
+	GlobalPaymentService = NewPaymentService(paymentDAO)
+}
+
 // PaymentService 支付服务接口
 type PaymentService interface {
 	CreatePayment(req *CreatePaymentDTO) error
@@ -38,11 +47,13 @@ type PaymentService interface {
 }
 
 // paymentService 支付服务实现
-type paymentService struct{}
+type paymentService struct {
+	paymentDAO *dao.PaymentDAO
+}
 
 // NewPaymentService 创建支付服务实例
-func NewPaymentService() PaymentService {
-	return &paymentService{}
+func NewPaymentService(paymentDAO *dao.PaymentDAO) PaymentService {
+	return &paymentService{paymentDAO: paymentDAO}
 }
 
 // CreatePayment 创建支付

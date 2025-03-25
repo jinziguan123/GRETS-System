@@ -8,6 +8,18 @@ jwt:
   secret: grets_system_secret_key_2024
   expiration: 86400
 
+# 数据库配置
+database:
+  type: mysql  # 已修改为默认使用MySQL
+  boltPath: ./data/grets/grets.db  # 保留但不使用
+  mysql:
+    host: localhost
+    port: 3307
+    user: grets_user
+    password: grets_password
+    dbname: grets
+    params: parseTime=true&charset=utf8mb4&loc=Local
+
 # Fabric网络配置
 fabric:
   channelName: gretschannel
@@ -56,6 +68,7 @@ fabric:
       peerEndpoint: localhost:12051
       gatewayPeer: peer0.administrator.grets.com  
 
+# 日志配置
 log:
   level: debug
   path: ./logs
