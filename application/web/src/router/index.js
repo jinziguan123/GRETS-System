@@ -1,4 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { ElMessage } from 'element-plus'
+import axios from 'axios'
 
 // 布局
 const MainLayout = () => import('@/layouts/MainLayout.vue')
@@ -21,11 +24,15 @@ const RealtyEdit = () => import('@/views/realty/RealtyEdit.vue')
 const TransactionList = () => import('@/views/transaction/TransactionList.vue')
 const TransactionDetail = () => import('@/views/transaction/TransactionDetail.vue')
 const TransactionCreate = () => import('@/views/transaction/TransactionCreate.vue')
+// 新增交易聊天室
+const TransactionChat = () => import('@/views/transaction/TransactionChat.vue')
 
 // 合同管理
 const ContractList = () => import('@/views/contract/ContractList.vue')
 const ContractDetail = () => import('@/views/contract/ContractDetail.vue')
 const ContractCreate = () => import('@/views/contract/ContractCreate.vue')
+// 新增合同审核
+const ContractAudit = () => import('@/views/contract/ContractAudit.vue')
 
 // 支付管理
 const PaymentList = () => import('@/views/payment/PaymentList.vue')
@@ -41,15 +48,22 @@ const TaxCreate = () => import('@/views/tax/TaxCreate.vue')
 const MortgageList = () => import('@/views/mortgage/MortgageList.vue')
 const MortgageDetail = () => import('@/views/mortgage/MortgageDetail.vue')
 const MortgageCreate = () => import('@/views/mortgage/MortgageCreate.vue')
+// 新增贷款审批
+// const MortgageApprove = () => import('@/views/mortgage/MortgageApprove.vue')
+
+// 统计分析
+const TransactionStatistics = () => import('@/views/statistics/TransactionStatistics.vue')
+const LoanStatistics = () => import('@/views/statistics/LoanStatistics.vue')
 
 // 用户管理
 const UserProfile = () => import('@/views/user/UserProfile.vue')
 const ChangePassword = () => import('@/views/user/ChangePassword.vue')
 
 // 管理员
-const AdminUserList = () => import('@/views/admin/UserList.vue')
-const AdminUserCreate = () => import('@/views/admin/UserCreate.vue')
-const AdminUserEdit = () => import('@/views/admin/UserEdit.vue')
+// const AdminUserList = () => import('@/views/admin/UserList.vue')
+// const AdminUserCreate = () => import('@/views/admin/UserCreate.vue')
+// const AdminUserEdit = () => import('@/views/admin/UserEdit.vue')
+// const AdminSystemSettings = () => import('@/views/admin/SystemSettings.vue')
 
 // 路由配置
 const routes = [
@@ -75,7 +89,7 @@ const routes = [
         path: 'realty/create',
         name: 'RealtyCreate',
         component: RealtyCreate,
-        meta: { title: '创建房产', roles: ['GovernmentMSP'] }
+        meta: { title: '创建房产', organizations: ['government'] }
       },
       {
         path: 'realty/:id',
@@ -87,102 +101,133 @@ const routes = [
         path: 'realty/:id/edit',
         name: 'RealtyEdit',
         component: RealtyEdit,
-        meta: { title: '编辑房产', roles: ['GovernmentMSP'] }
+        meta: { title: '编辑房产', organizations: ['government'] }
       },
       // 交易管理路由
       {
         path: 'transaction',
         name: 'TransactionList',
         component: TransactionList,
-        meta: { title: '交易列表' }
+        meta: { title: '交易列表', organizations: ['investor', 'bank', 'government'] }
       },
       {
         path: 'transaction/create',
         name: 'TransactionCreate',
         component: TransactionCreate,
-        meta: { title: '创建交易', roles: ['AgencyMSP', 'InvestorMSP'] }
+        meta: { title: '创建交易', organizations: ['investor'] }
       },
       {
         path: 'transaction/:id',
         name: 'TransactionDetail',
         component: TransactionDetail,
-        meta: { title: '交易详情' }
+        meta: { title: '交易详情', organizations: ['investor', 'bank', 'government'] }
+      },
+      {
+        path: 'transaction/chat',
+        name: 'TransactionChat',
+        component: TransactionChat,
+        meta: { title: '交易聊天室', organizations: ['investor'] }
       },
       // 合同管理路由
       {
         path: 'contract',
         name: 'ContractList',
         component: ContractList,
-        meta: { title: '合同列表' }
+        meta: { title: '合同列表', organizations: ['investor', 'bank', 'government', 'audit'] }
       },
       {
         path: 'contract/create',
         name: 'ContractCreate',
         component: ContractCreate,
-        meta: { title: '创建合同', roles: ['AgencyMSP', 'InvestorMSP'] }
+        meta: { title: '创建合同', organizations: ['investor'] }
       },
       {
         path: 'contract/:id',
         name: 'ContractDetail',
         component: ContractDetail,
-        meta: { title: '合同详情' }
+        meta: { title: '合同详情', organizations: ['investor', 'bank', 'government', 'audit'] }
+      },
+      {
+        path: 'contract/audit',
+        name: 'ContractAudit',
+        component: ContractAudit,
+        meta: { title: '合同审核', organizations: ['audit'] }
       },
       // 支付管理路由
       {
         path: 'payment',
         name: 'PaymentList',
         component: PaymentList,
-        meta: { title: '支付列表' }
+        meta: { title: '支付列表', organizations: ['investor', 'bank'] }
       },
       {
         path: 'payment/create',
         name: 'PaymentCreate',
         component: PaymentCreate,
-        meta: { title: '创建支付', roles: ['InvestorMSP', 'BankMSP'] }
+        meta: { title: '创建支付', organizations: ['investor'] }
       },
       {
         path: 'payment/:id',
         name: 'PaymentDetail',
         component: PaymentDetail,
-        meta: { title: '支付详情' }
+        meta: { title: '支付详情', organizations: ['investor', 'bank'] }
       },
       // 税费管理路由
       {
         path: 'tax',
         name: 'TaxList',
         component: TaxList,
-        meta: { title: '税费列表' }
+        meta: { title: '税费列表', organizations: ['government', 'investor'] }
       },
       {
         path: 'tax/create',
         name: 'TaxCreate',
         component: TaxCreate,
-        meta: { title: '创建税费', roles: ['GovernmentMSP'] }
+        meta: { title: '创建税费', organizations: ['government'] }
       },
       {
         path: 'tax/:id',
         name: 'TaxDetail',
         component: TaxDetail,
-        meta: { title: '税费详情' }
+        meta: { title: '税费详情', organizations: ['government', 'investor'] }
       },
       // 抵押贷款管理路由
       {
         path: 'mortgage',
         name: 'MortgageList',
         component: MortgageList,
-        meta: { title: '抵押贷款列表' }
+        meta: { title: '抵押贷款列表', organizations: ['investor', 'bank'] }
       },
       {
         path: 'mortgage/create',
         name: 'MortgageCreate',
         component: MortgageCreate,
-        meta: { title: '创建抵押贷款', roles: ['InvestorMSP'] }
+        meta: { title: '创建抵押贷款', organizations: ['investor'] }
       },
       {
         path: 'mortgage/:id',
         name: 'MortgageDetail',
         component: MortgageDetail,
-        meta: { title: '抵押贷款详情' }
+        meta: { title: '抵押贷款详情', organizations: ['investor', 'bank'] }
+      },
+      // {
+      //   path: 'mortgage/approve',
+      //   name: 'MortgageApprove',
+      //   component: MortgageApprove,
+      //   meta: { title: '贷款审批', organizations: ['bank'] }
+      // },
+      // 统计分析路由
+      {
+        path: 'statistics/transaction',
+        name: 'TransactionStatistics',
+        component: TransactionStatistics,
+        meta: { title: '交易统计', organizations: ['government'] }
+      },
+      {
+        path: 'statistics/loan',
+        name: 'LoanStatistics',
+        component: LoanStatistics,
+        meta: { title: '贷款统计', organizations: ['bank'] }
       },
       // 用户管理路由
       {
@@ -196,25 +241,6 @@ const routes = [
         name: 'ChangePassword',
         component: ChangePassword,
         meta: { title: '修改密码' }
-      },
-      // 管理员路由
-      {
-        path: 'admin/users',
-        name: 'AdminUserList',
-        component: AdminUserList,
-        meta: { title: '用户管理', roles: ['AdminMSP'] }
-      },
-      {
-        path: 'admin/users/create',
-        name: 'AdminUserCreate',
-        component: AdminUserCreate,
-        meta: { title: '创建用户', roles: ['AdminMSP'] }
-      },
-      {
-        path: 'admin/users/:id/edit',
-        name: 'AdminUserEdit',
-        component: AdminUserEdit,
-        meta: { title: '编辑用户', roles: ['AdminMSP'] }
       }
     ]
   },
@@ -254,23 +280,44 @@ router.beforeEach((to, from, next) => {
   // 设置页面标题
   document.title = to.meta.title ? `${to.meta.title} - 房地产交易系统` : '房地产交易系统'
   
-  // 获取token
+  // 获取token和用户存储
+  const userStore = useUserStore()
   const token = localStorage.getItem('token')
+  
+  // 如果有token但没有设置axios头部，初始化头部
+  if (token && !axios.defaults.headers.common['Authorization']) {
+    axios.defaults.headers.common['Authorization'] = `${token}`
+  }
   
   // 检查是否需要认证
   if (to.meta.requiresAuth && !token) {
     // 需要认证但没有token，重定向到登录页
-    next({ name: 'Login' })
-  } 
-  // 检查角色权限
-  else if (to.meta.roles) {
-    // 没有权限访问该页面
-    next({ name: 'Dashboard' })
-  } 
-  else {
-    // 允许访问
-    next()
+    ElMessage.warning('请先登录后再访问该页面')
+    next({ name: 'Login', query: { redirect: to.fullPath } })
+    return
   }
+  
+  // 如果去登录页但已经登录，重定向到首页
+  if ((to.name === 'Login' || to.name === 'Register') && token) {
+    next({ name: 'Dashboard' })
+    return
+  }
+  
+  // 检查组织权限
+  if (to.meta.organizations && to.meta.organizations.length > 0 && token) {
+    // 获取用户组织
+    const userOrganization = userStore.organization
+    
+    // 如果用户组织不在允许的组织列表中，重定向到仪表盘
+    if (!to.meta.organizations.includes(userOrganization)) {
+      ElMessage.warning(`当前页面仅对${to.meta.organizations.map(org => userStore.getOrganizationName(org)).join('、')}开放访问`)
+      next({ name: 'Dashboard' })
+      return
+    }
+  }
+  
+  // 允许访问
+  next()
 })
 
 export default router 

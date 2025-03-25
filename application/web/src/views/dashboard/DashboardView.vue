@@ -2,12 +2,68 @@
   <div class="dashboard-container">
     <div class="dashboard-header">
       <h1>系统仪表盘</h1>
-      <p>欢迎回来，{{ username }}。您当前的角色是：{{ userRoleDisplay }}</p>
+      <p>欢迎回来，{{ username }}。您的组织类型：
+        {{ organizationName }}
+      </p>
     </div>
+    
+    <!-- 功能向导卡片 -->
+    <el-card class="guide-card" shadow="hover">
+      <template #header>
+        <div class="card-header">
+          <span>快速开始</span>
+        </div>
+      </template>
+      <div class="guide-content">
+        <div v-if="userStore.hasOrganization('investor')" class="guide-section">
+          <h3>投资者功能</h3>
+          <el-button-group>
+            <el-button type="primary" @click="$router.push('/realty')">浏览房产</el-button>
+            <el-button type="primary" @click="$router.push('/transaction/create')">创建交易</el-button>
+            <el-button type="primary" @click="$router.push('/contract/create')">创建合同</el-button>
+            <el-button type="primary" @click="$router.push('/mortgage/create')">申请贷款</el-button>
+          </el-button-group>
+        </div>
+        
+        <div v-if="userStore.hasOrganization('government')" class="guide-section">
+          <h3>政府监管功能</h3>
+          <el-button-group>
+            <el-button type="success" @click="$router.push('/realty/create')">添加房产</el-button>
+            <el-button type="success" @click="$router.push('/tax/create')">添加税费</el-button>
+            <el-button type="success" @click="$router.push('/statistics/transaction')">统计数据</el-button>
+          </el-button-group>
+        </div>
+        
+        <div v-if="userStore.hasOrganization('bank')" class="guide-section">
+          <h3>银行功能</h3>
+          <el-button-group>
+            <el-button type="danger" @click="$router.push('/mortgage/approve')">贷款审批</el-button>
+            <el-button type="danger" @click="$router.push('/payment')">支付管理</el-button>
+            <el-button type="danger" @click="$router.push('/statistics/loan')">贷款统计</el-button>
+          </el-button-group>
+        </div>
+        
+        <div v-if="userStore.hasOrganization('audit')" class="guide-section">
+          <h3>审计功能</h3>
+          <el-button-group>
+            <el-button type="warning" @click="$router.push('/contract/audit')">合同审核</el-button>
+            <el-button type="warning" @click="$router.push('/realty')">房产查询</el-button>
+          </el-button-group>
+        </div>
+        
+        <div v-if="userStore.hasOrganization('administrator')" class="guide-section">
+          <h3>管理员功能</h3>
+          <el-button-group>
+            <el-button type="info" @click="$router.push('/admin/users')">用户管理</el-button>
+            <el-button type="info" @click="$router.push('/admin/system')">系统设置</el-button>
+          </el-button-group>
+        </div>
+      </div>
+    </el-card>
     
     <el-row :gutter="20">
       <!-- 统计卡片 -->
-      <el-col :xs="24" :sm="12" :md="6" v-for="(card, index) in statisticCards" :key="index">
+      <el-col :xs="24" :sm="12" :md="6" v-for="(card, index) in filteredStatisticCards" :key="index">
         <el-card class="statistic-card" shadow="hover">
           <div class="card-content">
             <div class="card-icon" :style="{ backgroundColor: card.color }">
@@ -23,8 +79,8 @@
     </el-row>
     
     <el-row :gutter="20" class="chart-row">
-      <!-- 交易趋势图 -->
-      <el-col :xs="24" :lg="16">
+      <!-- 交易趋势图 - 对投资者、政府和银行显示 -->
+      <el-col :xs="24" :lg="16" v-if="userStore.hasOrganization(['investor', 'government', 'bank'])">
         <el-card shadow="hover">
           <template #header>
             <div class="card-header">
@@ -42,7 +98,7 @@
         </el-card>
       </el-col>
       
-      <!-- 分布饼图 -->
+      <!-- 分布饼图 - 所有组织都显示 -->
       <el-col :xs="24" :lg="8">
         <el-card shadow="hover">
           <template #header>
@@ -58,13 +114,13 @@
     </el-row>
     
     <el-row :gutter="20">
-      <!-- 最近交易 -->
-      <el-col :xs="24" :lg="12">
+      <!-- 最近交易 - 对投资者、政府和银行显示 -->
+      <el-col :xs="24" :lg="12" v-if="userStore.hasOrganization(['investor', 'government', 'bank'])">
         <el-card shadow="hover" class="latest-card">
           <template #header>
             <div class="card-header">
               <span>最近交易</span>
-              <el-button type="primary" link @click="$router.push('/transaction/list')">
+              <el-button type="primary" link @click="$router.push('/transaction')">
                 查看全部
               </el-button>
             </div>
@@ -86,13 +142,13 @@
         </el-card>
       </el-col>
       
-      <!-- 最近合同 -->
-      <el-col :xs="24" :lg="12">
+      <!-- 最近合同 - 对投资者、政府、银行和审计显示 -->
+      <el-col :xs="24" :lg="12" v-if="userStore.hasOrganization(['investor', 'government', 'bank', 'audit'])">
         <el-card shadow="hover" class="latest-card">
           <template #header>
             <div class="card-header">
               <span>最近合同</span>
-              <el-button type="primary" link @click="$router.push('/contract/list')">
+              <el-button type="primary" link @click="$router.push('/contract')">
                 查看全部
               </el-button>
             </div>
@@ -132,8 +188,11 @@ import {
   House,
   Document,
   Money,
-  Wallet
+  Wallet,
+  CreditCard,
+  DataAnalysis
 } from '@element-plus/icons-vue'
+import axios from 'axios'
 
 // 注册必要的ECharts组件
 echarts.use([
@@ -149,24 +208,38 @@ echarts.use([
 
 const userStore = useUserStore()
 const username = computed(() => userStore.username)
-const userRoleDisplay = computed(() => {
-  const roleMap = {
-    'AdminMSP': '系统管理员',
-    'GovernmentMSP': '政府监管',
-    'AgencyMSP': '房产中介',
-    'InvestorMSP': '投资者',
-    'BankMSP': '银行机构'
+
+// 组织相关计算属性
+const orgClass = computed(() => `org-${userStore.organization.value}`)
+// 组织名称和样式
+const userOrganization = computed(() => userStore.organization || '')
+const organizationName = computed(() => {
+  const orgMap = {
+    'administrator': '系统管理员',
+    'government': '政府监管部门',
+    'investor': '投资者/买家',
+    'bank': '银行机构',
+    'audit': '审计监管部门'
   }
-  return roleMap[userStore.userRole] || userStore.userRole
+  return orgMap[userOrganization.value] || '未知组织'
 })
 
 // 统计卡片数据
 const statisticCards = ref([
-  { title: '房产总数', value: 0, icon: 'House', color: '#1976d2' },
-  { title: '交易总数', value: 0, icon: 'Money', color: '#ff9800' },
-  { title: '合同总数', value: 0, icon: 'Document', color: '#4caf50' },
-  { title: '税费总额', value: '¥0', icon: 'Wallet', color: '#e91e63' }
+  { title: '房产总数', value: 0, icon: 'House', color: '#1976d2', orgs: ['investor', 'government', 'audit'] },
+  { title: '交易总数', value: 0, icon: 'Money', color: '#ff9800', orgs: ['investor', 'government', 'bank'] },
+  { title: '合同总数', value: 0, icon: 'Document', color: '#4caf50', orgs: ['investor', 'government', 'bank', 'audit'] },
+  { title: '税费总额', value: '¥0', icon: 'Wallet', color: '#e91e63', orgs: ['government', 'investor'] },
+  { title: '贷款总数', value: 0, icon: 'CreditCard', color: '#9c27b0', orgs: ['investor', 'bank'] },
+  { title: '审计总数', value: 0, icon: 'DataAnalysis', color: '#795548', orgs: ['audit'] }
 ])
+
+// 根据用户组织过滤统计卡片
+const filteredStatisticCards = computed(() => {
+  return statisticCards.value.filter(card => {
+    return card.orgs.includes(userStore.organization.value)
+  })
+})
 
 // 图表引用
 const transactionTrendChart = ref(null)
@@ -183,12 +256,15 @@ const latestContracts = ref([])
 onMounted(async () => {
   // 获取仪表盘数据
   try {
-    const dashboardData = await dashboardApi.getDashboardData()
-    updateDashboardData(dashboardData)
+    const response = await axios.get('/api/dashboard')
+    if (response.data.code === 200) {
+      updateDashboardData(response.data.data)
+    } else {
+      throw new Error(response.data.message || '获取数据失败')
+    }
   } catch (error) {
     console.error('获取仪表盘数据失败:', error)
-    // 使用模拟数据作为后备
-    updateDashboardData(getMockData())
+    initDefaultData()
   }
   
   // 初始化图表
@@ -199,14 +275,64 @@ onMounted(async () => {
 // 更新仪表盘数据
 const updateDashboardData = (data) => {
   // 更新统计卡片
-  statisticCards.value[0].value = data.statistics.realtyCount
-  statisticCards.value[1].value = data.statistics.transactionCount
-  statisticCards.value[2].value = data.statistics.contractCount
-  statisticCards.value[3].value = `¥${data.statistics.taxAmount.toLocaleString()}`
+  if (data.statistics) {
+    statisticCards.value[0].value = data.statistics.realtyCount || 0
+    statisticCards.value[1].value = data.statistics.transactionCount || 0
+    statisticCards.value[2].value = data.statistics.contractCount || 0
+    statisticCards.value[3].value = `¥${(data.statistics.taxAmount || 0).toLocaleString()}`
+    statisticCards.value[4].value = data.statistics.mortgageCount || 0
+    statisticCards.value[5].value = data.statistics.auditCount || 0
+  }
   
   // 更新最近交易和合同
-  latestTransactions.value = data.latestTransactions
-  latestContracts.value = data.latestContracts
+  if (data.latestTransactions) {
+    latestTransactions.value = data.latestTransactions
+  }
+  
+  if (data.latestContracts) {
+    latestContracts.value = data.latestContracts
+  }
+}
+
+// 初始化默认数据
+const initDefaultData = () => {
+  // 根据用户组织设置不同的默认数据
+  if (userStore.hasOrganization('investor')) {
+    statisticCards.value[0].value = 15
+    statisticCards.value[1].value = 8
+    statisticCards.value[2].value = 6
+    statisticCards.value[3].value = '¥120,000'
+    statisticCards.value[4].value = 3
+  } else if (userStore.hasOrganization('government')) {
+    statisticCards.value[0].value = 127
+    statisticCards.value[1].value = 85
+    statisticCards.value[2].value = 94
+    statisticCards.value[3].value = '¥1,358,000'
+  } else if (userStore.hasOrganization('bank')) {
+    statisticCards.value[1].value = 56
+    statisticCards.value[2].value = 42
+    statisticCards.value[4].value = 38
+  } else if (userStore.hasOrganization('audit')) {
+    statisticCards.value[0].value = 127
+    statisticCards.value[2].value = 94
+    statisticCards.value[5].value = 48
+  }
+  
+  // 设置默认的最近交易
+  latestTransactions.value = [
+    { id: 'T-1001', realtyName: '翠湖豪庭 3号楼605', amount: 1580000, status: '完成' },
+    { id: 'T-1002', realtyName: '阳光花园 12栋1203', amount: 2450000, status: '进行中' },
+    { id: 'T-1003', realtyName: '蓝天公寓 B座502', amount: 1260000, status: '完成' },
+    { id: 'T-1004', realtyName: '江南名府 6号楼1801', amount: 3280000, status: '待处理' }
+  ]
+  
+  // 设置默认的最近合同
+  latestContracts.value = [
+    { id: 'C-2001', title: '翠湖豪庭605购房合同', date: '2024-05-12', status: '完成' },
+    { id: 'C-2002', title: '阳光花园1203认购协议', date: '2024-05-10', status: '进行中' },
+    { id: 'C-2003', title: '蓝天公寓502过户协议', date: '2024-05-08', status: '完成' },
+    { id: 'C-2004', title: '江南名府1801租赁合同', date: '2024-05-05', status: '待处理' }
+  ]
 }
 
 // 初始化交易趋势图
@@ -374,30 +500,6 @@ const getStatusType = (status) => {
   }
   return statusMap[status] || 'info'
 }
-
-// 模拟数据（作为后备）
-const getMockData = () => {
-  return {
-    statistics: {
-      realtyCount: 127,
-      transactionCount: 85,
-      contractCount: 94,
-      taxAmount: 1358000
-    },
-    latestTransactions: [
-      { id: 'T-1001', realtyName: '翠湖豪庭 3号楼605', amount: 1580000, status: '完成' },
-      { id: 'T-1002', realtyName: '阳光花园 12栋1203', amount: 2450000, status: '进行中' },
-      { id: 'T-1003', realtyName: '蓝天公寓 B座502', amount: 1260000, status: '完成' },
-      { id: 'T-1004', realtyName: '江南名府 6号楼1801', amount: 3280000, status: '待处理' }
-    ],
-    latestContracts: [
-      { id: 'C-2001', title: '翠湖豪庭605购房合同', date: '2024-05-12', status: '完成' },
-      { id: 'C-2002', title: '阳光花园1203认购协议', date: '2024-05-10', status: '进行中' },
-      { id: 'C-2003', title: '蓝天公寓502过户协议', date: '2024-05-08', status: '完成' },
-      { id: 'C-2004', title: '江南名府1801租赁合同', date: '2024-05-05', status: '待处理' }
-    ]
-  }
-}
 </script>
 
 <style scoped>
@@ -418,6 +520,51 @@ const getMockData = () => {
 .dashboard-header p {
   margin: 0;
   color: #666;
+}
+
+.org-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #fff;
+  font-weight: bold;
+  margin-left: 5px;
+}
+
+.org-administrator {
+  background-color: #409EFF;
+}
+
+.org-government {
+  background-color: #67C23A;
+}
+
+.org-investor {
+  background-color: #E6A23C;
+}
+
+.org-bank {
+  background-color: #F56C6C;
+}
+
+.org-audit {
+  background-color: #909399;
+}
+
+.guide-card {
+  margin-bottom: 20px;
+  border-radius: 8px;
+}
+
+.guide-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.guide-section h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
 }
 
 .statistic-card {
@@ -497,6 +644,26 @@ const getMockData = () => {
   
   .chart-container {
     height: 250px;
+  }
+  
+  .guide-content {
+    flex-direction: column;
+  }
+  
+  .guide-section {
+    width: 100%;
+    margin-bottom: 15px;
+  }
+  
+  .el-button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .el-button-group .el-button {
+    margin-left: 0 !important;
+    border-radius: 4px !important;
   }
 }
 </style> 

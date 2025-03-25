@@ -20,66 +20,90 @@
           <span>仪表盘</span>
         </el-menu-item>
         
+        <!-- 房产管理 - 所有组织可见 -->
         <el-sub-menu index="/realty">
           <template #title>
             <el-icon><House /></el-icon>
             <span>房产管理</span>
           </template>
-          <el-menu-item index="/realty/list">房产列表</el-menu-item>
-          <el-menu-item index="/realty/create" v-if="hasPermission(['GovernmentMSP'])">添加房产</el-menu-item>
+          <el-menu-item index="/realty">房产列表</el-menu-item>
+          <!-- 政府组织可创建房产 -->
+          <el-menu-item index="/realty/create" v-if="hasOrganization('government')">添加房产</el-menu-item>
         </el-sub-menu>
         
-        <el-sub-menu index="/transaction">
+        <!-- 交易管理 - 投资者、银行、政府可见 -->
+        <el-sub-menu index="/transaction" v-if="hasOrganization(['investor', 'bank', 'government'])">
           <template #title>
             <el-icon><Sell /></el-icon>
             <span>交易管理</span>
           </template>
-          <el-menu-item index="/transaction/list">交易列表</el-menu-item>
-          <el-menu-item index="/transaction/create" v-if="hasPermission(['AgencyMSP', 'InvestorMSP'])">创建交易</el-menu-item>
+          <el-menu-item index="/transaction">交易列表</el-menu-item>
+          <el-menu-item index="/transaction/create" v-if="hasOrganization('investor')">创建交易</el-menu-item>
+          <!-- 投资者可见 - 聊天室 -->
+          <el-menu-item index="/transaction/chat" v-if="hasOrganization('investor')">交易聊天室</el-menu-item>
         </el-sub-menu>
         
-        <el-sub-menu index="/contract">
+        <!-- 合同管理 - 投资者、银行、政府、审计可见 -->
+        <el-sub-menu index="/contract" v-if="hasOrganization(['investor', 'bank', 'government', 'audit'])">
           <template #title>
             <el-icon><Document /></el-icon>
             <span>合同管理</span>
           </template>
-          <el-menu-item index="/contract/list">合同列表</el-menu-item>
-          <el-menu-item index="/contract/create" v-if="hasPermission(['AgencyMSP', 'InvestorMSP'])">创建合同</el-menu-item>
+          <el-menu-item index="/contract">合同列表</el-menu-item>
+          <el-menu-item index="/contract/create" v-if="hasOrganization(['investor'])">创建合同</el-menu-item>
+          <!-- 审计组织特有 - 合规审核 -->
+          <el-menu-item index="/contract/audit" v-if="hasOrganization('audit')">合规审核</el-menu-item>
         </el-sub-menu>
         
-        <el-sub-menu index="/payment">
+        <!-- 支付管理 - 投资者、银行可见 -->
+        <el-sub-menu index="/payment" v-if="hasOrganization(['investor', 'bank'])">
           <template #title>
             <el-icon><Money /></el-icon>
             <span>支付管理</span>
           </template>
-          <el-menu-item index="/payment/list">支付列表</el-menu-item>
-          <el-menu-item index="/payment/create" v-if="hasPermission(['InvestorMSP', 'BankMSP'])">创建支付</el-menu-item>
+          <el-menu-item index="/payment">支付列表</el-menu-item>
+          <el-menu-item index="/payment/create" v-if="hasOrganization('investor')">创建支付</el-menu-item>
         </el-sub-menu>
         
-        <el-sub-menu index="/tax">
+        <!-- 税费管理 - 政府和投资者可见 -->
+        <el-sub-menu index="/tax" v-if="hasOrganization(['government', 'investor'])">
           <template #title>
             <el-icon><Wallet /></el-icon>
             <span>税费管理</span>
           </template>
-          <el-menu-item index="/tax/list">税费列表</el-menu-item>
-          <el-menu-item index="/tax/create" v-if="hasPermission(['GovernmentMSP'])">创建税费</el-menu-item>
+          <el-menu-item index="/tax">税费列表</el-menu-item>
+          <el-menu-item index="/tax/create" v-if="hasOrganization('government')">创建税费</el-menu-item>
         </el-sub-menu>
         
-        <el-sub-menu index="/mortgage">
+        <!-- 抵押贷款 - 投资者和银行可见 -->
+        <el-sub-menu index="/mortgage" v-if="hasOrganization(['investor', 'bank'])">
           <template #title>
             <el-icon><CreditCard /></el-icon>
             <span>抵押贷款</span>
           </template>
-          <el-menu-item index="/mortgage/list">贷款列表</el-menu-item>
-          <el-menu-item index="/mortgage/create" v-if="hasPermission(['InvestorMSP'])">申请贷款</el-menu-item>
+          <el-menu-item index="/mortgage">贷款列表</el-menu-item>
+          <el-menu-item index="/mortgage/create" v-if="hasOrganization('investor')">申请贷款</el-menu-item>
+          <el-menu-item index="/mortgage/approve" v-if="hasOrganization('bank')">贷款审批</el-menu-item>
         </el-sub-menu>
         
-        <el-sub-menu index="/admin" v-if="hasPermission(['AdminMSP'])">
+        <!-- 统计分析 - 政府和银行可见 -->
+        <el-sub-menu index="/statistics" v-if="hasOrganization(['government', 'bank'])">
+          <template #title>
+            <el-icon><DataAnalysis /></el-icon>
+            <span>统计分析</span>
+          </template>
+          <el-menu-item index="/statistics/transaction" v-if="hasOrganization('government')">交易统计</el-menu-item>
+          <el-menu-item index="/statistics/loan" v-if="hasOrganization('bank')">贷款统计</el-menu-item>
+        </el-sub-menu>
+        
+        <!-- 系统管理 - 只有管理员可见 -->
+        <el-sub-menu index="/admin" v-if="hasOrganization('administrator')">
           <template #title>
             <el-icon><Setting /></el-icon>
             <span>系统管理</span>
           </template>
-          <el-menu-item index="/admin/user">用户管理</el-menu-item>
+          <el-menu-item index="/admin/users">用户管理</el-menu-item>
+          <el-menu-item index="/admin/system">系统设置</el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
@@ -93,6 +117,7 @@
           </el-button>
         </div>
         <div class="header-right">
+          <span class="organization-badge" :class="organizationClass">{{ organizationName }}</span>
           <el-dropdown trigger="click">
             <span class="user-dropdown">
               {{ username }}
@@ -100,8 +125,8 @@
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item @click="router.push('/user/profile')">个人信息</el-dropdown-item>
-                <el-dropdown-item @click="router.push('/user/password')">修改密码</el-dropdown-item>
+                <el-dropdown-item @click="router.push('/profile')">个人信息</el-dropdown-item>
+                <el-dropdown-item @click="router.push('/change-password')">修改密码</el-dropdown-item>
                 <el-dropdown-item divided @click="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
             </template>
@@ -110,26 +135,18 @@
       </el-header>
       
       <el-main class="main-content">
-        <!-- 面包屑导航 -->
-        <el-breadcrumb class="breadcrumb" separator="/">
-          <el-breadcrumb-item v-for="(item, index) in breadcrumbs" :key="index" :to="item.path">
-            {{ item.title }}
-          </el-breadcrumb-item>
-        </el-breadcrumb>
-        
-        <!-- 内容区域 -->
-        <div class="content-container">
-          <router-view />
-        </div>
+        <!-- 使用MainContent组件替代原有内容 -->
+        <main-content />
       </el-main>
     </el-container>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import MainContent from '@/components/MainContent.vue'
 import {
   Menu, 
   House, 
@@ -140,7 +157,8 @@ import {
   CreditCard, 
   Setting, 
   Monitor,
-  ArrowDown
+  ArrowDown,
+  DataAnalysis
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -148,8 +166,24 @@ const router = useRouter()
 const userStore = useUserStore()
 
 // 用户信息
-const username = userStore.username
-const userRole = userStore.userRole
+const username = computed(() => userStore.username)
+const userOrganization = computed(() => userStore.organization || '')
+
+// 组织名称和样式
+const organizationName = computed(() => {
+  const orgMap = {
+    'administrator': '系统管理员',
+    'government': '政府监管部门',
+    'investor': '投资者/买家',
+    'bank': '银行机构',
+    'audit': '审计监管部门'
+  }
+  return orgMap[userOrganization.value] || '未知组织'
+})
+
+const organizationClass = computed(() => {
+  return `org-${userOrganization.value}`
+})
 
 // 侧边栏折叠状态
 const isCollapse = ref(false)
@@ -162,35 +196,13 @@ const activeMenu = computed(() => {
   return route.path
 })
 
-// 面包屑导航
-const breadcrumbs = computed(() => {
-  const crumbs = [{ title: '首页', path: '/' }]
-  
-  if (route.path === '/') {
-    return crumbs
+// 组织权限检查
+const hasOrganization = (orgs) => {
+  if (!orgs) return true
+  if (typeof orgs === 'string') {
+    return userOrganization.value === orgs
   }
-  
-  const paths = route.path.split('/').filter(Boolean)
-  
-  let currentPath = ''
-  paths.forEach(path => {
-    currentPath += `/${path}`
-    const currentRoute = router.resolve(currentPath).matched[0]
-    if (currentRoute) {
-      crumbs.push({
-        title: currentRoute.meta.title || path,
-        path: currentPath
-      })
-    }
-  })
-  
-  return crumbs
-})
-
-// 权限检查
-const hasPermission = (roles) => {
-  if (!roles || roles.length === 0) return true
-  return roles.includes(userRole.value)
+  return orgs.includes(userOrganization.value)
 }
 
 // 退出登录
@@ -268,15 +280,32 @@ const logout = () => {
   background-color: #f5f7fa;
 }
 
-.breadcrumb {
-  margin-bottom: 20px;
+.organization-badge {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-right: 15px;
+  color: white;
 }
 
-.content-container {
-  background-color: #fff;
-  border-radius: 4px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  min-height: calc(100% - 40px);
+.org-administrator {
+  background-color: #409EFF;
+}
+
+.org-government {
+  background-color: #67C23A;
+}
+
+.org-investor {
+  background-color: #E6A23C;
+}
+
+.org-bank {
+  background-color: #F56C6C;
+}
+
+.org-audit {
+  background-color: #909399;
 }
 
 /* 响应式调整 */
@@ -289,10 +318,6 @@ const logout = () => {
   
   .main-container {
     margin-left: 0;
-  }
-  
-  .content-container {
-    padding: 15px;
   }
 }
 </style> 
