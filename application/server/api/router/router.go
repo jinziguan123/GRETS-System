@@ -92,8 +92,8 @@ func SetupRouter() *gin.Engine {
 		transactions := api.Group("/transactions")
 		transactions.Use(middleware.JWTAuth())
 		{
-			transactions.POST("", controller.CreateTransaction)
-			transactions.GET("", controller.QueryTransactionList)
+			transactions.POST("/createTransaction", controller.CreateTransaction)
+			transactions.GET("/queryTransactionList", controller.QueryTransactionList)
 			transactions.GET("/:id", controller.GetTransactionByID)
 			transactions.PATCH("/:id", controller.UpdateTransaction)
 			transactions.POST("/:id/audit", controller.AuditTransaction)
@@ -116,8 +116,8 @@ func SetupRouter() *gin.Engine {
 		payments := api.Group("/payments")
 		payments.Use(middleware.JWTAuth())
 		{
-			payments.POST("", controller.CreatePayment)
-			payments.GET("", controller.QueryPaymentList)
+			payments.POST("/createPayment", controller.CreatePayment)
+			payments.GET("/queryPaymentList", controller.QueryPaymentList)
 			payments.GET("/:id", controller.GetPaymentByID)
 			payments.POST("/:id/verify", controller.VerifyPayment)
 			payments.POST("/:id/complete", controller.ConfirmPayment)
@@ -127,8 +127,8 @@ func SetupRouter() *gin.Engine {
 		contracts := api.Group("/contracts")
 		contracts.Use(middleware.JWTAuth())
 		{
-			contracts.POST("", controller.CreateContract)
-			contracts.GET("", controller.QueryContractList)
+			contracts.POST("/createContract", controller.CreateContract)
+			contracts.GET("/queryContractList", controller.QueryContractList)
 			contracts.GET("/:id", controller.GetContractByID)
 			contracts.POST("/:id/sign", controller.SignContract)
 			contracts.POST("/:id/audit", controller.AuditContract)
@@ -138,7 +138,7 @@ func SetupRouter() *gin.Engine {
 		files := api.Group("/files")
 		files.Use(middleware.JWTAuth())
 		{
-			files.POST("", controller.UploadFile)
+			files.POST("/uploadFile", controller.UploadFile)
 			files.GET("/:id", controller.GetFile)
 		}
 	}

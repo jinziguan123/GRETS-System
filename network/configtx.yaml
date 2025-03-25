@@ -127,28 +127,7 @@ Organizations:
                 Rule: "OR('InvestorMSP.peer')"
         AnchorPeers:
             - Host: peer0.investor.grets.com
-              Port: 7051
-
-    - &Administrator
-        Name: Administrator
-        ID: AdministratorMSP
-        MSPDir: crypto-config/peerOrganizations/administrator.grets.com/msp
-        Policies:
-            Readers:
-                Type: Signature
-                Rule: "OR('AdministratorMSP.admin', 'AdministratorMSP.peer', 'AdministratorMSP.client')"
-            Writers:
-                Type: Signature
-                Rule: "OR('AdministratorMSP.admin', 'AdministratorMSP.client')"
-            Admins:
-                Type: Signature
-                Rule: "OR('AdministratorMSP.admin')"
-            Endorsement:
-                Type: Signature
-                Rule: "OR('AdministratorMSP.peer')"
-        AnchorPeers:
-            - Host: peer0.administrator.grets.com
-              Port: 7051    
+              Port: 7051 
                 
 ################################################################################
 #
@@ -277,7 +256,6 @@ Profiles:
                     - *Thirdparty
                     - *Audit
                     - *Investor
-                    - *Administrator
     GretsChannel:
         <<: *ChannelDefaults
         # 所属联盟
@@ -291,6 +269,5 @@ Profiles:
                 - *Thirdparty
                 - *Audit
                 - *Investor
-                - *Administrator
             Capabilities:
                 <<: *ApplicationCapabilities

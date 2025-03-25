@@ -108,7 +108,6 @@ OrganizationList=(
     "bank"
     "thirdparty"
     "investor"
-    "administrator"
 );
 
 peerNumber=1;
@@ -306,7 +305,6 @@ main() {
     execute_with_timer "定义Bank锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/BankAnchor.tx -channelID $ChannelName -asOrg Bank\""
     execute_with_timer "定义Thirdparty锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/ThirdpartyAnchor.tx -channelID $ChannelName -asOrg Thirdparty\""
     execute_with_timer "定义Investor锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/InvestorAnchor.tx -channelID $ChannelName -asOrg Investor\""
-    execute_with_timer "定义Administrator锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/AdministratorAnchor.tx -channelID $ChannelName -asOrg Administrator\""
 
     # 启动所有节点
     show_progress 8 "启动所有节点" $start_time
@@ -386,7 +384,6 @@ main() {
     --peerAddresses $THIRDPARTY_PEER0_ADDRESS --tlsRootCertFiles $THIRDPARTY_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $INVESTOR_PEER0_ADDRESS --tlsRootCertFiles $INVESTOR_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $ADMINISTRATOR_PEER0_ADDRESS --tlsRootCertFiles $ADMINISTRATOR_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
 
     # 初始化并验证
@@ -397,7 +394,6 @@ main() {
     --peerAddresses $THIRDPARTY_PEER0_ADDRESS --tlsRootCertFiles $THIRDPARTY_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $INVESTOR_PEER0_ADDRESS --tlsRootCertFiles $INVESTOR_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $ADMINISTRATOR_PEER0_ADDRESS --tlsRootCertFiles $ADMINISTRATOR_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
 
     wait_for_completion "等待链码初始化（${CHAINCODE_INIT_WAIT}秒）" $CHAINCODE_INIT_WAIT

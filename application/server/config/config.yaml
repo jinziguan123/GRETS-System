@@ -60,13 +60,6 @@ fabric:
       tlsCertPath: ../../network/crypto-config/peerOrganizations/investor.grets.com/peers/peer0.investor.grets.com/tls/ca.crt
       peerEndpoint: localhost:11051
       gatewayPeer: peer0.investor.grets.com
-    administrator:
-      mspID: AdministratorMSP
-      certPath: ../../network/crypto-config/peerOrganizations/administrator.grets.com/users/User1@administrator.grets.com/msp/signcerts
-      keyPath: ../../network/crypto-config/peerOrganizations/administrator.grets.com/users/User1@administrator.grets.com/msp/keystore
-      tlsCertPath: ../../network/crypto-config/peerOrganizations/administrator.grets.com/peers/peer0.administrator.grets.com/tls/ca.crt
-      peerEndpoint: localhost:12051
-      gatewayPeer: peer0.administrator.grets.com  
 
 # 日志配置
 log:

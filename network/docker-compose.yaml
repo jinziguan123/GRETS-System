@@ -86,22 +86,6 @@ services:
     volumes:
       - ./crypto-config/peerOrganizations/investor.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
 
-  ca_administrator:
-    extends:
-      file: docker-compose-base.yaml
-      service: ca-base  
-    container_name: ca_administrator
-    environment:
-      - FABRIC_CA_SERVER_CA_NAME=ca-administrator
-      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.administrator.grets.com-cert.pem
-      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
-      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.administrator.grets.com-cert.pem
-      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
-    ports:
-      - "13054:7054"
-    volumes:
-      - ./crypto-config/peerOrganizations/administrator.grets.com/ca/:/etc/hyperledger/fabric-ca-server-config
-
   # Orderer 服务
   orderer1.grets.com:
     extends:
@@ -248,29 +232,6 @@ services:
     volumes:
       - ./crypto-config/peerOrganizations/investor.grets.com/peers/peer0.investor.grets.com:/etc/hyperledger/peer
       - ./data/peer0.investor.grets.com:/var/hyperledger/production 
-    depends_on:
-      - orderer1.grets.com
-      - orderer2.grets.com
-      - orderer3.grets.com  
-
-  peer0.administrator.grets.com:
-    extends:
-      file: docker-compose-base.yaml
-      service: peer-base
-    container_name: peer0.administrator.grets.com 
-    environment:
-      - CORE_PEER_ID=peer0.administrator.grets.com
-      - CORE_PEER_LOCALMSPID=AdministratorMSP
-      - CORE_PEER_ADDRESS=peer0.administrator.grets.com:7051  # peer节点的访问地址
-      - CORE_PEER_CHAINCODEADDRESS=peer0.administrator.grets.com:7052 # peer节点的链码访问地址
-      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.administrator.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.administrator.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
-    ports:
-      - "12051:7051"
-      - "12053:7053"
-    volumes:
-      - ./crypto-config/peerOrganizations/administrator.grets.com/peers/peer0.administrator.grets.com:/etc/hyperledger/peer
-      - ./data/peer0.administrator.grets.com:/var/hyperledger/production  
     depends_on:
       - orderer1.grets.com
       - orderer2.grets.com
