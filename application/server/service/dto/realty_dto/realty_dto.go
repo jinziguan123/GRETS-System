@@ -10,7 +10,7 @@ type CreateRealtyDTO struct {
 	UnitPrice      float64  `json:"unitPrice"`
 	RealtyType     string   `json:"realtyType"`
 	RealtyStatus   string   `json:"realtyStatus"`
-	PropertyOwner  string   `json:"propertyOwner"`
+	OwnerCitizenID string   `json:"ownerCitizenID"`
 	Attributes     []string `json:"attributes"`
 	ImageURL       string   `json:"imageUrl"`
 	OwnershipCerts []string `json:"ownershipCerts"`
@@ -24,7 +24,7 @@ type UpdateRealtyDTO struct {
 	UnitPrice      float64  `json:"unitPrice"`
 	RealtyType     string   `json:"realtyType"`
 	RealtyStatus   string   `json:"realtyStatus"`
-	PropertyOwner  string   `json:"propertyOwner"`
+	OwnerCitizenID string   `json:"ownerCitizenID"`
 	Attributes     []string `json:"attributes"`
 	ImageURL       string   `json:"imageUrl"`
 	OwnershipCerts []string `json:"ownershipCerts"`
