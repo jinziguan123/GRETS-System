@@ -1,7 +1,7 @@
 [
     {
       "name": "UserDataCollection",
-      "policy": "OR('GovernmentMSP.member', 'InvestorMSP.member', 'BankMSP.member', 'AuditMSP.member', 'ThirdPartyMSP.member')",
+      "policy": "OR('GovernmentMSP.member', 'InvestorMSP.member', 'BankMSP.member', 'AuditMSP.member', 'ThirdpartyMSP.member')",
       "requiredPeerCount": 1,
       "maxPeerCount": 3,
       "blockToLive": 1000000,
