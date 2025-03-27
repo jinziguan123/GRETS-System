@@ -66,15 +66,8 @@ func SetupRouter() *gin.Engine {
 			users.GET("/:id", controller.GetUserByID)
 			// 更新用户信息
 			users.POST("/:id", controller.UpdateUser)
-
-			// 管理员接口
-			users.Use(middleware.RoleAuth("admin"))
-			{
-				// 获取用户列表
-				users.GET("/list", controller.GetUserList)
-				// 根据身份证号获取用户
-				users.GET("/citizenID/:citizenID", controller.GetUserByCitizenID)
-			}
+			// 获取用户房产
+			users.GET("/:id/realty", controller.GetUserRealty)
 		}
 
 		// 交易相关接口

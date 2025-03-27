@@ -88,6 +88,25 @@ func (c *UserController) GetUserList(ctx *gin.Context) {
 	})
 }
 
+// GetUserRealty 获取用户房产
+func (c *UserController) GetUserRealty(ctx *gin.Context) {
+	// 获取用户ID
+	citizenID := ctx.Param("citizenID")
+	if citizenID == "" {
+		utils.ResponseError(ctx, constants.ParamError, "用户ID不能为空")
+		return
+	}
+
+	// 调用服务层查询用户房产
+	realty, err := c.userService.GetUserRealty(citizenID)
+	if err != nil {
+		utils.ResponseError(ctx, constants.ServiceError, err.Error())
+		return
+	}
+
+	utils.ResponseSuccess(ctx, realty)
+}
+
 // GetUserByID 根据ID获取用户
 func (c *UserController) GetUserByID(ctx *gin.Context) {
 	// 获取用户ID
@@ -185,4 +204,8 @@ func UpdateUser(c *gin.Context) {
 
 func GetUserByCitizenID(c *gin.Context) {
 	GlobalUserController.GetUserByCitizenID(c)
+}
+
+func GetUserRealty(c *gin.Context) {
+	GlobalUserController.GetUserRealty(c)
 }

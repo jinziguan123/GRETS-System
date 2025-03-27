@@ -21,6 +21,22 @@ const (
 	StatusFrozen        = "FROZEN"         // 已冻结
 )
 
+// 房产状态枚举
+const (
+	RealtyStatusNormal    = "NORMAL"    // 正常
+	RealtyStatusFrozen    = "FROZEN"    // 冻结
+	RealtyStatusCompleted = "COMPLETED" // 已完成
+)
+
+// 房产类型枚举
+const (
+	RealtyTypeHouse      = "HOUSE"      // 住宅
+	RealtyTypeShop       = "SHOP"       // 商铺
+	RealtyTypeOffice     = "OFFICE"     // 办公
+	RealtyTypeIndustrial = "INDUSTRIAL" // 工业
+	RealtyTypeOther      = "OTHER"      // 其他
+)
+
 // 交易状态枚举
 const (
 	TxStatusPending   = "PENDING"   // 待处理

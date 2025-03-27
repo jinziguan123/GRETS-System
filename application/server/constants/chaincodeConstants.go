@@ -8,6 +8,22 @@ const (
 	StatusFrozen        = "FROZEN"         // 已冻结
 )
 
+// 房产状态枚举
+const (
+	RealtyStatusNormal    = "NORMAL"    // 正常
+	RealtyStatusFrozen    = "FROZEN"    // 冻结
+	RealtyStatusCompleted = "COMPLETED" // 已完成
+)
+
+// 房产类型枚举
+const (
+	RealtyTypeHouse      = "HOUSE"      // 住宅
+	RealtyTypeShop       = "SHOP"       // 商铺
+	RealtyTypeOffice     = "OFFICE"     // 办公
+	RealtyTypeIndustrial = "INDUSTRIAL" // 工业
+	RealtyTypeOther      = "OTHER"      // 其他
+)
+
 // 交易状态枚举
 const (
 	TxStatusPending   = "PENDING"   // 待处理
@@ -25,6 +41,18 @@ const (
 	InvestorMSP   = "InvestorMSP"   // 投资者MSP ID
 )
 
+// 文档类型常量（用于创建复合键）
+const (
+	DocTypeRealEstate  = "RE" // 房产信息
+	DocTypeTransaction = "TX" // 交易信息
+	DocTypeContract    = "CT" // 合同信息
+	DocTypeMortgage    = "MG" // 抵押信息
+	DocTypeAudit       = "AD" // 审计记录
+	DocTypeUser        = "US" // 用户信息
+	DocTypeTax         = "TX" // 税费信息
+	DocTypePayment     = "PT" // 支付信息
+)
+
 // 用户角色枚举
 const (
 	RoleGovernment = "GOVERNMENT"  // 政府机构
@@ -34,7 +62,7 @@ const (
 	RoleAuditor    = "AUDITOR"     // 审计人员
 )
 
-// 支付类型枚举
+// 支付类型枚举（现金/贷款/转账）
 const (
 	PaymentTypeCash     = "CASH"     // 现金支付
 	PaymentTypeLoan     = "LOAN"     // 贷款支付
@@ -48,29 +76,8 @@ const (
 	ContractStatusCompleted = "COMPLETED" // 已完成
 )
 
-// 文档类型常量
-const (
-	DocTypeRealEstate  = "RE" // 房产信息
-	DocTypeTransaction = "TX" // 交易信息
-	DocTypeContract    = "CT" // 合同信息
-	DocTypeMortgage    = "MG" // 抵押信息
-	DocTypeAudit       = "AD" // 审计记录
-	DocTypeUser        = "US" // 用户信息
-	DocTypeTax         = "TX" // 税费信息
-	DocTypePayment     = "PT" // 支付信息
-)
-
 // 用户状态枚举
 const (
 	UserStatusActive   = "ACTIVE"   // 正常
 	UserStatusDisabled = "DISABLED" // 禁用
-)
-
-// PDC集合名称
-const (
-	BankCollection               = "BankCollection"               // 银行集合
-	UserDataCollection           = "UserDataCollection"           // 用户数据集合
-	MortgageDataCollection       = "MortgageDataCollection"       // 抵押数据集合
-	TransactionPrivateCollection = "TransactionPrivateCollection" // 交易私有数据集合
-	RealEstatePrivateCollection  = "RealEstatePrivateCollection"  // 房产私有数据集合
 )

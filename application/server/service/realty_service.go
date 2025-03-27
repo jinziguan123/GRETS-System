@@ -54,9 +54,12 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 	}
 
 	_, err = contract.SubmitTransaction("CreateRealty",
+		utils.GenerateHash(req.RealtyCert),
 		req.RealtyCert,
 		req.Address,
 		req.RealtyType,
+		fmt.Sprintf("%.2f", req.Price),
+		fmt.Sprintf("%.2f", req.Area),
 		req.CurrentOwnerCitizenID,
 		req.Status,
 		string(previousOwnersJSON), // 传递序列化后的JSON字符串

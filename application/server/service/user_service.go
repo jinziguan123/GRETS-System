@@ -5,6 +5,7 @@ import (
 	"grets_server/constants"
 	"grets_server/dao"
 	"grets_server/db/models"
+	realtyDto "grets_server/dto/realty_dto"
 	userDto "grets_server/dto/user_dto"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
@@ -27,6 +28,8 @@ type UserService interface {
 	GetUserByCitizenID(citizenID, organization string) (*userDto.UserDTO, error)
 	// UpdateUser 更新用户信息
 	UpdateUser(user *userDto.UpdateUserDTO) error
+	// GetUserRealty 获取用户房产
+	GetUserRealty(citizenID string) ([]*realtyDto.RealtyDTO, error)
 }
 
 // userService 用户服务实现
@@ -249,4 +252,10 @@ func (s *userService) UpdateUser(req *userDto.UpdateUserDTO) error {
 	// 查询原用户
 
 	return nil
+}
+
+// GetUserRealty 获取用户房产
+func (s *userService) GetUserRealty(citizenID string) ([]*realtyDto.RealtyDTO, error) {
+
+	return nil, nil
 }

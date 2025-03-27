@@ -23,6 +23,8 @@ type CreateRealtyDTO struct {
 	CurrentOwnerCitizenID       string   `json:"currentOwnerCitizenID" binding:"required"` // 当前所有者
 	PreviousOwnersCitizenIDList []string `json:"previousOwnersCitizenIDList,omitempty"`    // 历史所有者
 	Status                      string   `json:"status" binding:"required"`                // 状态
+	Price                       float64  `json:"price" binding:"required"`                 // 价格
+	Area                        float64  `json:"area" binding:"required"`                  // 面积
 }
 
 // UpdateRealtyDTO 更新房产请求
