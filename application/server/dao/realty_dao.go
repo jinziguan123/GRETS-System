@@ -3,6 +3,7 @@ package dao
 import (
 	"fmt"
 	"grets_server/db"
+	"grets_server/db/models"
 	"time"
 
 	"gorm.io/gorm"
@@ -23,7 +24,7 @@ func NewRealEstateDAO() *RealEstateDAO {
 }
 
 // CreateRealEstate 创建房产记录
-func (dao *RealEstateDAO) CreateRealEstate(re *db.RealEstate) error {
+func (dao *RealEstateDAO) CreateRealEstate(re *models.RealEstate) error {
 	// 保存到MySQL数据库
 	if err := dao.mysqlDB.Create(re).Error; err != nil {
 		return fmt.Errorf("创建房产记录失败: %v", err)
@@ -43,8 +44,8 @@ func (dao *RealEstateDAO) CreateRealEstate(re *db.RealEstate) error {
 }
 
 // GetRealEstateByID 根据ID获取房产
-func (dao *RealEstateDAO) GetRealEstateByID(id string) (*db.RealEstate, error) {
-	var re db.RealEstate
+func (dao *RealEstateDAO) GetRealEstateByID(id string) (*models.RealEstate, error) {
+	var re models.RealEstate
 	if err := dao.mysqlDB.First(&re, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("根据ID查询房产失败: %v", err)
 	}
@@ -52,7 +53,7 @@ func (dao *RealEstateDAO) GetRealEstateByID(id string) (*db.RealEstate, error) {
 }
 
 // UpdateRealEstate 更新房产信息
-func (dao *RealEstateDAO) UpdateRealEstate(re *db.RealEstate) error {
+func (dao *RealEstateDAO) UpdateRealEstate(re *models.RealEstate) error {
 	// 更新MySQL数据库
 	if err := dao.mysqlDB.Save(re).Error; err != nil {
 		return fmt.Errorf("更新房产记录失败: %v", err)
@@ -72,9 +73,9 @@ func (dao *RealEstateDAO) UpdateRealEstate(re *db.RealEstate) error {
 }
 
 // QueryRealEstates 查询房产列表
-func (dao *RealEstateDAO) QueryRealEstates(ownerID, status, address string) ([]*db.RealEstate, error) {
-	var realEstates []*db.RealEstate
-	query := dao.mysqlDB.Model(&db.RealEstate{})
+func (dao *RealEstateDAO) QueryRealEstates(ownerID, status, address string) ([]*models.RealEstate, error) {
+	var realEstates []*models.RealEstate
+	query := dao.mysqlDB.Model(&models.RealEstate{})
 
 	// 添加查询条件
 	if ownerID != "" {
@@ -97,7 +98,7 @@ func (dao *RealEstateDAO) QueryRealEstates(ownerID, status, address string) ([]*
 
 // UpdateRealEstateOnChainStatus 更新房产的上链状态
 func (dao *RealEstateDAO) UpdateRealEstateOnChainStatus(id, txID string, onChain bool) error {
-	if err := dao.mysqlDB.Model(&db.RealEstate{}).Where("id = ?", id).Updates(map[string]interface{}{
+	if err := dao.mysqlDB.Model(&models.RealEstate{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"on_chain":    onChain,
 		"chain_tx_id": txID,
 	}).Error; err != nil {

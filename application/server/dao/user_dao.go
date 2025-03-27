@@ -3,6 +3,7 @@ package dao
 import (
 	"fmt"
 	"grets_server/db"
+	"grets_server/db/models"
 
 	"gorm.io/gorm"
 )
@@ -20,7 +21,7 @@ func NewUserDAO() *UserDAO {
 }
 
 // SaveUser 保存用户信息到数据库
-func (dao *UserDAO) SaveUser(user *db.User) error {
+func (dao *UserDAO) SaveUser(user *models.User) error {
 	tx := dao.mysqlDB.Begin()
 	if err := tx.Error; err != nil {
 		return fmt.Errorf("开启事务失败: %v", err)
@@ -40,8 +41,8 @@ func (dao *UserDAO) SaveUser(user *db.User) error {
 }
 
 // GetUserByID 根据ID获取用户
-func (dao *UserDAO) GetUserByID(id string) (*db.User, error) {
-	var user db.User
+func (dao *UserDAO) GetUserByID(id string) (*models.User, error) {
+	var user models.User
 	if err := dao.mysqlDB.First(&user, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("根据ID查询用户失败: %v", err)
 	}
@@ -49,8 +50,8 @@ func (dao *UserDAO) GetUserByID(id string) (*db.User, error) {
 }
 
 // GetUserByCitizenID 根据身份证号和组织获取用户
-func (dao *UserDAO) GetUserByCitizenID(citizenID, organization string) (*db.User, error) {
-	var user db.User
+func (dao *UserDAO) GetUserByCitizenID(citizenID, organization string) (*models.User, error) {
+	var user models.User
 	if err := dao.mysqlDB.First(&user, "citizen_id = ? AND organization = ?", citizenID, organization).Error; err != nil {
 		return nil, fmt.Errorf("根据身份证号查询用户失败: %v", err)
 	}
@@ -58,16 +59,16 @@ func (dao *UserDAO) GetUserByCitizenID(citizenID, organization string) (*db.User
 }
 
 // GetUserByCredentials 根据身份证号、密码和组织获取用户（用于登录验证）
-func (dao *UserDAO) GetUserByCredentials(citizenID, password, organization string) (*db.User, error) {
-	var user db.User
-	if err := dao.mysqlDB.First(&user, "citizen_id = ? AND password = ? AND organization = ?", citizenID, password, organization).Error; err != nil {
+func (dao *UserDAO) GetUserByCredentials(citizenID, password, organization string) (*models.User, error) {
+	var user models.User
+	if err := dao.mysqlDB.First(&user, "citizen_id = ? AND password_hash = ? AND organization = ?", citizenID, password, organization).Error; err != nil {
 		return nil, fmt.Errorf("用户名或密码错误: %v", err)
 	}
 	return &user, nil
 }
 
 // UpdateUser 更新用户信息
-func (dao *UserDAO) UpdateUser(user *db.User) error {
+func (dao *UserDAO) UpdateUser(user *models.User) error {
 	tx := dao.mysqlDB.Begin()
 	if err := tx.Error; err != nil {
 		return fmt.Errorf("开启事务失败: %v", err)
@@ -86,9 +87,9 @@ func (dao *UserDAO) UpdateUser(user *db.User) error {
 }
 
 // QueryUsers 查询用户列表
-func (dao *UserDAO) QueryUsers(organization, role, citizenID string) ([]*db.User, error) {
-	var users []*db.User
-	query := dao.mysqlDB.Model(&db.User{})
+func (dao *UserDAO) QueryUsers(organization, role, citizenID string) ([]*models.User, error) {
+	var users []*models.User
+	query := dao.mysqlDB.Model(&models.User{})
 
 	// 添加查询条件
 	if organization != "" {

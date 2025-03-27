@@ -3,6 +3,7 @@ package dao
 import (
 	"fmt"
 	"grets_server/db"
+	"grets_server/db/models"
 	"time"
 
 	"gorm.io/gorm"
@@ -23,7 +24,7 @@ func NewPaymentDAO() *PaymentDAO {
 }
 
 // CreatePayment 创建支付记录
-func (dao *PaymentDAO) CreatePayment(payment *db.Payment) error {
+func (dao *PaymentDAO) CreatePayment(payment *models.Payment) error {
 	// 保存到MySQL数据库
 	if err := dao.mysqlDB.Create(payment).Error; err != nil {
 		return fmt.Errorf("创建支付记录失败: %v", err)
@@ -32,7 +33,6 @@ func (dao *PaymentDAO) CreatePayment(payment *db.Payment) error {
 	// 保存状态到BoltDB
 	paymentState := map[string]interface{}{
 		"id":         payment.ID,
-		"status":     payment.Status,
 		"updated_at": time.Now(),
 	}
 	if err := dao.boltDB.Put("payment_states", payment.ID, paymentState); err != nil {
@@ -43,8 +43,8 @@ func (dao *PaymentDAO) CreatePayment(payment *db.Payment) error {
 }
 
 // GetPaymentByID 根据ID获取支付记录
-func (dao *PaymentDAO) GetPaymentByID(id string) (*db.Payment, error) {
-	var payment db.Payment
+func (dao *PaymentDAO) GetPaymentByID(id string) (*models.Payment, error) {
+	var payment models.Payment
 	if err := dao.mysqlDB.First(&payment, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("根据ID查询支付记录失败: %v", err)
 	}
@@ -52,7 +52,7 @@ func (dao *PaymentDAO) GetPaymentByID(id string) (*db.Payment, error) {
 }
 
 // UpdatePayment 更新支付信息
-func (dao *PaymentDAO) UpdatePayment(payment *db.Payment) error {
+func (dao *PaymentDAO) UpdatePayment(payment *models.Payment) error {
 	// 更新MySQL数据库
 	if err := dao.mysqlDB.Save(payment).Error; err != nil {
 		return fmt.Errorf("更新支付记录失败: %v", err)
@@ -61,7 +61,6 @@ func (dao *PaymentDAO) UpdatePayment(payment *db.Payment) error {
 	// 更新状态到BoltDB
 	paymentState := map[string]interface{}{
 		"id":         payment.ID,
-		"status":     payment.Status,
 		"updated_at": time.Now(),
 	}
 	if err := dao.boltDB.Put("payment_states", payment.ID, paymentState); err != nil {
@@ -72,9 +71,9 @@ func (dao *PaymentDAO) UpdatePayment(payment *db.Payment) error {
 }
 
 // QueryPayments 查询支付列表
-func (dao *PaymentDAO) QueryPayments(transactionID, payerID, receiverID, status, paymentType string) ([]*db.Payment, error) {
-	var payments []*db.Payment
-	query := dao.mysqlDB.Model(&db.Payment{})
+func (dao *PaymentDAO) QueryPayments(transactionID, payerID, receiverID, status, paymentType string) ([]*models.Payment, error) {
+	var payments []*models.Payment
+	query := dao.mysqlDB.Model(&models.Payment{})
 
 	// 添加查询条件
 	if transactionID != "" {
@@ -102,17 +101,16 @@ func (dao *PaymentDAO) QueryPayments(transactionID, payerID, receiverID, status,
 }
 
 // CompletePayment 完成支付
-func (dao *PaymentDAO) CompletePayment(payment *db.Payment) error {
+func (dao *PaymentDAO) CompletePayment(payment *models.Payment) error {
 	// 更新支付状态
-	payment.Status = "completed"
-	payment.CompletionTime = time.Now()
+	payment.CreateTime = time.Now()
 
 	return dao.UpdatePayment(payment)
 }
 
 // UpdatePaymentOnChainStatus 更新支付的上链状态
 func (dao *PaymentDAO) UpdatePaymentOnChainStatus(id, txID string, onChain bool) error {
-	if err := dao.mysqlDB.Model(&db.Payment{}).Where("id = ?", id).Updates(map[string]interface{}{
+	if err := dao.mysqlDB.Model(&models.Payment{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"on_chain":    onChain,
 		"chain_tx_id": txID,
 	}).Error; err != nil {

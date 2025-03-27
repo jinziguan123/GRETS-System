@@ -82,6 +82,14 @@
           />
         </el-select>
       </el-form-item>
+
+      <el-form-item>
+        <el-input
+            v-model="registerForm.balance"
+            placeholder="请输入注册金额"
+            prefix-icon="money"
+        />
+      </el-form-item>
       
       <!-- 服务条款 -->
       <el-form-item prop="agreement">
@@ -225,6 +233,7 @@ const registerForm = reactive({
   email: '',
   phone: '',
   organization: '',
+  balance: undefined,
   agreement: false
 })
 
@@ -331,7 +340,8 @@ const handleRegister = () => {
             email: registerForm.email,
             phone: registerForm.phone,
             role: 'user',
-            organization: registerForm.organization
+            organization: registerForm.organization,
+            balance: parseFloat(registerForm.balance),
           })
           
           ElMessage.success('注册成功，请登录')

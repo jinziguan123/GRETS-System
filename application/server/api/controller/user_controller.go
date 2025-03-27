@@ -1,11 +1,10 @@
 package controller
 
 import (
-	"grets_server/api/constants"
+	"grets_server/constants"
+	userDto "grets_server/dto/user_dto"
 	"grets_server/pkg/utils"
 	"grets_server/service"
-	userDto "grets_server/service/dto/user_dto"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,6 +29,8 @@ func (c *UserController) Register(ctx *gin.Context) {
 		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
 		return
 	}
+
+	req.Status = constants.UserStatusActive
 
 	// 调用服务层注册用户
 	if err := c.userService.Register(&req); err != nil {
@@ -67,20 +68,12 @@ func (c *UserController) Login(ctx *gin.Context) {
 func (c *UserController) GetUserList(ctx *gin.Context) {
 	// 解析查询参数
 	organization := ctx.Query("organization")
-	role := ctx.Query("role")
 	citizenID := ctx.Query("citizenID")
-
-	// 解析分页参数
-	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("pageSize", "10"))
-	pageNumber, _ := strconv.Atoi(ctx.DefaultQuery("pageNumber", "1"))
 
 	// 调用服务层查询用户列表
 	users, total, err := c.userService.GetUserList(&userDto.QueryUserDTO{
 		Organization: organization,
-		Role:         role,
 		CitizenID:    citizenID,
-		PageSize:     pageSize,
-		PageNumber:   pageNumber,
 	})
 
 	if err != nil {
@@ -150,7 +143,7 @@ func (c *UserController) UpdateUser(ctx *gin.Context) {
 		utils.ResponseError(ctx, constants.ParamError, "用户ID不能为空")
 		return
 	}
-	req.ID = id
+	req.CitizenID = id
 
 	// 调用服务层更新用户
 	if err := c.userService.UpdateUser(&req); err != nil {

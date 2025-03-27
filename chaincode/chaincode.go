@@ -73,6 +73,12 @@ const (
 	ContractStatusCompleted = "COMPLETED" // 已完成
 )
 
+// 用户状态枚举
+const (
+	UserStatusActive   = "ACTIVE"   // 正常
+	UserStatusDisabled = "DISABLED" // 禁用
+)
+
 // 用户信息结构
 type User struct {
 	CitizenID      string    `json:"citizenID"`      // 公民身份证号
@@ -92,8 +98,6 @@ type UserPublic struct {
 	CitizenID      string    `json:"citizenID"`      // 公民身份证号
 	Name           string    `json:"name"`           // 用户名称
 	Role           string    `json:"role"`           // 用户角色
-	Phone          string    `json:"phone"`          // 联系电话
-	Email          string    `json:"email"`          // 电子邮箱
 	Organization   string    `json:"organization"`   // 所属组织
 	CreatedTime    time.Time `json:"createdTime"`    // 创建时间
 	LastUpdateTime time.Time `json:"lastUpdateTime"` // 最后更新时间
@@ -104,6 +108,8 @@ type UserPrivate struct {
 	CitizenID    string  `json:"citizenID"`    // 公民身份证号
 	PasswordHash string  `json:"passwordHash"` // 用户密码
 	Balance      float64 `json:"balance"`      // 余额
+	Phone        string  `json:"phone"`        // 联系电话
+	Email        string  `json:"email"`        // 电子邮箱
 }
 
 // 房产信息结构
@@ -112,6 +118,8 @@ type RealEstate struct {
 	RealtyCert                      string    `json:"realtyCert"`                      // 不动产证ID
 	Address                         string    `json:"address"`                         // 房产地址
 	RealtyType                      string    `json:"realtyType"`                      // 建筑类型
+	Price                           float64   `json:"price"`                           // 房产价格
+	Area                            float64   `json:"area"`                            // 房产面积
 	CurrentOwnerCitizenIDHash       string    `json:"currentOwnerCitizenIDHash"`       // 当前所有者
 	PreviousOwnersCitizenIDHashList []string  `json:"previousOwnersCitizenIDHashList"` // 历史所有者
 	RegistrationDate                time.Time `json:"registrationDate"`                // 登记日期
@@ -124,6 +132,8 @@ type RealEstatePublic struct {
 	RealtyCert       string    `json:"realtyCert"`       // 不动产证ID
 	Address          string    `json:"address"`          // 房产地址
 	RealtyType       string    `json:"realtyType"`       // 建筑类型
+	Price            float64   `json:"price"`            // 房产价格
+	Area             float64   `json:"area"`             // 房产面积
 	RegistrationDate time.Time `json:"registrationDate"` // 登记日期
 	Status           string    `json:"status"`           // 房产当前状态
 	LastUpdateDate   time.Time `json:"lastUpdateDate"`   // 最后更新时间
@@ -138,7 +148,7 @@ type RealEstatePrivate struct {
 
 // 交易信息结构
 type Transaction struct {
-	TransactionHash     string    `json:"transactionHash"`     // 交易Hash
+	TransactionUUID     string    `json:"transactionUUID"`     // 交易UUID
 	RealtyCert          string    `json:"realtyCert"`          // 房产ID
 	SellerCitizenIDHash string    `json:"sellerCitizenIDHash"` // 卖方
 	BuyerCitizenIDHash  string    `json:"buyerCitizenIDHash"`  // 买方
@@ -146,27 +156,29 @@ type Transaction struct {
 	Tax                 float64   `json:"tax"`                 // 应缴税费
 	Status              string    `json:"status"`              // 交易状态
 	CreatedTime         time.Time `json:"createdTime"`         // 创建时间
+	UpdateTime          time.Time `json:"updateTime"`          // 更新时间
 	CompletedTime       time.Time `json:"completedTime"`       // 完成时间
-	PaymentIDHashList   []string  `json:"paymentIdHashList"`   // 关联支付ID
+	PaymentUUIDList     []string  `json:"paymentUUIDList"`     // 关联支付ID
 	ContractIDHash      string    `json:"contractIdHash"`      // 关联合同ID
 }
 
 type TransactionPublic struct {
-	TransactionHash     string    `json:"transactionHash"`     // 交易Hash
+	TransactionUUID     string    `json:"transactionUUID"`     // 交易UUID
 	RealtyCertHash      string    `json:"realtyCertHash"`      // 房产ID
 	SellerCitizenIDHash string    `json:"sellerCitizenIDHash"` // 卖方
 	BuyerCitizenIDHash  string    `json:"buyerCitizenIDHash"`  // 买方
 	Status              string    `json:"status"`              // 交易状态
 	CreatedTime         time.Time `json:"createdTime"`         // 创建时间
+	UpdateTime          time.Time `json:"updateTime"`          // 更新时间
 	CompletedTime       time.Time `json:"completedTime"`       // 完成时间
 }
 
 type TransactionPrivate struct {
-	TransactionHash   string   `json:"transactionHash"`   // 交易Hash
-	Price             float64  `json:"price"`             // 成交价格
-	Tax               float64  `json:"tax"`               // 应缴税费
-	PaymentIDHashList []string `json:"paymentIdHashList"` // 关联支付ID
-	ContractIDHash    string   `json:"contractIdHash"`    // 关联合同ID
+	TransactionUUID string   `json:"transactionUUID"` // 交易UUID
+	Price           float64  `json:"price"`           // 成交价格
+	Tax             float64  `json:"tax"`             // 应缴税费
+	PaymentUUIDList []string `json:"paymentUUIDList"` // 关联支付ID
+	ContractUUID    string   `json:"contractUUID"`    // 关联合同ID
 }
 
 // 合同信息结构
@@ -178,6 +190,17 @@ type Contract struct {
 	BuyerCitizenIDHash  string    `json:"buyerCitizenIDHash"`  // 买方身份证号
 	Status              string    `json:"status"`              // 合同状态
 	CreatedTime         time.Time `json:"createdTime"`         // 创建时间
+}
+
+// 支付信息结构
+type Payment struct {
+	PaymentUUID           string    `json:"paymentUUID"`           // 支付ID
+	TransactionUUID       string    `json:"transactionUUID"`       // 关联交易ID
+	Amount                float64   `json:"amount"`                // 金额
+	PaymentType           string    `json:"paymentType"`           // 支付类型（现金/贷款/转账）
+	PayerCitizenIDHash    string    `json:"payerCitizenIDHash"`    // 付款人ID
+	ReceiverCitizenIDHash string    `json:"receiverCitizenIDHash"` // 收款人ID
+	CreatedTime           time.Time `json:"createdTime"`           // 创建时间
 }
 
 // 抵押信息结构
@@ -211,17 +234,6 @@ type Tax struct {
 	PaidAt        time.Time `json:"paidAt"`        // 缴纳时间
 	PaidBy        string    `json:"paidBy"`        // 缴纳人
 	ReceiptID     string    `json:"receiptId"`     // 收据ID
-}
-
-// 支付信息结构
-type Payment struct {
-	PaymentIDHash      string    `json:"paymentIdHash"`      // 支付ID
-	TransactionHash    string    `json:"transactionHash"`    // 关联交易ID
-	Amount             float64   `json:"amount"`             // 金额
-	PaymentType        string    `json:"paymentType"`        // 支付类型（现金/贷款/转账）
-	PayerCitizenIDHash string    `json:"payerCitizenIDHash"` // 付款人ID
-	PayeeCitizenIDHash string    `json:"payeeCitizenIDHash"` // 收款人ID
-	CreatedTime        time.Time `json:"createdTime"`        // 创建时间
 }
 
 // 审计记录结构
@@ -361,7 +373,11 @@ func (s *SmartContract) UpdateUser(ctx contractapi.TransactionContextInterface,
 	if len(password) > 0 {
 		user.Password = password
 	}
-	user.LastUpdateTime = time.Now()
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[UpdateUser] 获取交易时间戳失败: %v", err)
+	}
+	user.LastUpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
 	// 序列化并保存更新后的用户数据
 	updatedUserBytes, err := json.Marshal(user)
@@ -377,7 +393,7 @@ func (s *SmartContract) UpdateUser(ctx contractapi.TransactionContextInterface,
 	return nil
 }
 
-// Register 注册用户(仅投资者可以调用)
+// Register 注册用户
 func (s *SmartContract) Register(ctx contractapi.TransactionContextInterface,
 	citizenIDHash string,
 	citizenID string,
@@ -390,18 +406,12 @@ func (s *SmartContract) Register(ctx contractapi.TransactionContextInterface,
 	status string,
 	balance float64,
 ) error {
-
-	clientMSPID, err := s.getClientIdentityMSPID(ctx)
-	if err != nil {
-		return err
-	}
-
-	if clientMSPID != InvestorMSP {
-		return fmt.Errorf("[Register] 只有投资者可以调用")
-	}
-
 	// 检查用户是否已存在
-	existUser, err := s.GetUserByCitizenIDAndOrganization(ctx, citizenIDHash, organization)
+	key, err := s.createCompositeKey(ctx, DocTypeUser, []string{citizenIDHash, organization}...)
+	if err != nil {
+		return fmt.Errorf("[Register] 创建复合键失败: %v", err)
+	}
+	existUser, err := ctx.GetStub().GetState(key)
 	if err != nil {
 		return fmt.Errorf("[Register] 查询用户失败: %v", err)
 	}
@@ -414,17 +424,20 @@ func (s *SmartContract) Register(ctx contractapi.TransactionContextInterface,
 		return fmt.Errorf("[Register] 创建复合键失败: %v", err)
 	}
 
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[Register] 获取交易时间戳失败: %v", err)
+	}
+
 	// 创建用户公开信息
 	userPublic := UserPublic{
 		CitizenID:      citizenID,
 		Name:           name,
-		Phone:          phone,
-		Email:          email,
 		Organization:   organization,
 		Role:           role,
 		Status:         status,
-		CreatedTime:    time.Now(),
-		LastUpdateTime: time.Now(),
+		CreatedTime:    time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+		LastUpdateTime: time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 	}
 
 	// 序列化用户
@@ -444,6 +457,8 @@ func (s *SmartContract) Register(ctx contractapi.TransactionContextInterface,
 		CitizenID:    citizenID,
 		PasswordHash: passwordHash,
 		Balance:      balance,
+		Phone:        phone,
+		Email:        email,
 	}
 
 	// 序列化用户私钥
@@ -540,9 +555,11 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 	realtyCert string,
 	address string,
 	realtyType string,
+	price float64,
+	area float64,
 	currentOwnerCitizenIDHash string,
 	status string,
-	previousOwnersCitizenIDHashList []string,
+	previousOwnersCitizenIDHashListJSON string,
 ) error {
 	// 检查调用者身份
 	clientID, err := ctx.GetClientIdentity().GetID()
@@ -574,15 +591,28 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("[CreateRealty] 房产ID %s 已存在", realtyCertHash)
 	}
 
+	// 解析JSON字符串为字符串数组
+	var previousOwnersCitizenIDHashList []string
+	if err := json.Unmarshal([]byte(previousOwnersCitizenIDHashListJSON), &previousOwnersCitizenIDHashList); err != nil {
+		return fmt.Errorf("[CreateRealty] 解析历史所有者列表失败: %v", err)
+	}
+
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[CreateRealty] 获取交易时间戳失败: %v", err)
+	}
+
 	// 创建公开房产信息
 	realEstate := RealEstatePublic{
 		RealtyCertHash:   realtyCertHash,
 		RealtyCert:       realtyCert,
 		Address:          address,
 		RealtyType:       realtyType,
-		RegistrationDate: time.Now(),
+		Price:            price,
+		Area:             area,
+		RegistrationDate: time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 		Status:           status,
-		LastUpdateDate:   time.Now(),
+		LastUpdateDate:   time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 	}
 
 	// 序列化并保存
@@ -625,7 +655,7 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 	record := createRealtyRecord{
 		ClientID: clientID,
 		Action:   "createRealty",
-		Time:     time.Now(),
+		Time:     time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 	}
 	recordJSON, err := json.Marshal(record)
 	if err != nil {
@@ -661,14 +691,47 @@ func (s *SmartContract) QueryRealty(ctx contractapi.TransactionContextInterface,
 	return &realEstatePublic, nil
 }
 
+// QueryRealtyList 查询全量房产列表
+func (s *SmartContract) QueryRealtyList(ctx contractapi.TransactionContextInterface,
+	pageSize int32,
+	bookmark string,
+) ([]*RealEstatePublic, error) {
+
+	iter, _, err := ctx.GetStub().GetStateByPartialCompositeKeyWithPagination(
+		DocTypeRealEstate,
+		[]string{},
+		pageSize,
+		bookmark,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryRealtyList] 查询房产列表失败: %v", err)
+	}
+	defer iter.Close()
+
+	realtyList := []*RealEstatePublic{}
+	for iter.HasNext() {
+		realty, err := iter.Next()
+		if err != nil {
+			return nil, fmt.Errorf("[QueryRealtyList] 查询房产列表失败: %v", err)
+		}
+		var realtyPublic RealEstatePublic
+		err = json.Unmarshal(realty.Value, &realty)
+		if err != nil {
+			return nil, fmt.Errorf("[QueryRealtyList] 解析房产信息失败: %v", err)
+		}
+		realtyList = append(realtyList, &realtyPublic)
+	}
+	return realtyList, nil
+}
+
 // UpdateRealty 更新房产信息（仅政府机构、投资者可调用）
 func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface,
 	realtyCertHash string,
-	address string,
 	realtyType string,
+	price float64,
 	status string,
 	currentOwnerCitizenIDHash string,
-	previousOwnersCitizenIDHashList []string,
+	previousOwnersCitizenIDHashListJSON string,
 ) error {
 	// 检查调用者身份
 	clientID, err := ctx.GetClientIdentity().GetID()
@@ -712,9 +775,9 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 
 	modifyFields := []string{}
 	// 更新信息
-	if address != "" && address != realEstatePublic.Address {
-		realEstatePublic.Address = address
-		modifyFields = append(modifyFields, "address")
+	if price != -1 && price != realEstatePublic.Price {
+		realEstatePublic.Price = price
+		modifyFields = append(modifyFields, "price")
 	}
 	if realtyType != "" && realtyType != realEstatePublic.RealtyType {
 		realEstatePublic.RealtyType = realtyType
@@ -728,11 +791,21 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 		realEstatePrivate.CurrentOwnerCitizenIDHash = currentOwnerCitizenIDHash
 		modifyFields = append(modifyFields, "currentOwnerCitizenIDHash")
 	}
+	// 解析JSON字符串为字符串数组
+	var previousOwnersCitizenIDHashList []string
+	if err := json.Unmarshal([]byte(previousOwnersCitizenIDHashListJSON), &previousOwnersCitizenIDHashList); err != nil {
+		return fmt.Errorf("[UpdateRealty] 解析历史所有者列表失败: %v", err)
+	}
 	if len(previousOwnersCitizenIDHashList) > len(realEstatePrivate.PreviousOwnersCitizenIDHashList) {
 		realEstatePrivate.PreviousOwnersCitizenIDHashList = previousOwnersCitizenIDHashList
 		modifyFields = append(modifyFields, "previousOwnersCitizenIDHashList")
 	}
-	realEstatePublic.LastUpdateDate = time.Now()
+
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[UpdateRealty] 获取交易时间戳失败: %v", err)
+	}
+	realEstatePublic.LastUpdateDate = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
 	// 获取复合键
 	key, err := s.createCompositeKey(ctx, DocTypeRealEstate, []string{realEstatePublic.RealtyCertHash}...)
@@ -754,6 +827,9 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("[UpdateRealty] 序列化房产私钥失败: %v", err)
 	}
 	err = ctx.GetStub().PutPrivateData(RealEstatePrivateCollection, realtyCertHash, realEstatePrivateJSON)
+	if err != nil {
+		return fmt.Errorf("[UpdateRealty] 保存房产私钥失败: %v", err)
+	}
 
 	// 创建房产登记记录
 	key, err = s.createCompositeKey(ctx, DocTypeRealEstate, []string{realEstatePublic.RealtyCertHash, "updateRealty"}...)
@@ -770,7 +846,7 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 	record := updateRealtyRecord{
 		ClientID:     clientID,
 		Action:       "updateRealty",
-		Time:         time.Now(),
+		Time:         time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 		ModifyFields: modifyFields,
 	}
 	recordJSON, err := json.Marshal(record)
@@ -789,11 +865,11 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 // CreateTransaction 创建交易（投资者、政府可以调用）
 func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInterface,
 	realtyCertHash string,
-	transactionHash string,
+	transactionUUID string,
 	sellerCitizenIDHash string,
 	buyerCitizenIDHash string,
-	contractIDHash string,
-	paymentIDHashList []string,
+	contractUUID string,
+	paymentUUIDListJSON string,
 	tax float64,
 	price float64,
 ) error {
@@ -836,27 +912,39 @@ func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[CreateTransaction] 卖方不是房产所有者")
 	}
 
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[CreateTransaction] 获取交易时间戳失败: %v", err)
+	}
+
 	// 创建公开交易信息
 	transactionPublic := TransactionPublic{
-		TransactionHash:     transactionHash,
+		TransactionUUID:     transactionUUID,
 		RealtyCertHash:      realtyCertHash,
 		SellerCitizenIDHash: sellerCitizenIDHash,
 		BuyerCitizenIDHash:  buyerCitizenIDHash,
 		Status:              TxStatusPending,
-		CreatedTime:         time.Now(),
+		CreatedTime:         time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+		UpdateTime:          time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+	}
+
+	// 解析JSON字符串为字符串数组
+	var paymentUUIDList []string
+	if err := json.Unmarshal([]byte(paymentUUIDListJSON), &paymentUUIDList); err != nil {
+		return fmt.Errorf("[CreateTransaction] 解析支付UUID列表失败: %v", err)
 	}
 
 	// 创建私有交易信息
 	transactionPrivate := TransactionPrivate{
-		TransactionHash:   transactionHash,
-		Price:             price,
-		Tax:               tax,
-		PaymentIDHashList: paymentIDHashList,
-		ContractIDHash:    contractIDHash,
+		TransactionUUID: transactionUUID,
+		Price:           price,
+		Tax:             tax,
+		PaymentUUIDList: paymentUUIDList,
+		ContractUUID:    contractUUID,
 	}
 
 	// 创建交易复合键
-	key, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionHash}...)
+	key, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID}...)
 	if err != nil {
 		return err
 	}
@@ -883,9 +971,80 @@ func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInte
 	return nil
 }
 
+// QueryTransaction 查询交易（投资者、政府可以调用）
+func (s *SmartContract) QueryTransaction(ctx contractapi.TransactionContextInterface,
+	transactionUUID string,
+) (*TransactionPublic, error) {
+	// 检查调用者身份
+	clientMSPID, err := s.getClientIdentityMSPID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryTransaction] 获取客户端ID失败: %v", err)
+	}
+
+	if clientMSPID != InvestorMSP && clientMSPID != GovernmentMSP {
+		return nil, fmt.Errorf("[QueryTransaction] 只有投资者、政府可以查询交易")
+	}
+
+	// 查询交易信息
+	key, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID}...)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryTransaction] 创建复合键失败: %v", err)
+	}
+
+	transactionPublicBytes, err := ctx.GetStub().GetState(key)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryTransaction] 查询交易信息失败: %v", err)
+	}
+
+	if transactionPublicBytes == nil {
+		return nil, fmt.Errorf("[QueryTransaction] 交易不存在: %s", transactionUUID)
+	}
+
+	var transactionPublic TransactionPublic
+	err = json.Unmarshal(transactionPublicBytes, &transactionPublic)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryTransaction] 解析交易信息失败: %v", err)
+	}
+
+	return &transactionPublic, nil
+}
+
+// QueryTransactionList
+func (s *SmartContract) QueryTransactionList(ctx contractapi.TransactionContextInterface,
+	pageSize int32,
+	bookmark string,
+) ([]*TransactionPublic, error) {
+
+	iter, _, err := ctx.GetStub().GetStateByPartialCompositeKeyWithPagination(
+		DocTypeTransaction,
+		[]string{},
+		pageSize,
+		bookmark,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryTransactionList] 查询交易列表失败: %v", err)
+	}
+	defer iter.Close()
+
+	transactionList := []*TransactionPublic{}
+	for iter.HasNext() {
+		transaction, err := iter.Next()
+		if err != nil {
+			return nil, fmt.Errorf("[QueryTransactionList] 查询交易列表失败: %v", err)
+		}
+		var transactionPublic TransactionPublic
+		err = json.Unmarshal(transaction.Value, &transactionPublic)
+		if err != nil {
+			return nil, fmt.Errorf("[QueryTransactionList] 解析交易信息失败: %v", err)
+		}
+		transactionList = append(transactionList, &transactionPublic)
+	}
+	return transactionList, nil
+}
+
 // CheckTransaction 检查交易（投资者、政府可以调用）
 func (s *SmartContract) CheckTransaction(ctx contractapi.TransactionContextInterface,
-	transactionHash string,
+	transactionUUID string,
 	status string,
 ) error {
 	// 检查调用者身份
@@ -899,7 +1058,7 @@ func (s *SmartContract) CheckTransaction(ctx contractapi.TransactionContextInter
 	}
 
 	// 查询交易信息
-	key, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionHash}...)
+	key, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID}...)
 	if err != nil {
 		return err
 	}
@@ -910,13 +1069,18 @@ func (s *SmartContract) CheckTransaction(ctx contractapi.TransactionContextInter
 	}
 
 	if transactionPublicBytes == nil {
-		return fmt.Errorf("[CheckTransaction] 交易不存在: %s", transactionHash)
+		return fmt.Errorf("[CheckTransaction] 交易不存在: %s", transactionUUID)
 	}
 
 	var transactionPublic TransactionPublic
 	err = json.Unmarshal(transactionPublicBytes, &transactionPublic)
 	if err != nil {
 		return fmt.Errorf("[CheckTransaction] 解析交易信息失败: %v", err)
+	}
+
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[CheckTransaction] 获取交易时间戳失败: %v", err)
 	}
 
 	// 检查交易状态
@@ -926,7 +1090,7 @@ func (s *SmartContract) CheckTransaction(ctx contractapi.TransactionContextInter
 
 	// 更新交易状态
 	transactionPublic.Status = status
-
+	transactionPublic.UpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 	// 序列化交易信息
 	transactionPublicJSON, err := json.Marshal(transactionPublic)
 	if err != nil {
@@ -944,7 +1108,7 @@ func (s *SmartContract) CheckTransaction(ctx contractapi.TransactionContextInter
 
 // CompleteTransaction 完成交易（投资者、政府可以调用）
 func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextInterface,
-	transactionHash string,
+	transactionUUID string,
 ) error {
 	// 检查调用者身份
 	clientMSPID, err := s.getClientIdentityMSPID(ctx)
@@ -957,7 +1121,7 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 	}
 
 	// 查询交易信息
-	key, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionHash}...)
+	key, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID}...)
 	if err != nil {
 		return err
 	}
@@ -967,7 +1131,7 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 		return fmt.Errorf("[CompleteTransaction] 查询交易信息失败: %v", err)
 	}
 	if transactionPublicBytes == nil {
-		return fmt.Errorf("[CompleteTransaction] 交易不存在: %s", transactionHash)
+		return fmt.Errorf("[CompleteTransaction] 交易不存在: %s", transactionUUID)
 	}
 
 	var transactionPublic TransactionPublic
@@ -980,9 +1144,15 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 		return fmt.Errorf("[CompleteTransaction] 交易状态不允许完成: %s", transactionPublic.Status)
 	}
 
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[CompleteTransaction] 获取交易时间戳失败: %v", err)
+	}
+
 	// 更新交易状态
 	transactionPublic.Status = TxStatusCompleted
-	transactionPublic.CompletedTime = time.Now()
+	transactionPublic.CompletedTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
+	transactionPublic.UpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
 	// 序列化交易信息
 	transactionPublicJSON, err := json.Marshal(transactionPublic)
@@ -1019,14 +1189,18 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 
 	// 更新房产信息
 	previousOwnersCitizenIDHashList := append(realEstatePrivate.PreviousOwnersCitizenIDHashList, transactionPublic.SellerCitizenIDHash)
+	previousOwnersCitizenIDHashListJSON, err := json.Marshal(previousOwnersCitizenIDHashList)
+	if err != nil {
+		return fmt.Errorf("[CompleteTransaction] 序列化历史所有者列表失败: %v", err)
+	}
 	err = s.UpdateRealty(
 		ctx,
 		realtyIDHash,
-		realEstatePublic.Address,
 		realEstatePublic.RealtyType,
+		realEstatePublic.Price,
 		StatusNormal,
 		transactionPublic.BuyerCitizenIDHash,
-		previousOwnersCitizenIDHashList,
+		string(previousOwnersCitizenIDHashListJSON),
 	)
 	if err != nil {
 		return fmt.Errorf("更新房产信息失败: %v", err)
@@ -1043,7 +1217,7 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 
 // CreatePayment 创建支付信息（仅银行和投资者可调用）
 func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterface,
-	paymentIDHash string,
+	paymentUUID string,
 	amount float64,
 	fromCitizenIDHash string,
 	toCitizenIDHash string,
@@ -1060,7 +1234,7 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 	}
 
 	// 检查支付信息是否已存在
-	paymentKey, err := s.createCompositeKey(ctx, DocTypePayment, []string{paymentIDHash}...)
+	paymentKey, err := s.createCompositeKey(ctx, DocTypePayment, []string{paymentUUID}...)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 创建复合键失败: %v", err)
 	}
@@ -1069,17 +1243,22 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("[CreatePayment] 查询支付信息失败: %v", err)
 	}
 	if paymentBytes != nil {
-		return fmt.Errorf("[CreatePayment] 支付信息已存在: %s", paymentIDHash)
+		return fmt.Errorf("[CreatePayment] 支付信息已存在: %s", paymentUUID)
+	}
+
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[CreatePayment] 获取交易时间戳失败: %v", err)
 	}
 
 	// 创建支付信息
 	payment := Payment{
-		PaymentIDHash:      paymentIDHash,
-		Amount:             amount,
-		PayerCitizenIDHash: fromCitizenIDHash,
-		PayeeCitizenIDHash: toCitizenIDHash,
-		PaymentType:        paymentType,
-		CreatedTime:        time.Now(),
+		PaymentUUID:           paymentUUID,
+		Amount:                amount,
+		PayerCitizenIDHash:    fromCitizenIDHash,
+		ReceiverCitizenIDHash: toCitizenIDHash,
+		PaymentType:           paymentType,
+		CreatedTime:           time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 	}
 
 	// 序列化支付信息
@@ -1140,7 +1319,7 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("[CreatePayment] 解析用户信息失败: %v", err)
 	}
 
-	fromCitizenPublic.LastUpdateTime = time.Now()
+	fromCitizenPublic.LastUpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
 	// 序列化fromCitizenIDHash的
 	fromCitizenPublicJSON, err := json.Marshal(fromCitizenPublic)
@@ -1196,7 +1375,7 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("[CreatePayment] 解析用户信息失败: %v", err)
 	}
 
-	toCitizenPublic.LastUpdateTime = time.Now()
+	toCitizenPublic.LastUpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
 	// 序列化toCitizenIDHash的
 	toCitizenPublicJSON, err := json.Marshal(toCitizenPublic)
@@ -1215,8 +1394,8 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 
 // PayForTransaction 支付房产交易（仅银行和投资者可调用）
 func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInterface,
-	transactionHash string,
-	paymentIDHash string,
+	transactionUUID string,
+	paymentUUID string,
 	paymentType string,
 	amount float64,
 	fromCitizenIDHash string,
@@ -1233,7 +1412,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 检查交易是否已存在
-	transactionKey, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionHash}...)
+	transactionKey, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID}...)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 创建复合键失败: %v", err)
 	}
@@ -1242,11 +1421,11 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[PayForTransaction] 查询交易信息失败: %v", err)
 	}
 	if transactionPublicBytes == nil {
-		return fmt.Errorf("[PayForTransaction] 交易不存在: %s", transactionHash)
+		return fmt.Errorf("[PayForTransaction] 交易不存在: %s", transactionUUID)
 	}
 
 	// 检查支付信息是否已存在
-	paymentKey, err := s.createCompositeKey(ctx, DocTypePayment, []string{paymentIDHash}...)
+	paymentKey, err := s.createCompositeKey(ctx, DocTypePayment, []string{paymentUUID}...)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 创建复合键失败: %v", err)
 	}
@@ -1255,18 +1434,23 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[PayForTransaction] 查询支付信息失败: %v", err)
 	}
 	if paymentBytes != nil {
-		return fmt.Errorf("[PayForTransaction] 支付信息已存在: %s", paymentIDHash)
+		return fmt.Errorf("[PayForTransaction] 支付信息已存在: %s", paymentUUID)
+	}
+
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[PayForTransaction] 获取交易时间戳失败: %v", err)
 	}
 
 	// 创建支付信息
 	payment := Payment{
-		PaymentIDHash:      paymentIDHash,
-		TransactionHash:    transactionHash,
-		Amount:             amount,
-		PaymentType:        paymentType,
-		PayerCitizenIDHash: fromCitizenIDHash,
-		PayeeCitizenIDHash: toCitizenIDHash,
-		CreatedTime:        time.Now(),
+		PaymentUUID:           paymentUUID,
+		TransactionUUID:       transactionUUID,
+		Amount:                amount,
+		PaymentType:           paymentType,
+		PayerCitizenIDHash:    fromCitizenIDHash,
+		ReceiverCitizenIDHash: toCitizenIDHash,
+		CreatedTime:           time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 	}
 
 	// 序列化支付信息
@@ -1327,7 +1511,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[PayForTransaction] 解析用户信息失败: %v", err)
 	}
 
-	fromCitizenPublic.LastUpdateTime = time.Now()
+	fromCitizenPublic.LastUpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
 	// 序列化fromCitizenIDHash的
 	fromCitizenPublicJSON, err := json.Marshal(fromCitizenPublic)
@@ -1383,7 +1567,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[PayForTransaction] 解析用户信息失败: %v", err)
 	}
 
-	toCitizenPublic.LastUpdateTime = time.Now()
+	toCitizenPublic.LastUpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
 	// 序列化toCitizenIDHash的
 	toCitizenPublicJSON, err := json.Marshal(toCitizenPublic)
@@ -1398,7 +1582,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 将该笔支付纳入交易
-	transactionPrivateBytes, err := ctx.GetStub().GetPrivateData(TransactionPrivateCollection, transactionHash)
+	transactionPrivateBytes, err := ctx.GetStub().GetPrivateData(TransactionPrivateCollection, transactionUUID)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 查询交易信息失败: %v", err)
 	}
@@ -1409,12 +1593,12 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[PayForTransaction] 解析交易信息失败: %v", err)
 	}
 
-	transactionPrivate.PaymentIDHashList = append(transactionPrivate.PaymentIDHashList, paymentIDHash)
+	transactionPrivate.PaymentUUIDList = append(transactionPrivate.PaymentUUIDList, paymentUUID)
 
 	// 计算总支付金额
 	totalAmount := 0.0
-	for _, paymentIDHash := range transactionPrivate.PaymentIDHashList {
-		paymentKey, err := s.createCompositeKey(ctx, DocTypePayment, []string{paymentIDHash}...)
+	for _, paymentUUID := range transactionPrivate.PaymentUUIDList {
+		paymentKey, err := s.createCompositeKey(ctx, DocTypePayment, []string{paymentUUID}...)
 		if err != nil {
 			return fmt.Errorf("[PayForTransaction] 创建复合键失败: %v", err)
 		}
@@ -1423,7 +1607,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 			return fmt.Errorf("[PayForTransaction] 查询支付信息失败: %v", err)
 		}
 		if paymentBytes == nil {
-			return fmt.Errorf("[PayForTransaction] 支付信息不存在: %s", paymentIDHash)
+			return fmt.Errorf("[PayForTransaction] 支付信息不存在: %s", paymentUUID)
 		}
 
 		var payment Payment
@@ -1437,13 +1621,13 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 
 	// 如果总支付金额大于等于交易价格，则完成交易
 	if totalAmount >= transactionPrivate.Price {
-		s.CompleteTransaction(ctx, transactionHash)
+		s.CompleteTransaction(ctx, transactionUUID)
 
 		// 将多余的金额退还给来源用户
 		rechargeAmount := totalAmount - transactionPrivate.Price
 		err = s.CreatePayment(
 			ctx,
-			transactionHash,
+			transactionUUID,
 			rechargeAmount,
 			toCitizenIDHash,
 			fromCitizenIDHash,
@@ -1461,7 +1645,29 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 保存交易
-	err = ctx.GetStub().PutPrivateData(TransactionPrivateCollection, transactionHash, transactionPrivateJSON)
+	err = ctx.GetStub().PutPrivateData(TransactionPrivateCollection, transactionUUID, transactionPrivateJSON)
+	if err != nil {
+		return fmt.Errorf("[PayForTransaction] 保存交易信息失败: %v", err)
+	}
+
+	// 更新交易状态
+	var transactionPublic TransactionPublic
+	err = json.Unmarshal(transactionPublicBytes, &transactionPublic)
+	if err != nil {
+		return fmt.Errorf("[PayForTransaction] 解析交易信息失败: %v", err)
+	}
+
+	transactionPublic.Status = TxStatusCompleted
+	transactionPublic.UpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
+
+	// 序列化交易
+	transactionPublicJSON, err := json.Marshal(transactionPublic)
+	if err != nil {
+		return fmt.Errorf("[PayForTransaction] 序列化交易信息失败: %v", err)
+	}
+
+	// 保存交易
+	err = ctx.GetStub().PutState(transactionUUID, transactionPublicJSON)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 保存交易信息失败: %v", err)
 	}
@@ -1611,10 +1817,15 @@ func (s *SmartContract) CreateContract(ctx contractapi.TransactionContextInterfa
 		return fmt.Errorf("[CreateContract] 合同ID %s 已存在", contractIDHash)
 	}
 
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[CreateContract] 获取交易时间戳失败: %v", err)
+	}
+
 	// 创建合同信息
 	contract := Contract{
 		ContractIDHash: contractIDHash,
-		CreatedTime:    time.Now(),
+		CreatedTime:    time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 		DocHash:        docHash,
 		ContractType:   contractType,
 		Status:         ContractStatusNormal,
@@ -1643,7 +1854,9 @@ func (s *SmartContract) QueryContract(ctx contractapi.TransactionContextInterfac
 		return nil, fmt.Errorf("[QueryContract] 只有投资者、政府机构和审计机构可以查询合同信息")
 	}
 	key, err := s.createCompositeKey(ctx, DocTypeContract, []string{contractIDHash}...)
-
+	if err != nil {
+		return nil, fmt.Errorf("[QueryContract] 创建复合键失败: %v", err)
+	}
 	contractBytes, err := ctx.GetStub().GetState(key)
 	if err != nil {
 		return nil, fmt.Errorf("[QueryContract] 查询合同信息失败: %v", err)

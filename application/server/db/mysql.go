@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"grets_server/config"
+	"grets_server/db/models"
 	"time"
 
 	"gorm.io/driver/mysql"
@@ -68,15 +69,15 @@ func InitMysqlDB() error {
 func autoMigrate(db *gorm.DB) error {
 	// 在这里添加需要自动迁移的模型
 	err := db.AutoMigrate(
-		&User{},
-		&RealEstate{},
-		&Transaction{},
-		&Contract{},
-		&Payment{},
-		&Audit{},
-		&Tax{},
-		&Mortgage{},
-		&File{},
+		&models.User{},
+		&models.RealEstate{},
+		&models.Transaction{},
+		&models.Contract{},
+		&models.Payment{},
+		// &models.Audit{},
+		// &models.Tax{},
+		// &models.Mortgage{},
+		// &models.File{},
 	)
 	return err
 }

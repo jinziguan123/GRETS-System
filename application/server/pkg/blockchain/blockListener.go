@@ -68,6 +68,11 @@ func initBlockchainListener(dataDir string) error {
 
 		// 打开数据库
 		dbPath := filepath.Join(dataDir, "blocks.db")
+
+		if _, err := os.Stat(dbPath); os.IsExist(err) {
+			os.Remove(dbPath)
+		}
+
 		db, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 10 * time.Second})
 		if err != nil {
 			initErr = fmt.Errorf("打开数据库失败: %v", err)

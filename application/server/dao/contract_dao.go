@@ -3,6 +3,7 @@ package dao
 import (
 	"fmt"
 	"grets_server/db"
+	"grets_server/db/models"
 	"time"
 
 	"gorm.io/gorm"
@@ -23,7 +24,7 @@ func NewContractDAO() *ContractDAO {
 }
 
 // CreateContract 创建合同记录
-func (dao *ContractDAO) CreateContract(contract *db.Contract) error {
+func (dao *ContractDAO) CreateContract(contract *models.Contract) error {
 	// 保存到MySQL数据库
 	if err := dao.mysqlDB.Create(contract).Error; err != nil {
 		return fmt.Errorf("创建合同记录失败: %v", err)
@@ -43,8 +44,8 @@ func (dao *ContractDAO) CreateContract(contract *db.Contract) error {
 }
 
 // GetContractByID 根据ID获取合同
-func (dao *ContractDAO) GetContractByID(id string) (*db.Contract, error) {
-	var contract db.Contract
+func (dao *ContractDAO) GetContractByID(id string) (*models.Contract, error) {
+	var contract models.Contract
 	if err := dao.mysqlDB.First(&contract, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("根据ID查询合同失败: %v", err)
 	}
@@ -52,8 +53,8 @@ func (dao *ContractDAO) GetContractByID(id string) (*db.Contract, error) {
 }
 
 // GetContractByTransactionID 根据交易ID获取合同
-func (dao *ContractDAO) GetContractByTransactionID(transactionID string) (*db.Contract, error) {
-	var contract db.Contract
+func (dao *ContractDAO) GetContractByTransactionID(transactionID string) (*models.Contract, error) {
+	var contract models.Contract
 	if err := dao.mysqlDB.First(&contract, "transaction_id = ?", transactionID).Error; err != nil {
 		return nil, fmt.Errorf("根据交易ID查询合同失败: %v", err)
 	}
@@ -61,7 +62,7 @@ func (dao *ContractDAO) GetContractByTransactionID(transactionID string) (*db.Co
 }
 
 // UpdateContract 更新合同信息
-func (dao *ContractDAO) UpdateContract(contract *db.Contract) error {
+func (dao *ContractDAO) UpdateContract(contract *models.Contract) error {
 	// 更新MySQL数据库
 	if err := dao.mysqlDB.Save(contract).Error; err != nil {
 		return fmt.Errorf("更新合同记录失败: %v", err)
@@ -81,9 +82,9 @@ func (dao *ContractDAO) UpdateContract(contract *db.Contract) error {
 }
 
 // QueryContracts 查询合同列表
-func (dao *ContractDAO) QueryContracts(transactionID, status string) ([]*db.Contract, error) {
-	var contracts []*db.Contract
-	query := dao.mysqlDB.Model(&db.Contract{})
+func (dao *ContractDAO) QueryContracts(transactionID, status string) ([]*models.Contract, error) {
+	var contracts []*models.Contract
+	query := dao.mysqlDB.Model(&models.Contract{})
 
 	// 添加查询条件
 	if transactionID != "" {
@@ -103,7 +104,7 @@ func (dao *ContractDAO) QueryContracts(transactionID, status string) ([]*db.Cont
 
 // UpdateContractOnChainStatus 更新合同的上链状态
 func (dao *ContractDAO) UpdateContractOnChainStatus(id, txID string, onChain bool) error {
-	if err := dao.mysqlDB.Model(&db.Contract{}).Where("id = ?", id).Updates(map[string]interface{}{
+	if err := dao.mysqlDB.Model(&models.Contract{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"on_chain":    onChain,
 		"chain_tx_id": txID,
 	}).Error; err != nil {

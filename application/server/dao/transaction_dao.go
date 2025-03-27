@@ -2,7 +2,9 @@ package dao
 
 import (
 	"fmt"
+	"grets_server/constants"
 	"grets_server/db"
+	"grets_server/db/models"
 	"time"
 
 	"gorm.io/gorm"
@@ -18,8 +20,15 @@ func (dao *TransactionDAO) AuditTransaction(id string, auditResult string, comme
 	panic("unimplemented")
 }
 
-func (dao *TransactionDAO) CompleteTransaction(id string, organization string) error {
-	panic("unimplemented")
+func (dao *TransactionDAO) CompleteTransaction(transactionUUID string) error {
+	// 更新MySQL数据库
+	if err := dao.mysqlDB.Model(&models.Transaction{}).Where("transaction_uuid = ?", transactionUUID).Updates(map[string]interface{}{
+		"status":      constants.TxStatusCompleted,
+		"update_time": time.Now(),
+	}).Error; err != nil {
+		return fmt.Errorf("更新交易状态失败: %v", err)
+	}
+	return nil
 }
 
 // 创建新的TransactionDAO实例
@@ -31,28 +40,27 @@ func NewTransactionDAO() *TransactionDAO {
 }
 
 // CreateTransaction 创建交易记录
-func (dao *TransactionDAO) CreateTransaction(tx *db.Transaction) error {
+func (dao *TransactionDAO) CreateTransaction(tx *models.Transaction) error {
 	// 保存到MySQL数据库
 	if err := dao.mysqlDB.Create(tx).Error; err != nil {
 		return fmt.Errorf("创建交易记录失败: %v", err)
 	}
 
-	// 保存状态到BoltDB
-	txState := map[string]interface{}{
-		"id":         tx.ID,
-		"status":     tx.Status,
-		"updated_at": time.Now(),
-	}
-	if err := dao.boltDB.Put("transaction_states", tx.ID, txState); err != nil {
-		return fmt.Errorf("保存交易状态失败: %v", err)
-	}
-
 	return nil
 }
 
+// GetTransactionByTransactionUUID 根据交易UUID获取交易
+func (dao *TransactionDAO) GetTransactionByTransactionUUID(transactionUUID string) (*models.Transaction, error) {
+	var tx models.Transaction
+	if err := dao.mysqlDB.First(&tx, "transaction_uuid = ?", transactionUUID).Error; err != nil {
+		return nil, fmt.Errorf("根据交易UUID查询交易失败: %v", err)
+	}
+	return &tx, nil
+}
+
 // GetTransactionByID 根据ID获取交易
-func (dao *TransactionDAO) GetTransactionByID(id string) (*db.Transaction, error) {
-	var tx db.Transaction
+func (dao *TransactionDAO) GetTransactionByID(id string) (*models.Transaction, error) {
+	var tx models.Transaction
 	if err := dao.mysqlDB.First(&tx, "id = ?", id).Error; err != nil {
 		return nil, fmt.Errorf("根据ID查询交易失败: %v", err)
 	}
@@ -60,7 +68,7 @@ func (dao *TransactionDAO) GetTransactionByID(id string) (*db.Transaction, error
 }
 
 // UpdateTransaction 更新交易信息
-func (dao *TransactionDAO) UpdateTransaction(tx *db.Transaction) error {
+func (dao *TransactionDAO) UpdateTransaction(tx *models.Transaction) error {
 	// 更新MySQL数据库
 	if err := dao.mysqlDB.Save(tx).Error; err != nil {
 		return fmt.Errorf("更新交易记录失败: %v", err)
@@ -80,9 +88,9 @@ func (dao *TransactionDAO) UpdateTransaction(tx *db.Transaction) error {
 }
 
 // QueryTransactions 查询交易列表
-func (dao *TransactionDAO) QueryTransactions(buyerCitizenID, sellerCitizenID, realEstateID, status string) ([]*db.Transaction, error) {
-	var transactions []*db.Transaction
-	query := dao.mysqlDB.Model(&db.Transaction{})
+func (dao *TransactionDAO) QueryTransactions(buyerCitizenID, sellerCitizenID, realEstateID, status string) ([]*models.Transaction, error) {
+	var transactions []*models.Transaction
+	query := dao.mysqlDB.Model(&models.Transaction{})
 
 	// 添加查询条件
 	if buyerCitizenID != "" {
@@ -108,7 +116,7 @@ func (dao *TransactionDAO) QueryTransactions(buyerCitizenID, sellerCitizenID, re
 
 // UpdateTransactionOnChainStatus 更新交易的上链状态
 func (dao *TransactionDAO) UpdateTransactionOnChainStatus(id, txID string, onChain bool) error {
-	if err := dao.mysqlDB.Model(&db.Transaction{}).Where("id = ?", id).Updates(map[string]interface{}{
+	if err := dao.mysqlDB.Model(&models.Transaction{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"on_chain":    onChain,
 		"chain_tx_id": txID,
 	}).Error; err != nil {

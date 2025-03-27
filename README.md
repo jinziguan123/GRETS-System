@@ -117,6 +117,8 @@ IPFS API端：http://119.45.9.196:5001
    | realtyCert | string | 不动产证号 |
    | address | string | 地址 |
    | realtyType | string | 类型：apartment, house, commercial, etc. |
+   | price | float64 | 挂牌价格 |
+   | area | float64 | 面积 |
    | status | string | 房产当前状态 |
    | currentOwnerCitizenIDHash | string | 当前持有者身份证哈希 |
    | previousOwnerCitizenIDHashList | []string | 历史持有者身份证哈希 |
@@ -128,18 +130,25 @@ IPFS API端：http://119.45.9.196:5001
 
    将返回该房产的信息
 
-3. UpdateRealty(更新房产信息) **仅政府部门可以调用**
+3. QueryRealtyList(查询房产信息列表)
+   | 字段 | 数据类型 | 说明 |
+   |------|---------|------|
+   | pageSize | int32 | 页面大小 |
+   | bookmark | string | 书签（目前为了获取全量数据，先写死） |
+
+
+4. UpdateRealty(更新房产信息) **仅政府部门、投资者可以调用**
    | 字段 | 数据类型 | 说明 |
    |------|---------|------|
    | realtyCertHash | string | 不动产证号哈希 |
-   | address | string | 地址 |
+   | price | float64 | 挂牌价格 |
    | realtyType | string | 类型：apartment, house, commercial, etc. |
    | status | string | 房产当前状态 |
    | currentOwnerCitizenIDHash | string | 当前持有者身份证哈希 |
    | previousOwnerCitizenIDHashList | []string | 历史持有者身份证哈希 |
 
 ### 交易相关
-**房产的复合键为transactionHash**
+**房产的复合键为transactionUUID**
 买方向卖方提出创建交易(CreateTransaction)，卖方同意之后(CheckTransaction)，交易正式开始
 支持分期付款
 买方对于这一笔交易的每一次支付都会被记录在该交易中，当支付总额大于等于price，自动调用结束交易接口(CompleteTransaction)
@@ -147,35 +156,46 @@ IPFS API端：http://119.45.9.196:5001
 1. CreateTransaction（创建交易）**仅投资者、政府可以调用**
    | 字段 | 数据类型 | 说明 |
    |------|---------|------|
-   | transactionHash | string | 交易哈希 |
+   | transactionUUID | string | 交易哈希 |
    | realtyCertHash | string | 不动产证号哈希 |
    | sellerCitizenIDHash | string | 卖方身份证号哈希 |
    | buyerCitizenIDHash | []string | 买方身份证号哈希 |
-   | contractIDHash | string | 合同ID哈希 |
-   | paymentIDHashList | []string | 支付ID哈希列表 |
+   | contractUUID | string | 合同ID哈希 |
+   | paymentUUIDList | []string | 支付ID哈希列表 |
    | tax | float64 | 税费 |
    | price | float64 | 成交价格 |
 
 2. CheckTransaction(同意/拒绝交易) **仅投资者、政府可以调用**
    | 字段 | 数据类型 | 说明 |
    |------|---------|------|
-   | transactionHash | string | 交易哈希 |
+   | transactionUUID | string | 交易哈希 |
    | status | string | 需要变更交易状态为 |
 
 3. CompleteTransaction(完成交易) **仅投资者、政府可以调用**
    | 字段 | 数据类型 | 说明 |
    |------|---------|------|
-   | transactionHash | string | 交易哈希 |
+   | transactionUUID | string | 交易哈希 |
+
+4. QueryTransaction(查看指定交易) **仅投资者、政府可以调用**
+   | 字段 | 数据类型 | 说明 |
+   |------|---------|------|
+   | transactionUUID | string | 交易哈希 |
+
+5. QueryTransactionList(查询交易信息列表)
+   | 字段 | 数据类型 | 说明 |
+   |------|---------|------|
+   | pageSize | int32 | 页面大小 |
+   | bookmark | string | 书签（目前为了获取全量数据，先写死） |
    
 ### 支付相关
-**支付的复合键为paymentIDHash**
+**支付的复合键为paymentUUID**
 投资者或者政府调用进行支付
 这里设想需要银行对调用方进行验资，然后完成支付，也就是需要跨链操作
 但是目前还没有设计银行链的想法，就先结合注册功能做一个普通的
 1. CreatePayment(创建支付) **仅银行、投资者使用**
    | 字段 | 数据类型 | 说明 |
    |------|---------|------|
-   | paymentIDHash | string | 支付ID哈希 |
+   | paymentUUID | string | 支付ID哈希 |
    | paymentType | string | 支付类型 |
    | amount | float64 | 转账金额 |
    | fromCitizenIDHash | string | 来源身份证号哈希 |
@@ -186,31 +206,31 @@ IPFS API端：http://119.45.9.196:5001
    | 字段 | 数据类型 | 说明 |
    |------|---------|------|
    | transactionHash | string | 交易哈希 |
-   | paymentIDHash | string | 支付ID哈希 |
+   | paymentUUID | string | 支付ID哈希 |
    | paymentType | string | 支付类型 |
    | amount | float64 | 转账金额 |
    | fromCitizenIDHash | string | 来源身份证号哈希 |
    | toCitizenIDHash | string | 目标身份证号哈希 |
 
 ### 合同相关
-**合同的复合键为contractIDHash**
+**合同的复合键为contractUUID**
 由于合同文件内容比较大，这里采用分离存储，链上存储合同的ID哈希，链下存储合同的具体内容
 1. CreateContract(创建合同) **仅政府、投资者使用**
    | 字段 | 数据类型 | 说明 |
    |------|---------|------|
-   | contractIDHash | string | 合同ID哈希 |
+   | contractUUID | string | 合同ID哈希 |
    | docHash | string | 文档哈希 |
    | contractType | string | 合同类型 |
    
 2. QueryContract(查询合同信息) **仅政府、投资者、审计使用**
    | 字段 | 数据类型 | 说明 |
    |------|---------|------|
-   | contractIDHash | string | 合同ID哈希 |
+   | contractUUID | string | 合同ID哈希 |
 
 3. UpdateContractStatus(更新合同状态) **仅政府、投资者、审计使用**
    | 字段 | 数据类型 | 说明 |
    |------|---------|------|
-   | contractIDHash | string | 合同ID哈希 |
+   | contractUUID | string | 合同ID哈希 |
    | status | string | 合同状态 |
 
 ### 审计相关
@@ -225,6 +245,7 @@ IPFS API端：http://119.45.9.196:5001
    本项目的设计思路是：
    - 交易信息、合同的增删改操作、审核的过程以及结果、房产的增删改操作，需要上链
    - 用户信息、房产信息、合同信息、税收信息、审核信息等内容，存储在数据库中
+   - 由于房地产交易的负载不会很高，并且为读多写少的业务场景，因此链上的数据定义与链下的数据定义不需要保持一致，只需要保证唯一性即可
 2. 本项目希望能够充分利用hyperledger fabric的特性，例如多通道、可插拔式链码、私有数据PDC等
    目标是实现多点部署、支持上传自定义通道和链码、以及PDC保证交易私密性
    为了最大化利用区块链的特性，做了以下设计：
@@ -253,39 +274,6 @@ IPFS API端：http://119.45.9.196:5001
 | 房产评估报告/照片 | 链下（IPFS） | 大文件存储，链上存哈希 |
 | 用户隐私数据（如手机号） | 链下（数据库） | 加密存储于MySQL |
 
-## 开发计划
-
-本项目计划在2个月内完成开发，具体安排如下：
-
-### 第一阶段：设计与环境搭建（2周）
-
-| 周次 | 工作内容 | 交付物 |
-|------|---------|--------|
-| 第1周 | 详细需求分析、数据模型设计、系统架构细化 | 需求文档、架构设计文档、数据模型 |
-| 第2周 | 开发环境搭建、区块链网络配置、基础设施准备 | 本地开发环境、测试网络、CI/CD流程 |
-
-### 第二阶段：核心功能开发（4周）
-
-| 周次 | 工作内容 | 交付物 |
-|------|---------|--------|
-| 第3周 | 智能合约开发（用户管理、房产管理） | 基础链码、单元测试 |
-| 第4周 | 智能合约开发（交易管理、资金管理） | 交易链码、资金链码、集成测试 |
-| 第5周 | 后端API开发（用户模块、房产模块）| REST API、数据库集成 |
-| 第6周 | 后端API开发（交易、资金、合同模块）| REST API、区块链集成 |
-
-### 第三阶段：前端与集成测试（2周）
-
-| 周次 | 工作内容 | 交付物 |
-|------|---------|--------|
-| 第7周 | 前端开发（用户界面、房产管理、交易流程） | 用户界面、前后端集成 |
-| 第8周 | 系统集成测试、性能优化、文档完善 | 测试报告、用户手册、部署文档 |
-
-### 里程碑
-
-1. M1（第2周末）：完成开发环境搭建和区块链网络部署
-2. M2（第4周末）：完成所有智能合约开发和测试
-3. M3（第6周末）：完成后端API开发和区块链集成
-4. M4（第8周末）：系统全功能测试通过，准备发布
 
 ## 项目结构
 
@@ -301,22 +289,22 @@ IPFS API端：http://119.45.9.196:5001
 ## 系统架构图
 
 ```
-+-------------------+     +-------------------+
-| Vue3 前端         |<--->| Golang 服务端     |
-+-------------------+     +-------------------+
++-------------------+      +-------------------+
+| Vue3 前端          |<--->| Golang 服务端       |
++-------------------+      +-------------------+
                                |  REST API
                                v
 +---------------------------------------------------+
-| Hyperledger Fabric 网络                           |
-|   - 交易通道（Trade-Channel）                     |
-|   - 资金通道（Fund-Channel）                      |
-|   - 审计通道（Audit-Channel）                     |
-|   - PDC存储敏感数据                               |
+| Hyperledger Fabric 网络                            |
+|   - 交易通道（Trade-Channel）                       |
+|   - 资金通道（Fund-Channel）                        |
+|   - 审计通道（Audit-Channel）                       |
+|   - PDC存储敏感数据                                 |
 +---------------------------------------------------+
                                |
                                v
 +-------------------+     +-------------------+
-| MySQL        |<--->| IPFS 存储         |
+| MySQL             |<--->| IPFS 存储          |
 +-------------------+     +-------------------+
 ```
 

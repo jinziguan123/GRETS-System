@@ -3,11 +3,11 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"grets_server/api/constants"
+	"grets_server/constants"
 	"grets_server/dao"
+	realtyDto "grets_server/dto/realty_dto"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
-	realtyDto "grets_server/service/dto/realty_dto"
 )
 
 // 全局房产服务实例
@@ -21,9 +21,9 @@ func InitRealtyService(realtyDAO *dao.RealEstateDAO) {
 // RealtyService 房产服务接口
 type RealtyService interface {
 	CreateRealty(req *realtyDto.CreateRealtyDTO) error
-	GetRealtyByID(id string) (map[string]interface{}, error)
-	QueryRealtyList(query *realtyDto.QueryRealtyDTO) ([]map[string]interface{}, int, error)
-	UpdateRealty(id string, req *realtyDto.UpdateRealtyDTO) error
+	GetRealtyByID(realtyCert string) (*realtyDto.RealtyDTO, error)
+	QueryRealtyList(queryRealtyListDTO *realtyDto.QueryRealtyListDTO) ([]*realtyDto.RealtyDTO, int, error)
+	UpdateRealty(req *realtyDto.UpdateRealtyDTO) error
 }
 
 // realtyService 房产服务实现
@@ -38,16 +38,6 @@ func NewRealtyService(realtyDAO *dao.RealEstateDAO) RealtyService {
 
 // CreateRealty 创建房产
 func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
-	// 准备房产属性和证书的JSON字符串
-	attrJson, err := json.Marshal(req.Attributes)
-	if err != nil {
-		return fmt.Errorf("序列化属性失败: %v", err)
-	}
-
-	certsJson, err := json.Marshal(req.OwnershipCerts)
-	if err != nil {
-		return fmt.Errorf("序列化证书失败: %v", err)
-	}
 
 	// 调用链码创建房产
 	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
@@ -55,18 +45,21 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
-	_, err = contract.SubmitTransaction("CreateRealEstate",
-		req.ID,
-		req.Location,
-		fmt.Sprintf("%.2f", req.Area),
+
+	// 将字符串数组序列化为JSON字符串
+	previousOwnersJSON, err := json.Marshal(req.PreviousOwnersCitizenIDList)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("序列化历史所有者列表失败: %v", err))
+		return fmt.Errorf("序列化历史所有者列表失败: %v", err)
+	}
+
+	_, err = contract.SubmitTransaction("CreateRealty",
+		req.RealtyCert,
+		req.Address,
 		req.RealtyType,
-		req.PropertyOwner,
-		string(attrJson),
-		string(certsJson),
-		req.PropertyRight,
-		fmt.Sprintf("%.2f", req.TotalPrice),
-		fmt.Sprintf("%.2f", req.UnitPrice),
-		req.ImageURL,
+		req.CurrentOwnerCitizenID,
+		req.Status,
+		string(previousOwnersJSON), // 传递序列化后的JSON字符串
 	)
 
 	if err != nil {
@@ -78,43 +71,31 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 }
 
 // GetRealtyByID 根据ID获取房产信息
-func (s *realtyService) GetRealtyByID(id string) (map[string]interface{}, error) {
+func (s *realtyService) GetRealtyByID(realtyCert string) (*realtyDto.RealtyDTO, error) {
 	// 调用链码查询房产信息
 	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return nil, fmt.Errorf("获取合约失败: %v", err)
 	}
-	resultBytes, err := contract.SubmitTransaction("QueryRealEstate", id)
+	resultBytes, err := contract.EvaluateTransaction("QueryRealty", utils.GenerateHash(realtyCert))
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("查询房产信息失败: %v", err))
 		return nil, fmt.Errorf("查询房产信息失败: %v", err)
 	}
 
 	// 解析返回结果
-	var result map[string]interface{}
+	var result realtyDto.RealtyDTO
 	if err := json.Unmarshal(resultBytes, &result); err != nil {
 		utils.Log.Error(fmt.Sprintf("解析房产信息失败: %v", err))
 		return nil, fmt.Errorf("解析房产信息失败: %v", err)
 	}
 
-	return result, nil
+	return &result, nil
 }
 
 // QueryRealtyList 查询房产列表
-func (s *realtyService) QueryRealtyList(query *realtyDto.QueryRealtyDTO) ([]map[string]interface{}, int, error) {
-	// 构建查询参数
-	queryParams := []string{
-		query.Status,
-		query.Type,
-		fmt.Sprintf("%.2f", query.MinPrice),
-		fmt.Sprintf("%.2f", query.MaxPrice),
-		fmt.Sprintf("%.2f", query.MinArea),
-		fmt.Sprintf("%.2f", query.MaxArea),
-		query.Location,
-		fmt.Sprintf("%d", query.PageSize),
-		fmt.Sprintf("%d", query.PageNumber),
-	}
+func (s *realtyService) QueryRealtyList(queryRealtyListDTO *realtyDto.QueryRealtyListDTO) ([]*realtyDto.RealtyDTO, int, error) {
 
 	// 调用链码查询房产列表
 	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
@@ -122,53 +103,72 @@ func (s *realtyService) QueryRealtyList(query *realtyDto.QueryRealtyDTO) ([]map[
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return nil, 0, fmt.Errorf("获取合约失败: %v", err)
 	}
-	resultBytes, err := contract.SubmitTransaction("QueryRealEstates", queryParams...)
+	// 先写死100条
+	resultBytes, err := contract.EvaluateTransaction(
+		"QueryRealtyList",
+		fmt.Sprintf("%d", 100),
+		"",
+	)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("查询房产列表失败: %v", err))
 		return nil, 0, fmt.Errorf("查询房产列表失败: %v", err)
 	}
 
 	// 解析返回结果
-	var result map[string]interface{}
-	if err := json.Unmarshal(resultBytes, &result); err != nil {
+	var realtyList []*realtyDto.RealtyDTO
+	if err := json.Unmarshal(resultBytes, &realtyList); err != nil {
 		utils.Log.Error(fmt.Sprintf("解析房产列表失败: %v", err))
 		return nil, 0, fmt.Errorf("解析房产列表失败: %v", err)
 	}
 
-	// 提取房产列表和总数
-	records, ok := result["records"].([]interface{})
-	if !ok {
-		return []map[string]interface{}{}, 0, nil
-	}
-
-	var realtyList []map[string]interface{}
-	for _, record := range records {
-		if realtyMap, ok := record.(map[string]interface{}); ok {
-			realtyList = append(realtyList, realtyMap)
+	// 条件筛选
+	filteredRealtyList := []*realtyDto.RealtyDTO{}
+	for _, realty := range realtyList {
+		if queryRealtyListDTO.RealtyCert != "" {
+			if realty.RealtyCert != queryRealtyListDTO.RealtyCert {
+				continue
+			}
 		}
+		if queryRealtyListDTO.RealtyType != "" {
+			if realty.RealtyType != queryRealtyListDTO.RealtyType {
+				continue
+			}
+		}
+		if queryRealtyListDTO.MinPrice != -1 {
+			if realty.Price < float64(queryRealtyListDTO.MinPrice) {
+				continue
+			}
+		}
+		if queryRealtyListDTO.MaxPrice != -1 {
+			if realty.Price > float64(queryRealtyListDTO.MaxPrice) {
+				continue
+			}
+		}
+		if queryRealtyListDTO.MinArea != -1 {
+			if realty.Area < float64(queryRealtyListDTO.MinArea) {
+				continue
+			}
+		}
+		if queryRealtyListDTO.MaxArea != -1 {
+			if realty.Area > float64(queryRealtyListDTO.MaxArea) {
+				continue
+			}
+		}
+		filteredRealtyList = append(filteredRealtyList, realty)
 	}
 
-	// 获取总记录数
-	totalCount := 0
-	if count, ok := result["totalCount"].(float64); ok {
-		totalCount = int(count)
+	// 分页
+	startIndex := (queryRealtyListDTO.PageNumber - 1) * queryRealtyListDTO.PageSize
+	endIndex := startIndex + queryRealtyListDTO.PageSize
+	if endIndex > len(filteredRealtyList) {
+		endIndex = len(filteredRealtyList)
 	}
 
-	return realtyList, totalCount, nil
+	return filteredRealtyList[startIndex:endIndex], len(filteredRealtyList), nil
 }
 
 // UpdateRealty 更新房产信息
-func (s *realtyService) UpdateRealty(id string, req *realtyDto.UpdateRealtyDTO) error {
-	// 准备房产属性和证书的JSON字符串
-	attrJson, err := json.Marshal(req.Attributes)
-	if err != nil {
-		return fmt.Errorf("序列化属性失败: %v", err)
-	}
-
-	certsJson, err := json.Marshal(req.OwnershipCerts)
-	if err != nil {
-		return fmt.Errorf("序列化证书失败: %v", err)
-	}
+func (s *realtyService) UpdateRealty(req *realtyDto.UpdateRealtyDTO) error {
 
 	// 调用链码更新房产
 	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
@@ -176,16 +176,19 @@ func (s *realtyService) UpdateRealty(id string, req *realtyDto.UpdateRealtyDTO) 
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
-	_, err = contract.SubmitTransaction("UpdateRealEstate",
-		id,
-		req.Location,
+	// 将字符串数组序列化为JSON字符串
+	previousOwnersJSON, err := json.Marshal(req.PreviousOwnersCitizenIDList)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("序列化历史所有者列表失败: %v", err))
+		return fmt.Errorf("序列化历史所有者列表失败: %v", err)
+	}
+	_, err = contract.SubmitTransaction("UpdateRealty",
+		utils.GenerateHash(req.RealtyCert),
 		req.RealtyType,
-		string(attrJson),
-		string(certsJson),
-		req.PropertyRight,
-		fmt.Sprintf("%.2f", req.TotalPrice),
-		fmt.Sprintf("%.2f", req.UnitPrice),
-		req.ImageURL,
+		fmt.Sprintf("%.2f", req.Price),
+		req.Status,
+		req.CurrentOwnerCitizenID,
+		string(previousOwnersJSON),
 	)
 
 	if err != nil {

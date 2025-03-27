@@ -1,9 +1,9 @@
 package controller
 
 import (
+	realtyDto "grets_server/dto/realty_dto"
 	"grets_server/pkg/utils"
 	"grets_server/service"
-	realtyDto "grets_server/service/dto/realty_dto"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -38,18 +38,22 @@ func (ctrl *RealtyController) CreateRealty(c *gin.Context) {
 
 	// 返回成功结果
 	utils.ResponseSuccess(c, gin.H{
-		"realtyId": req.ID,
-		"message":  "房产创建成功",
+		"realtyCert": req.RealtyCert,
+		"message":    "房产创建成功",
 	})
 }
 
 // QueryRealtyList 查询房产列表
 func (ctrl *RealtyController) QueryRealtyList(c *gin.Context) {
 	// 解析查询参数
-	query := &realtyDto.QueryRealtyDTO{
-		Status:     c.Query("status"),
-		Type:       c.Query("type"),
-		Location:   c.Query("location"),
+	query := &realtyDto.QueryRealtyListDTO{
+		RealtyCert: c.Query("realtyCert"),
+		RealtyType: c.Query("realtyType"),
+		Address:    c.Query("address"),
+		MinPrice:   -1,
+		MaxPrice:   -1,
+		MinArea:    -1,
+		MaxArea:    -1,
 		PageSize:   10,
 		PageNumber: 1,
 	}
@@ -83,10 +87,8 @@ func (ctrl *RealtyController) QueryRealtyList(c *gin.Context) {
 
 	// 返回查询结果
 	utils.ResponseSuccess(c, gin.H{
-		"items": realtyList,
-		"total": total,
-		"page":  query.PageNumber,
-		"size":  query.PageSize,
+		"realtyList": realtyList,
+		"total":      total,
 	})
 }
 
@@ -127,7 +129,7 @@ func (ctrl *RealtyController) UpdateRealty(c *gin.Context) {
 	}
 
 	// 调用服务更新房产
-	if err := ctrl.realtyService.UpdateRealty(id, &req); err != nil {
+	if err := ctrl.realtyService.UpdateRealty(&req); err != nil {
 		utils.ResponseInternalServerError(c, err.Error())
 		return
 	}

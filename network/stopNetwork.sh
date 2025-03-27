@@ -67,10 +67,11 @@ clean_chaincode() {
     log_success "链码清理完成"
 }
 
-# 清理数据文件
+# 清理数据文件以及链码包
 clean_files() {
     log_info "清理数据文件..."
     rm -rf config data crypto-config 
+    log_info "清理链码包..."
     log_success "数据文件清理完成"
 }
 

@@ -18,10 +18,6 @@ func InitServices() error {
 	realEstateDAO := dao.NewRealEstateDAO()
 	contractDAO := dao.NewContractDAO()
 	paymentDAO := dao.NewPaymentDAO()
-	taxDAO := dao.NewTaxDAO()
-	auditDAO := dao.NewAuditDAO()
-	mortgageDAO := dao.NewMortgageDAO()
-	fileDAO := dao.NewFileDAO()
 
 	// 初始化服务
 	service.InitUserService(userDAO)
@@ -29,10 +25,6 @@ func InitServices() error {
 	service.InitRealtyService(realEstateDAO)
 	service.InitContractService(contractDAO)
 	service.InitPaymentService(paymentDAO)
-	service.InitTaxService(taxDAO)
-	service.InitAuditService(auditDAO)
-	service.InitMortgageService(mortgageDAO)
-	service.InitFileService(fileDAO)
 
 	// 初始化控制器
 	controller.InitUserController()
@@ -40,9 +32,6 @@ func InitServices() error {
 	controller.InitRealtyController()
 	controller.InitContractController()
 	controller.InitPaymentController()
-	controller.InitTaxController()
-	controller.InitMortgageController()
-	controller.InitFileController()
 
 	return nil
 }
@@ -95,8 +84,6 @@ func SetupRouter() *gin.Engine {
 			transactions.POST("/createTransaction", controller.CreateTransaction)
 			transactions.GET("/queryTransactionList", controller.QueryTransactionList)
 			transactions.GET("/:id", controller.GetTransactionByID)
-			transactions.PATCH("/:id", controller.UpdateTransaction)
-			transactions.POST("/:id/audit", controller.AuditTransaction)
 			transactions.POST("/:id/complete", controller.CompleteTransaction)
 		}
 
@@ -132,14 +119,6 @@ func SetupRouter() *gin.Engine {
 			contracts.GET("/:id", controller.GetContractByID)
 			contracts.POST("/:id/sign", controller.SignContract)
 			contracts.POST("/:id/audit", controller.AuditContract)
-		}
-
-		// 文件相关接口
-		files := api.Group("/files")
-		files.Use(middleware.JWTAuth())
-		{
-			files.POST("/uploadFile", controller.UploadFile)
-			files.GET("/:id", controller.GetFile)
 		}
 	}
 

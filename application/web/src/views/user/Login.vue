@@ -98,11 +98,11 @@ const loginForm = reactive({
 
 // 可选组织列表
 const organizations = [
-  { label: '系统管理员', value: 'administrator' },
   { label: '政府监管部门', value: 'government' },
-  { label: '房产中介机构', value: 'agency' },
   { label: '投资者/买家', value: 'investor' },
-  { label: '银行机构', value: 'bank' }
+  { label: '银行机构', value: 'bank' },
+  { label: '第三方机构', value: 'thirdparty' },
+  { label: '审计机构', value: 'audit' }
 ]
 
 // 表单验证规则

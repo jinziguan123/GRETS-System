@@ -1,10 +1,10 @@
 package controller
 
 import (
-	"grets_server/api/constants"
+	"grets_server/constants"
+	transactionDto "grets_server/dto/transaction_dto"
 	"grets_server/pkg/utils"
 	"grets_server/service"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,7 +24,7 @@ func NewTransactionController(txService service.TransactionService) *Transaction
 // CreateTransaction 创建交易
 func (c *TransactionController) CreateTransaction(ctx *gin.Context) {
 	// 绑定请求参数
-	var req service.CreateTransactionDTO
+	var req transactionDto.CreateTransactionDTO
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
 		return
@@ -38,22 +38,20 @@ func (c *TransactionController) CreateTransaction(ctx *gin.Context) {
 	}
 
 	// 调用服务层创建交易
-	if err := c.transactionService.CreateTransaction(userID, &req); err != nil {
+	if err := c.transactionService.CreateTransaction(&req); err != nil {
 		utils.ResponseError(ctx, constants.ServiceError, err.Error())
 		return
 	}
 
-	utils.ResponseSuccess(ctx, gin.H{
-		"id": req.ID,
-	})
+	utils.ResponseSuccess(ctx, gin.H{})
 }
 
 // GetTransactionByID 根据ID获取交易
 func (c *TransactionController) GetTransactionByID(ctx *gin.Context) {
 	// 获取交易ID
-	id := ctx.Param("id")
-	if id == "" {
-		utils.ResponseError(ctx, constants.ParamError, "交易ID不能为空")
+	transactionUUID := ctx.Param("transactionUUID")
+	if transactionUUID == "" {
+		utils.ResponseError(ctx, constants.ParamError, "交易UUID不能为空")
 		return
 	}
 
@@ -65,7 +63,7 @@ func (c *TransactionController) GetTransactionByID(ctx *gin.Context) {
 	}
 
 	// 调用服务层查询交易
-	tx, err := c.transactionService.GetTransactionByID(userID, id)
+	tx, err := c.transactionService.GetTransactionByTransactionUUID(transactionUUID)
 	if err != nil {
 		utils.ResponseError(ctx, constants.ServiceError, err.Error())
 		return
@@ -76,118 +74,99 @@ func (c *TransactionController) GetTransactionByID(ctx *gin.Context) {
 
 // QueryTransactionList 获取交易列表
 func (c *TransactionController) QueryTransactionList(ctx *gin.Context) {
-	// 解析查询参数
-	status := ctx.Query("status")
-	realEstateID := ctx.Query("realEstateId")
-	seller := ctx.Query("seller")
-	buyer := ctx.Query("buyer")
-
-	// 解析分页参数
-	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("pageSize", "10"))
-	pageNumber, _ := strconv.Atoi(ctx.DefaultQuery("pageNumber", "1"))
-
-	// 获取当前用户ID
-	userID := utils.GetUserIDFromContext(ctx)
-	if userID == "" {
-		utils.ResponseError(ctx, constants.AuthError, "未获取到用户信息")
+	// 绑定请求参数
+	var req transactionDto.QueryTransactionListDTO
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
 		return
 	}
 
 	// 调用服务层查询交易列表
-	txList, err := c.transactionService.QueryTransactionList(userID, &service.QueryTransactionDTO{
-		Status:       status,
-		RealEstateID: realEstateID,
-		Seller:       seller,
-		Buyer:        buyer,
-		PageSize:     pageSize,
-		PageNumber:   pageNumber,
-	})
-
+	txList, total, err := c.transactionService.QueryTransactionList(&req)
 	if err != nil {
 		utils.ResponseError(ctx, constants.ServiceError, err.Error())
 		return
 	}
 
-	// 返回交易列表和总数
 	utils.ResponseSuccess(ctx, gin.H{
 		"transactions": txList,
-		"total":        len(txList),
+		"total":        total,
 	})
 }
 
 // UpdateTransaction 更新交易
-func (c *TransactionController) UpdateTransaction(ctx *gin.Context) {
-	// 获取交易ID
-	id := ctx.Param("id")
-	if id == "" {
-		utils.ResponseError(ctx, constants.ParamError, "交易ID不能为空")
-		return
-	}
+// func (c *TransactionController) UpdateTransaction(ctx *gin.Context) {
+// 	// 获取交易ID
+// 	id := ctx.Param("id")
+// 	if id == "" {
+// 		utils.ResponseError(ctx, constants.ParamError, "交易ID不能为空")
+// 		return
+// 	}
 
-	// 绑定请求参数
-	var req service.UpdateTransactionDTO
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
-		return
-	}
+// 	// 绑定请求参数
+// 	var req service.UpdateTransactionDTO
+// 	if err := ctx.ShouldBindJSON(&req); err != nil {
+// 		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
+// 		return
+// 	}
 
-	// 获取当前用户ID
-	userID := utils.GetUserIDFromContext(ctx)
-	if userID == "" {
-		utils.ResponseError(ctx, constants.AuthError, "未获取到用户信息")
-		return
-	}
+// 	// 获取当前用户ID
+// 	userID := utils.GetUserIDFromContext(ctx)
+// 	if userID == "" {
+// 		utils.ResponseError(ctx, constants.AuthError, "未获取到用户信息")
+// 		return
+// 	}
 
-	// 调用服务层更新交易
-	if err := c.transactionService.UpdateTransaction(userID, id, &req); err != nil {
-		utils.ResponseError(ctx, constants.ServiceError, err.Error())
-		return
-	}
+// 	// 调用服务层更新交易
+// 	if err := c.transactionService.UpdateTransaction(userID, id, &req); err != nil {
+// 		utils.ResponseError(ctx, constants.ServiceError, err.Error())
+// 		return
+// 	}
 
-	utils.ResponseSuccess(ctx, nil)
-}
+// 	utils.ResponseSuccess(ctx, nil)
+// }
 
 // AuditTransaction 审计交易
-func (c *TransactionController) AuditTransaction(ctx *gin.Context) {
-	// 获取交易ID
-	id := ctx.Param("id")
-	if id == "" {
-		utils.ResponseError(ctx, constants.ParamError, "交易ID不能为空")
-		return
-	}
+// func (c *TransactionController) AuditTransaction(ctx *gin.Context) {
+// 	// 获取交易ID
+// 	id := ctx.Param("id")
+// 	if id == "" {
+// 		utils.ResponseError(ctx, constants.ParamError, "交易ID不能为空")
+// 		return
+// 	}
 
-	// 绑定请求参数
-	var req struct {
-		AuditResult string `json:"auditResult" binding:"required"`
-		Comments    string `json:"comments"`
-	}
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
-		return
-	}
+// 	// 绑定请求参数
+// 	var req struct {
+// 		AuditResult string `json:"auditResult" binding:"required"`
+// 		Comments    string `json:"comments"`
+// 	}
+// 	if err := ctx.ShouldBindJSON(&req); err != nil {
+// 		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
+// 		return
+// 	}
 
-	// 获取当前用户ID
-	userID := utils.GetUserIDFromContext(ctx)
-	if userID == "" {
-		utils.ResponseError(ctx, constants.AuthError, "未获取到用户信息")
-		return
-	}
+// 	// 获取当前用户ID
+// 	userID := utils.GetUserIDFromContext(ctx)
+// 	if userID == "" {
+// 		utils.ResponseError(ctx, constants.AuthError, "未获取到用户信息")
+// 		return
+// 	}
 
-	// 调用服务层审计交易
-	if err := c.transactionService.AuditTransaction(userID, id, req.AuditResult, req.Comments); err != nil {
-		utils.ResponseError(ctx, constants.ServiceError, err.Error())
-		return
-	}
+// 	// 调用服务层审计交易
+// 	if err := c.transactionService.AuditTransaction(userID, id, req.AuditResult, req.Comments); err != nil {
+// 		utils.ResponseError(ctx, constants.ServiceError, err.Error())
+// 		return
+// 	}
 
-	utils.ResponseSuccess(ctx, nil)
-}
+// 	utils.ResponseSuccess(ctx, nil)
+// }
 
 // CompleteTransaction 完成交易
 func (c *TransactionController) CompleteTransaction(ctx *gin.Context) {
-	// 获取交易ID
-	id := ctx.Param("id")
-	if id == "" {
-		utils.ResponseError(ctx, constants.ParamError, "交易ID不能为空")
+	// 绑定请求参数
+	var req transactionDto.CompleteTransactionDTO
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
 		return
 	}
 
@@ -199,7 +178,7 @@ func (c *TransactionController) CompleteTransaction(ctx *gin.Context) {
 	}
 
 	// 调用服务层完成交易
-	if err := c.transactionService.CompleteTransaction(userID, id); err != nil {
+	if err := c.transactionService.CompleteTransaction(&req); err != nil {
 		utils.ResponseError(ctx, constants.ServiceError, err.Error())
 		return
 	}
@@ -228,13 +207,13 @@ func QueryTransactionList(c *gin.Context) {
 	GlobalTxController.QueryTransactionList(c)
 }
 
-func UpdateTransaction(c *gin.Context) {
-	GlobalTxController.UpdateTransaction(c)
-}
+// func UpdateTransaction(c *gin.Context) {
+// 	GlobalTxController.UpdateTransaction(c)
+// }
 
-func AuditTransaction(c *gin.Context) {
-	GlobalTxController.AuditTransaction(c)
-}
+// func AuditTransaction(c *gin.Context) {
+// 	GlobalTxController.AuditTransaction(c)
+// }
 
 func CompleteTransaction(c *gin.Context) {
 	GlobalTxController.CompleteTransaction(c)

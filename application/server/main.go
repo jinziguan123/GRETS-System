@@ -32,15 +32,15 @@ func main() {
 	}
 	utils.Log.Info("日志初始化成功")
 
-	// 3. 初始化BoltDB（用于存储区块链状态）
-	dbPath := filepath.Join("data", "grets", "blockchain_state.db")
-	_, err = db.InitBoltDB(dbPath)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("初始化BoltDB失败: %v", err))
-		return
-	}
-	defer db.GlobalBoltDB.Close() // 确保程序退出时关闭数据库
-	utils.Log.Info(fmt.Sprintf("BoltDB初始化成功，路径: %s", dbPath))
+	// // 3. 初始化BoltDB（用于存储区块链状态）
+	// dbPath := filepath.Join("data", "grets", "blockchain_state.db")
+	// _, err = db.InitBoltDB(dbPath)
+	// if err != nil {
+	// 	utils.Log.Error(fmt.Sprintf("初始化BoltDB失败: %v", err))
+	// 	return
+	// }
+	// defer db.GlobalBoltDB.Close() // 确保程序退出时关闭数据库
+	// utils.Log.Info(fmt.Sprintf("BoltDB初始化成功，路径: %s", dbPath))
 
 	// 4. 初始化MySQL数据库（用于存储业务数据）
 	if err := db.InitMysqlDB(); err != nil {
