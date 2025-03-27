@@ -32,38 +32,28 @@ func main() {
 	}
 	utils.Log.Info("日志初始化成功")
 
-	// // 3. 初始化BoltDB（用于存储区块链状态）
-	// dbPath := filepath.Join("data", "grets", "blockchain_state.db")
-	// _, err = db.InitBoltDB(dbPath)
-	// if err != nil {
-	// 	utils.Log.Error(fmt.Sprintf("初始化BoltDB失败: %v", err))
-	// 	return
-	// }
-	// defer db.GlobalBoltDB.Close() // 确保程序退出时关闭数据库
-	// utils.Log.Info(fmt.Sprintf("BoltDB初始化成功，路径: %s", dbPath))
-
-	// 4. 初始化MySQL数据库（用于存储业务数据）
+	// 3. 初始化MySQL数据库（用于存储业务数据）
 	if err := db.InitMysqlDB(); err != nil {
 		utils.Log.Error(fmt.Sprintf("初始化MySQL数据库失败: %v", err))
 		return
 	}
 	utils.Log.Info("MySQL数据库初始化成功")
 
-	// 5. 初始化区块链客户端
+	// 4. 初始化区块链客户端
 	if err := blockchain.InitFabricClient(); err != nil {
 		utils.Log.Error(fmt.Sprintf("初始化区块链客户端失败: %v", err))
 		return
 	}
 	utils.Log.Info("区块链客户端初始化成功")
 
-	// 6. 初始化服务和控制器
+	// 5. 初始化服务和控制器
 	if err := router.InitServices(); err != nil {
 		utils.Log.Error(fmt.Sprintf("初始化服务失败: %v", err))
 		return
 	}
 	utils.Log.Info("服务和控制器初始化成功")
 
-	// 7. 启动Web服务器
+	// 6. 启动Web服务器
 	utils.Log.Info("Web服务器正在启动...")
 
 	r := router.SetupRouter()

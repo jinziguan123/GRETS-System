@@ -100,7 +100,15 @@ IPFS API端：http://119.45.9.196:5001
    | organization | string | 组织 |
 
 3. UpdateUser(更新用户信息)
-   未开发
+   | 字段 | 数据类型 | 说明 |
+   |------|---------|------|
+   | citizenIDHash | string | 身份证号哈希 |
+   | organization | string | 组织 |
+   | name | string | 姓名 |
+   | phone | string | 电话 |
+   | email | string | 邮箱 |
+   | passwordHash | string | 密码哈希 |
+   | status | string | 状态 |
 
 4. ListUsersByOrganization(查询特定组织的用户)
    | 字段 | 数据类型 | 说明 |
@@ -115,10 +123,7 @@ IPFS API端：http://119.45.9.196:5001
    |------|---------|------|
    | realtyCertHash | string | 不动产证号哈希 |
    | realtyCert | string | 不动产证号 |
-   | address | string | 地址 |
    | realtyType | string | 类型：apartment, house, commercial, etc. |
-   | price | float64 | 挂牌价格 |
-   | area | float64 | 面积 |
    | status | string | 房产当前状态 |
    | currentOwnerCitizenIDHash | string | 当前持有者身份证哈希 |
    | previousOwnerCitizenIDHashList | []string | 历史持有者身份证哈希 |
@@ -136,12 +141,10 @@ IPFS API端：http://119.45.9.196:5001
    | pageSize | int32 | 页面大小 |
    | bookmark | string | 书签（目前为了获取全量数据，先写死） |
 
-
 4. UpdateRealty(更新房产信息) **仅政府部门、投资者可以调用**
    | 字段 | 数据类型 | 说明 |
    |------|---------|------|
    | realtyCertHash | string | 不动产证号哈希 |
-   | price | float64 | 挂牌价格 |
    | realtyType | string | 类型：apartment, house, commercial, etc. |
    | status | string | 房产当前状态 |
    | currentOwnerCitizenIDHash | string | 当前持有者身份证哈希 |

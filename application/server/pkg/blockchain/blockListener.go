@@ -69,8 +69,12 @@ func initBlockchainListener(dataDir string) error {
 		// 打开数据库
 		dbPath := filepath.Join(dataDir, "blocks.db")
 
-		if _, err := os.Stat(dbPath); os.IsExist(err) {
-			os.Remove(dbPath)
+		if _, err := os.Stat(dbPath); err == nil {
+			// 文件存在，删除它
+			if err := os.Remove(dbPath); err != nil {
+				initErr = fmt.Errorf("删除已存在的数据库文件失败: %v", err)
+				return
+			}
 		}
 
 		db, err := bolt.Open(dbPath, 0600, &bolt.Options{Timeout: 10 * time.Second})

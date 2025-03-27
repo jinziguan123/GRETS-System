@@ -134,7 +134,7 @@ const submitForm = async () => {
         }).then(res => {
             if (res.code === 200) {
                 ElMessage.success('房产创建成功')
-                router.push('/realty/list')
+                router.push('/realty')
             } else {
                 ElMessage.error(res.message || '创建房产失败')
             }
