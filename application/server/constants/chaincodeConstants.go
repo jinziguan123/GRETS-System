@@ -10,9 +10,10 @@ const (
 
 // 房产状态枚举
 const (
-	RealtyStatusNormal    = "NORMAL"    // 正常
-	RealtyStatusFrozen    = "FROZEN"    // 冻结
-	RealtyStatusCompleted = "COMPLETED" // 已完成
+	RealtyStatusNormal     = "NORMAL"      // 正常
+	RealtyStatusFrozen     = "FROZEN"      // 冻结
+	RealtyStatusInSale     = "IN_SALE"     // 在售
+	RealtyStatusInMortgage = "IN_MORTGAGE" // 抵押中
 )
 
 // 房产类型枚举

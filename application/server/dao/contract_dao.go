@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"grets_server/db"
 	"grets_server/db/models"
-	"time"
 
 	"gorm.io/gorm"
 )
@@ -28,16 +27,6 @@ func (dao *ContractDAO) CreateContract(contract *models.Contract) error {
 	// 保存到MySQL数据库
 	if err := dao.mysqlDB.Create(contract).Error; err != nil {
 		return fmt.Errorf("创建合同记录失败: %v", err)
-	}
-
-	// 保存状态到BoltDB
-	contractState := map[string]interface{}{
-		"id":         contract.ID,
-		"status":     contract.Status,
-		"updated_at": time.Now(),
-	}
-	if err := dao.boltDB.Put("contract_states", contract.ID, contractState); err != nil {
-		return fmt.Errorf("保存合同状态失败: %v", err)
 	}
 
 	return nil
@@ -66,16 +55,6 @@ func (dao *ContractDAO) UpdateContract(contract *models.Contract) error {
 	// 更新MySQL数据库
 	if err := dao.mysqlDB.Save(contract).Error; err != nil {
 		return fmt.Errorf("更新合同记录失败: %v", err)
-	}
-
-	// 更新状态到BoltDB
-	contractState := map[string]interface{}{
-		"id":         contract.ID,
-		"status":     contract.Status,
-		"updated_at": time.Now(),
-	}
-	if err := dao.boltDB.Put("contract_states", contract.ID, contractState); err != nil {
-		return fmt.Errorf("更新合同状态失败: %v", err)
 	}
 
 	return nil

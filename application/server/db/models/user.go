@@ -4,7 +4,7 @@ import "time"
 
 // User 用户模型
 type User struct {
-	ID           int64     `gorm:"primaryKey;autoIncrement" json:"id"`
+	ID           int64     `gorm:"primaryKey;autoIncrement:true" json:"id"`
 	Name         string    `gorm:"size:50;not null" json:"name"`
 	CitizenID    string    `gorm:"size:18;uniqueIndex:idx_citizen_org;not null" json:"citizenID"`
 	PasswordHash string    `gorm:"size:100;not null" json:"passwordHash"`

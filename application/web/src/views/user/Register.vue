@@ -83,11 +83,13 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item>
+      <!-- 注册金额，仅当选择投资者/买家时显示 -->
+      <el-form-item prop="balance" v-if="registerForm.organization === 'investor'">
         <el-input
             v-model="registerForm.balance"
             placeholder="请输入注册金额"
-            prefix-icon="money"
+            prefix-icon="Money"
+            type="number"
         />
       </el-form-item>
       
@@ -213,7 +215,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { register } from './api.js'
@@ -245,6 +247,13 @@ const organizations = [
   { label: '第三方机构', value: 'thirdparty' },
   { label: '审计机构', value: 'audit' }
 ]
+
+// 监听组织变化，非投资者时重置余额
+watch(() => registerForm.organization, (newVal) => {
+  if (newVal !== 'investor') {
+    registerForm.balance = undefined
+  }
+})
 
 // 验证密码是否一致
 const validatePass = (rule, value, callback) => {
@@ -285,6 +294,21 @@ const validateEmail = (rule, value, callback) => {
   }
 }
 
+// 验证投资者余额
+const validateBalance = (rule, value, callback) => {
+  if (registerForm.organization === 'investor') {
+    if (value === undefined || value === '') {
+      callback(new Error('投资者必须输入注册金额'))
+    } else if (isNaN(value) || parseFloat(value) <= 0) {
+      callback(new Error('注册金额必须大于0'))
+    } else {
+      callback()
+    }
+  } else {
+    callback()
+  }
+}
+
 // 表单验证规则
 const registerRules = reactive({
   name: [
@@ -294,6 +318,10 @@ const registerRules = reactive({
   citizenID: [
     { required: true, message: '请输入身份证号', trigger: 'blur' },
     { min: 18, max: 18, message: '身份证号长度应为18个字符', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, max: 20, message: '密码长度应为6-20个字符', trigger: 'blur' }
   ],
   confirmPassword: [
     { required: true, message: '请确认密码', trigger: 'blur' },
@@ -309,6 +337,9 @@ const registerRules = reactive({
   ],
   organization: [
     { required: true, message: '请选择组织', trigger: 'change' }
+  ],
+  balance: [
+    { validator: validateBalance, trigger: 'blur' }
   ],
   agreement: [
     { 
@@ -341,7 +372,10 @@ const handleRegister = () => {
             phone: registerForm.phone,
             role: 'user',
             organization: registerForm.organization,
-            balance: parseFloat(registerForm.balance),
+            // 投资者使用输入的金额，其他组织使用0.0
+            balance: registerForm.organization === 'investor' 
+              ? parseFloat(registerForm.balance) 
+              : 0.0,
           })
           
           ElMessage.success('注册成功，请登录')

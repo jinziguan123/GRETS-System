@@ -75,7 +75,7 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 
 	tx := &models.Transaction{
 		TransactionUUID: transactionUUID,
-		RealtyCertID:    utils.GenerateHash(req.RealtyCert),
+		RealtyCert:      req.RealtyCert,
 		SellerCitizenID: req.SellerCitizenID,
 		BuyerCitizenID:  req.BuyerCitizenID,
 		Price:           req.Price,
@@ -97,54 +97,57 @@ func (s *transactionService) GetTransactionByTransactionUUID(transactionUUID str
 }
 
 // QueryTransactionList 查询交易列表
-func (s *transactionService) QueryTransactionList(queryTransactionListDTO *transactionDto.QueryTransactionListDTO) ([]*transactionDto.TransactionDTO, int, error) {
-	// 调用链码查询交易列表
-	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return nil, 0, fmt.Errorf("获取合约失败: %v", err)
+func (s *transactionService) QueryTransactionList(dto *transactionDto.QueryTransactionListDTO) ([]*transactionDto.TransactionDTO, int, error) {
+	// 构建查询条件
+	conditions := make(map[string]interface{})
+
+	// 添加查询条件
+	if dto.BuyerCitizenID != "" {
+		conditions["buyer_citizen_id"] = dto.BuyerCitizenID
 	}
-	response, err := contract.EvaluateTransaction(
-		"QueryTransactionList",
-		fmt.Sprintf("%d", 1000),
-		"",
-	)
+	if dto.SellerCitizenID != "" {
+		conditions["seller_citizen_id"] = dto.SellerCitizenID
+	}
+	if dto.RealtyCert != "" {
+		conditions["realty_cert"] = dto.RealtyCert
+	}
+	if dto.Status != "" {
+		conditions["status"] = dto.Status
+	}
+
+	// 设置默认分页参数
+	pageSize := 10
+	pageNumber := 1
+	if dto.PageSize > 0 {
+		pageSize = dto.PageSize
+	}
+	if dto.PageNumber > 0 {
+		pageNumber = dto.PageNumber
+	}
+
+	// 查询数据库
+	transactions, total, err := s.txDAO.QueryTransactionList(conditions, pageSize, pageNumber)
 	if err != nil {
-		utils.Log.Error(fmt.Sprintf("查询交易列表失败: %v", err))
 		return nil, 0, fmt.Errorf("查询交易列表失败: %v", err)
 	}
-	var transactionList []*transactionDto.TransactionDTO
-	err = json.Unmarshal(response, &transactionList)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("解析交易列表失败: %v", err))
-		return nil, 0, fmt.Errorf("解析交易列表失败: %v", err)
+
+	// 将数据库模型转换为DTO
+	result := make([]*transactionDto.TransactionDTO, 0, len(transactions))
+	for _, tx := range transactions {
+		txDTO := &transactionDto.TransactionDTO{
+			TransactionUUID:     tx.TransactionUUID,
+			RealtyCertHash:      utils.GenerateHash(tx.RealtyCert),
+			SellerCitizenIDHash: utils.GenerateHash(tx.SellerCitizenID),
+			BuyerCitizenIDHash:  utils.GenerateHash(tx.BuyerCitizenID),
+			Status:              tx.Status,
+			CreateTime:          tx.CreateTime,
+			UpdateTime:          tx.UpdateTime,
+			CompletedTime:       tx.CompletedTime,
+		}
+		result = append(result, txDTO)
 	}
 
-	var resultList []*transactionDto.TransactionDTO
-	for _, transaction := range transactionList {
-		if queryTransactionListDTO.BuyerCitizenID != "" && transaction.BuyerCitizenIDHash != utils.GenerateHash(queryTransactionListDTO.BuyerCitizenID) {
-			continue
-		}
-		if queryTransactionListDTO.SellerCitizenID != "" && transaction.SellerCitizenIDHash != utils.GenerateHash(queryTransactionListDTO.SellerCitizenID) {
-			continue
-		}
-		if queryTransactionListDTO.RealtyCert != "" && transaction.RealtyCertHash != utils.GenerateHash(queryTransactionListDTO.RealtyCert) {
-			continue
-		}
-		if queryTransactionListDTO.Status != "" && transaction.Status != queryTransactionListDTO.Status {
-			continue
-		}
-		resultList = append(resultList, transaction)
-	}
-
-	// 分页查询
-	startIndex := (queryTransactionListDTO.PageNumber - 1) * queryTransactionListDTO.PageSize
-	endIndex := startIndex + queryTransactionListDTO.PageSize
-	if endIndex > len(resultList) {
-		endIndex = len(resultList)
-	}
-
-	return resultList[startIndex:endIndex], len(resultList), nil
+	return result, int(total), nil
 }
 
 // UpdateTransaction 更新交易信息

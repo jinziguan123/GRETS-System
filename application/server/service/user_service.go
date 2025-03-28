@@ -250,6 +250,42 @@ func (s *userService) GetUserByCitizenID(citizenID, organization string) (*userD
 // UpdateUser 更新用户信息
 func (s *userService) UpdateUser(req *userDto.UpdateUserDTO) error {
 	// 查询原用户
+	user, err := s.userDAO.GetUserByCitizenID(req.CitizenID, req.Organization)
+	if err != nil {
+		return fmt.Errorf("查询用户失败: %v", err)
+	}
+	if user == nil {
+		return fmt.Errorf("用户不存在")
+	}
+
+	contract, err := blockchain.GetContract(req.Organization)
+	if err != nil {
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
+
+	_, err = contract.SubmitTransaction(
+		"UpdateUser",
+		utils.GenerateHash(req.CitizenID),
+		req.Organization,
+		req.Name,
+		req.Phone,
+		req.Email,
+		utils.GenerateHash(req.Password),
+		req.Status,
+	)
+	if err != nil {
+		return fmt.Errorf("调用链码[UpdateUser]失败: %v", err)
+	}
+
+	// 更新本地数据库
+	user.Name = req.Name
+	user.Phone = req.Phone
+	user.Email = req.Email
+	user.Status = req.Status
+	user.UpdateTime = time.Now()
+	if err := s.userDAO.UpdateUser(user); err != nil {
+		return fmt.Errorf("更新用户失败: %v", err)
+	}
 
 	return nil
 }

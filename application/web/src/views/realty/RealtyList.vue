@@ -13,45 +13,105 @@
 
     <!-- 搜索条件 -->
     <el-card class="filter-container">
-      <el-form :model="searchForm" label-width="80px">
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="地区">
-              <el-select v-model="searchForm.district" placeholder="选择地区" clearable>
-                <el-option v-for="item in districtOptions" :key="item.value" :label="item.label" :value="item.value" />
+      <el-form :model="searchForm" label-width="100px">
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="证书号">
+              <el-input v-model="searchForm.realtyCert" placeholder="请输入不动产证号" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="房产类型">
+              <el-select v-model="searchForm.realtyType" placeholder="请选择房产类型" clearable style="width: 100%">
+                <el-option label="住宅" value="HOUSE"></el-option>
+                <el-option label="商铺" value="SHOP"></el-option>
+                <el-option label="办公" value="OFFICE"></el-option>
+                <el-option label="工业" value="INDUSTRIAL"></el-option>
+                <el-option label="其他" value="OTHER"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="户型">
-              <el-select v-model="searchForm.roomType" placeholder="选择户型" clearable>
-                <el-option v-for="item in roomTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
+              <el-select v-model="searchForm.houseType" placeholder="请选择户型" clearable style="width: 100%">
+                <el-option label="一室" value="single"></el-option>
+                <el-option label="两室" value="double"></el-option>
+                <el-option label="三室" value="triple"></el-option>
+                <el-option label="四室及以上" value="multiple"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-row>
-          <el-col :span="12">
-            <el-form-item label="面积">
-              <el-input-number v-model="searchForm.minArea" :min="0" :step="10" placeholder="最小" />
-              <span class="separator">-</span>
-              <el-input-number v-model="searchForm.maxArea" :min="0" :step="10" placeholder="最大" />
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="省份">
+              <el-input v-model="searchForm.province" placeholder="请输入省份" clearable />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="价格">
-              <el-input-number v-model="searchForm.minPrice" :min="0" :step="50000" :formatter="formatPrice" placeholder="最小" />
-              <span class="separator">-</span>
-              <el-input-number v-model="searchForm.maxPrice" :min="0" :step="50000" :formatter="formatPrice" placeholder="最大" />
+          <el-col :span="8">
+            <el-form-item label="城市">
+              <el-input v-model="searchForm.city" placeholder="请输入城市" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="区/县">
+              <el-input v-model="searchForm.district" placeholder="请输入区/县" clearable />
             </el-form-item>
           </el-col>
         </el-row>
-        <div style="float: right">
-          <el-form-item>
-            <el-button type="primary" @click="handleSearch">搜索</el-button>
-            <el-button @click="resetSearch">重置</el-button>
-          </el-form-item>
+
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="街道">
+              <el-input v-model="searchForm.street" placeholder="请输入街道" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="小区">
+              <el-input v-model="searchForm.community" placeholder="请输入小区" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="单元">
+              <el-input v-model="searchForm.unit" placeholder="请输入单元" clearable />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="楼层">
+              <el-input v-model="searchForm.floor" placeholder="请输入楼层" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="房号">
+              <el-input v-model="searchForm.room" placeholder="请输入房号" clearable />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="面积范围">
+              <el-input-number v-model="searchForm.minArea" :min="0.0" :step="10" placeholder="最小面积" style="width: 45%" />
+              <span class="separator">-</span>
+              <el-input-number v-model="searchForm.maxArea" :min="0.0" :step="10" placeholder="最大面积" style="width: 45%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="价格范围">
+              <el-input-number v-model="searchForm.minPrice" :min="0.0" :step="50000" :formatter="formatPrice" :parser="parsePrice" placeholder="最小价格" style="width: 45%" />
+              <span class="separator">-</span>
+              <el-input-number v-model="searchForm.maxPrice" :min="0.0" :step="50000" :formatter="formatPrice" :parser="parsePrice" placeholder="最大价格" style="width: 45%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <div style="text-align: right; margin-top: 20px;">
+          <el-button type="primary" @click="handleSearch">搜索</el-button>
+          <el-button @click="resetSearch">重置</el-button>
         </div>
       </el-form>
     </el-card>
@@ -67,29 +127,28 @@
       <div v-else class="realty-grid">
         <el-card 
           v-for="item in realtyList" 
-          :key="item.id" 
+          :key="item.realtyCert" 
           class="realty-card"
           @click="viewDetails(item)"
         >
           <div class="realty-image">
-            <img :src="item.imageUrl || 'https://via.placeholder.com/300x200?text=暂无图片'" alt="房产图片" />
+            <img :src="getRandomImage(item.realtyCert)" alt="房产图片" />
             <div class="realty-status" :class="getStatusClass(item.status)">{{ getStatusText(item.status) }}</div>
           </div>
           <div class="realty-info">
-            <h3 class="realty-title">{{ item.title }}</h3>
-            <div class="realty-address">{{ item.district }} {{ item.address }}</div>
+            <h3 class="realty-title">{{ generateTitle(item) }}</h3>
+            <div class="realty-address">{{ generateAddress(item) }}</div>
             <div class="realty-meta">
-              <span class="room-type">{{ item.roomType }}</span>
+              <span class="house-type">{{ getHouseTypeText(item.houseType) }}</span>
               <span class="area">{{ item.area }}平米</span>
-              <span class="floor">{{ item.floor }}层</span>
             </div>
             <div class="realty-price" v-if="userStore.hasOrganization(['investor', 'bank'])">
-              <span>¥ {{ formatPriceText(item.expectedPrice) }}</span>
+              <span>¥ {{ formatPriceText(item.price) }}</span>
             </div>
             <div class="realty-actions">
               <el-button type="primary" size="small" @click.stop="viewDetails(item)">详情</el-button>
               <el-button 
-                v-if="userStore.hasOrganization('investor') && item.status === 'available'" 
+                v-if="userStore.hasOrganization('investor') && item.status === 'NORMAL'" 
                 type="success" 
                 size="small" 
                 @click.stop="startTransaction(item)"
@@ -112,9 +171,9 @@
       <!-- 分页 -->
       <div class="pagination-container">
         <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[12, 24, 36, 48]"
+          v-model:current-page="searchForm.pageNumber"
+          v-model:page-size="searchForm.pageSize"
+          :page-sizes="[10, 20, 30, 50]"
           layout="total, sizes, prev, pager, next, jumper"
           :total="total"
           @size-change="handleSizeChange"
@@ -126,28 +185,47 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
+import axios from 'axios'
+import {queryRealtyList} from "@/views/realty/api.js";
 
 const router = useRouter()
 const userStore = useUserStore()
 
 // 查询条件
 const searchForm = reactive({
-  district: '',
-  roomType: '',
+  realtyCert: '',
+  realtyType: '',
+  houseType: '',
+  minPrice: null,
+  maxPrice: null,
   minArea: null,
   maxArea: null,
-  minPrice: null,
-  maxPrice: null
+  province: '',
+  city: '',
+  district: '',
+  street: '',
+  community: '',
+  unit: '',
+  floor: '',
+  room: '',
+  pageSize: 10,
+  pageNumber: 1
 })
 
 // 重置查询条件
 const resetSearch = () => {
   Object.keys(searchForm).forEach(key => {
-    searchForm[key] = key.startsWith('min') || key.startsWith('max') ? null : ''
+    if (key === 'pageSize') {
+      searchForm[key] = 10
+    } else if (key === 'pageNumber') {
+      searchForm[key] = 1
+    } else {
+      searchForm[key] = key.startsWith('min') || key.startsWith('max') ? null : ''
+    }
   })
   handleSearch()
 }
@@ -158,118 +236,144 @@ const formatPrice = (value) => {
   return `¥ ${value}`
 }
 
+// 解析价格
+const parsePrice = (value) => {
+  if (value === '') return null
+  return value.replace(/[^\d]/g, '')
+}
+
+// 价格文本格式化
 const formatPriceText = (price) => {
   if (!price) return '暂无报价'
   return (price / 10000).toFixed(2) + '万'
 }
 
-// 地区选项
-const districtOptions = [
-  { value: '浦东新区', label: '浦东新区' },
-  { value: '黄浦区', label: '黄浦区' },
-  { value: '徐汇区', label: '徐汇区' },
-  { value: '长宁区', label: '长宁区' },
-  { value: '静安区', label: '静安区' },
-  { value: '普陀区', label: '普陀区' },
-  { value: '虹口区', label: '虹口区' },
-  { value: '杨浦区', label: '杨浦区' },
-  { value: '闵行区', label: '闵行区' },
-  { value: '宝山区', label: '宝山区' },
-  { value: '嘉定区', label: '嘉定区' },
-  { value: '金山区', label: '金山区' },
-  { value: '松江区', label: '松江区' },
-  { value: '青浦区', label: '青浦区' },
-  { value: '奉贤区', label: '奉贤区' },
-  { value: '崇明区', label: '崇明区' }
-]
+// 获取随机图片
+const getRandomImage = (id) => {
+  // 使用房产证号作为种子生成一个稳定的随机数，这样同一个房产始终显示相同的图片
+  const seed = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  const imageId = (seed % 100) + 1 // 限制在1-100之间
+  return `https://picsum.photos/id/${imageId}/300/200`
+}
 
-// 户型选项
-const roomTypeOptions = [
-  { value: '一室一厅', label: '一室一厅' },
-  { value: '两室一厅', label: '两室一厅' },
-  { value: '两室两厅', label: '两室两厅' },
-  { value: '三室一厅', label: '三室一厅' },
-  { value: '三室两厅', label: '三室两厅' },
-  { value: '四室两厅', label: '四室两厅' },
-  { value: '复式', label: '复式' },
-  { value: '别墅', label: '别墅' }
-]
+// 获取状态样式类
+const getStatusClass = (status) => {
+  const statusMap = {
+    'NORMAL': 'status-normal',
+    'IN_TRANSACTION': 'status-pending',
+    'MORTGAGED': 'status-mortgaged',
+    'FROZEN': 'status-frozen'
+  }
+  return statusMap[status] || ''
+}
 
-// 分页参数
-const currentPage = ref(1)
-const pageSize = ref(12)
-const total = ref(0)
+// 获取状态文本
+const getStatusText = (status) => {
+  const statusMap = {
+    'NORMAL': '可交易',
+    'IN_TRANSACTION': '交易中',
+    'MORTGAGED': '已抵押',
+    'FROZEN': '已冻结'
+  }
+  return statusMap[status] || '未知状态'
+}
+
+// 获取户型文本
+const getHouseTypeText = (houseType) => {
+  const houseTypeMap = {
+    'single': '一室',
+    'double': '两室',
+    'triple': '三室',
+    'multiple': '四室及以上'
+  }
+  return houseTypeMap[houseType] || houseType
+}
+
+// 生成房产标题
+const generateTitle = (item) => {
+  let title = ''
+  if (item.houseType) {
+    title += getHouseTypeText(item.houseType) + ' '
+  }
+  if (item.area) {
+    title += item.area + '平米 '
+  }
+  if (item.realtyType) {
+    const typeMap = {
+      'HOUSE': '住宅',
+      'SHOP': '商铺',
+      'OFFICE': '办公',
+      'INDUSTRIAL': '工业',
+      'OTHER': '其他'
+    }
+    title += typeMap[item.realtyType] || item.realtyType
+  }
+  return title || '未知房产'
+}
+
+// 生成地址信息
+const generateAddress = (item) => {
+  return `${item.province || ''}${item.province ? '省' : ''}${item.city || ''}${item.city ? '市' : ''}${item.district || ''}${item.district ? '区' : ''}${item.street || ''}${item.community || ''}${item.unit || ''}${item.unit ? '单元' : ''}${item.floor || ''}${item.floor ? '楼' : ''}${item.room || ''}`
+}
 
 // 房产列表
 const realtyList = ref([])
 const loading = ref(false)
+const total = ref(0)
 
 // 获取房产列表
 const fetchRealtyList = async () => {
   loading.value = true
   try {
-    // 模拟API请求
-    setTimeout(() => {
-      // 这里替换为实际API调用
-      const mockData = []
-      for (let i = 1; i <= 20; i++) {
-        mockData.push({
-          id: i,
-          title: `优质${i % 8 == 0 ? '别墅' : (i % 4 == 0 ? '复式' : '普通住宅')}`,
-          district: districtOptions[i % districtOptions.length].value,
-          address: `某某路${i}号`,
-          roomType: roomTypeOptions[i % roomTypeOptions.length].value,
-          area: Math.floor(70 + Math.random() * 100),
-          floor: Math.floor(1 + Math.random() * 30),
-          expectedPrice: Math.floor(300 + Math.random() * 700) * 10000,
-          status: i % 5 === 0 ? 'sold' : (i % 3 === 0 ? 'pending' : 'available'),
-          imageUrl: `https://picsum.photos/id/${i + 10}/300/200`
-        })
+    // 构建API请求参数
+    const params = {
+      pageSize: searchForm.pageSize,
+      pageNumber: searchForm.pageNumber
+    }
+
+    // 添加所有非空的查询条件
+    Object.keys(searchForm).forEach(key => {
+      if (key !== 'pageSize' && key !== 'pageNumber' && searchForm[key] !== '' && searchForm[key] !== null) {
+        params[key] = searchForm[key]
       }
-      
-      // 根据查询条件过滤
-      let filteredData = mockData.filter(item => {
-        let match = true
-        if (searchForm.district && item.district !== searchForm.district) match = false
-        if (searchForm.roomType && item.roomType !== searchForm.roomType) match = false
-        if (searchForm.minArea && item.area < searchForm.minArea) match = false
-        if (searchForm.maxArea && item.area > searchForm.maxArea) match = false
-        if (searchForm.minPrice && item.expectedPrice < searchForm.minPrice) match = false
-        if (searchForm.maxPrice && item.expectedPrice > searchForm.maxPrice) match = false
-        return match
-      })
-      
-      total.value = filteredData.length
-      
-      // 分页处理
-      const startIndex = (currentPage.value - 1) * pageSize.value
-      const endIndex = startIndex + pageSize.value
-      realtyList.value = filteredData.slice(startIndex, endIndex)
-      
-      loading.value = false
-    }, 800)
+    })
+
+    // 发送请求
+    await queryRealtyList(searchForm).then((res) => {
+      if (res.code === 200) {
+        realtyList.value = res.data.realtyList || []
+        total.value = res.data.total || 0
+      }else{
+        ElMessage.error(res.message || '获取房产列表失败')
+        realtyList.value = []
+        total.value = 0
+      }
+    })
   } catch (error) {
     console.error('Failed to fetch realty list:', error)
-    loading.value = false
     ElMessage.error('获取房产列表失败')
+    realtyList.value = []
+    total.value = 0
+  } finally {
+    loading.value = false
   }
 }
 
 // 处理搜索
 const handleSearch = () => {
-  currentPage.value = 1
+  searchForm.pageNumber = 1
   fetchRealtyList()
 }
 
 // 改变每页显示数量
 const handleSizeChange = (size) => {
-  pageSize.value = size
+  searchForm.pageSize = size
   fetchRealtyList()
 }
 
 // 改变页码
 const handleCurrentChange = (page) => {
-  currentPage.value = page
+  searchForm.pageNumber = page
   fetchRealtyList()
 }
 
@@ -282,33 +386,13 @@ const viewDetails = (item) => {
 const startTransaction = (item) => {
   router.push({
     path: '/transaction/create',
-    query: { realtyId: item.id }
+    query: { realtyCert: item.realtyCert }
   })
 }
 
 // 编辑房产
 const editRealty = (item) => {
-  router.push(`/realty/${item.id}/edit`)
-}
-
-// 获取状态样式类
-const getStatusClass = (status) => {
-  const statusMap = {
-    available: 'status-available',
-    pending: 'status-pending',
-    sold: 'status-sold'
-  }
-  return statusMap[status] || ''
-}
-
-// 获取状态文本
-const getStatusText = (status) => {
-  const statusMap = {
-    available: '可交易',
-    pending: '交易中',
-    sold: '已售出'
-  }
-  return statusMap[status] || '未知状态'
+  router.push(`/realty/${item.id}`)
 }
 
 // 初始加载
@@ -395,7 +479,7 @@ onMounted(() => {
   color: white;
 }
 
-.status-available {
+.status-normal {
   background-color: #67C23A;
 }
 
@@ -403,8 +487,12 @@ onMounted(() => {
   background-color: #E6A23C;
 }
 
-.status-sold {
-  background-color: #909399;
+.status-mortgaged {
+  background-color: #409EFF;
+}
+
+.status-frozen {
+  background-color: #F56C6C;
 }
 
 .realty-info {

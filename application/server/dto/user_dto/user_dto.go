@@ -39,12 +39,13 @@ type RegisterDTO struct {
 
 // UpdateUserDTO 更新用户信息请求
 type UpdateUserDTO struct {
-	CitizenID    string `json:"citizenID" binding:"required"` // 身份证号
-	Name         string `json:"name,omitempty"`               // 用户名
-	Phone        string `json:"phone,omitempty"`              // 电话
-	Email        string `json:"email,omitempty"`              // 邮箱
-	Password     string `json:"password,omitempty"`           // 密码
-	Organization string `json:"organization,omitempty"`       // 组织
+	CitizenID    string `json:"citizenID" binding:"required"`    // 身份证号
+	Organization string `json:"organization" binding:"required"` // 组织
+	Name         string `json:"name,omitempty"`                  // 用户名
+	Phone        string `json:"phone,omitempty"`                 // 电话
+	Email        string `json:"email,omitempty"`                 // 邮箱
+	Password     string `json:"password,omitempty"`              // 密码
+	Status       string `json:"status,omitempty"`                // 状态
 }
 
 // QueryUserDTO 查询用户信息请求

@@ -4,7 +4,6 @@ import (
 	realtyDto "grets_server/dto/realty_dto"
 	"grets_server/pkg/utils"
 	"grets_server/service"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -45,41 +44,14 @@ func (ctrl *RealtyController) CreateRealty(c *gin.Context) {
 
 // QueryRealtyList 查询房产列表
 func (ctrl *RealtyController) QueryRealtyList(c *gin.Context) {
-	// 解析查询参数
-	query := &realtyDto.QueryRealtyListDTO{
-		RealtyCert: c.Query("realtyCert"),
-		RealtyType: c.Query("realtyType"),
-		Address:    c.Query("address"),
-		MinPrice:   -1,
-		MaxPrice:   -1,
-		MinArea:    -1,
-		MaxArea:    -1,
-		PageSize:   10,
-		PageNumber: 1,
-	}
-
-	// 解析数值类型参数
-	if minPrice, err := strconv.ParseFloat(c.Query("minPrice"), 64); err == nil {
-		query.MinPrice = minPrice
-	}
-	if maxPrice, err := strconv.ParseFloat(c.Query("maxPrice"), 64); err == nil {
-		query.MaxPrice = maxPrice
-	}
-	if minArea, err := strconv.ParseFloat(c.Query("minArea"), 64); err == nil {
-		query.MinArea = minArea
-	}
-	if maxArea, err := strconv.ParseFloat(c.Query("maxArea"), 64); err == nil {
-		query.MaxArea = maxArea
-	}
-	if pageSize, err := strconv.Atoi(c.Query("pageSize")); err == nil && pageSize > 0 {
-		query.PageSize = pageSize
-	}
-	if pageNum, err := strconv.Atoi(c.Query("pageNumber")); err == nil && pageNum > 0 {
-		query.PageNumber = pageNum
+	var req realtyDto.QueryRealtyListDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ResponseBadRequest(c, "无效的请求参数")
+		return
 	}
 
 	// 调用服务查询房产列表
-	realtyList, total, err := ctrl.realtyService.QueryRealtyList(query)
+	realtyList, total, err := ctrl.realtyService.QueryRealtyList(&req)
 	if err != nil {
 		utils.ResponseInternalServerError(c, err.Error())
 		return

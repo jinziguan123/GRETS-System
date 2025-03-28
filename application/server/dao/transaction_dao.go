@@ -16,6 +16,44 @@ type TransactionDAO struct {
 	boltDB  *db.BoltDB
 }
 
+func (dao *TransactionDAO) QueryTransactionList(
+	conditions map[string]interface{},
+	pageSize int,
+	pageNumber int,
+) ([]*models.Transaction, int, error) {
+	var transactions []*models.Transaction
+	var total int64
+
+	query := dao.mysqlDB.Model(&models.Transaction{})
+
+	for field, value := range conditions {
+		if v, ok := value.(string); ok && v != "" {
+			if field == "buyer_citizen_id" {
+				query = query.Where("buyer_citizen_id = ?", v)
+			} else if field == "seller_citizen_id" {
+				query = query.Where("seller_citizen_id = ?", v)
+			} else if field == "realty_cert" {
+				query = query.Where("realty_cert = ?", v)
+			} else if field == "status" {
+				query = query.Where("status = ?", v)
+			}
+		}
+	}
+
+	// 计算总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("计算交易总数失败: %v", err)
+	}
+
+	// 分页查询
+	offset := (pageNumber - 1) * pageSize
+	if err := query.Offset(offset).Limit(pageSize).Find(&transactions).Error; err != nil {
+		return nil, 0, fmt.Errorf("分页查询交易列表失败: %v", err)
+	}
+
+	return transactions, int(total), nil
+}
+
 func (dao *TransactionDAO) AuditTransaction(id string, auditResult string, comments string, organization string) error {
 	panic("unimplemented")
 }
@@ -72,16 +110,6 @@ func (dao *TransactionDAO) UpdateTransaction(tx *models.Transaction) error {
 	// 更新MySQL数据库
 	if err := dao.mysqlDB.Save(tx).Error; err != nil {
 		return fmt.Errorf("更新交易记录失败: %v", err)
-	}
-
-	// 更新状态到BoltDB
-	txState := map[string]interface{}{
-		"id":         tx.ID,
-		"status":     tx.Status,
-		"updated_at": time.Now(),
-	}
-	if err := dao.boltDB.Put("transaction_states", tx.ID, txState); err != nil {
-		return fmt.Errorf("更新交易状态失败: %v", err)
 	}
 
 	return nil

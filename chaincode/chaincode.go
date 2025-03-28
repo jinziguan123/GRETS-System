@@ -6,6 +6,8 @@ import (
 	"log"
 	"time"
 
+	"maps"
+
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
@@ -23,9 +25,10 @@ const (
 
 // 房产状态枚举
 const (
-	RealtyStatusNormal    = "NORMAL"    // 正常
-	RealtyStatusFrozen    = "FROZEN"    // 冻结
-	RealtyStatusCompleted = "COMPLETED" // 已完成
+	RealtyStatusNormal     = "NORMAL"      // 正常
+	RealtyStatusFrozen     = "FROZEN"      // 冻结
+	RealtyStatusInSale     = "IN_SALE"     // 在售
+	RealtyStatusInMortgage = "IN_MORTGAGE" // 抵押中
 )
 
 // 房产类型枚举
@@ -699,7 +702,7 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 // QueryRealty 查询房产信息
 func (s *SmartContract) QueryRealty(ctx contractapi.TransactionContextInterface,
 	realtyCertHash string,
-) (*RealEstatePublic, error) {
+) (*RealEstate, error) {
 
 	key, err := s.createCompositeKey(ctx, DocTypeRealEstate, []string{realtyCertHash}...)
 	if err != nil {
@@ -719,7 +722,42 @@ func (s *SmartContract) QueryRealty(ctx contractapi.TransactionContextInterface,
 	if err != nil {
 		return nil, fmt.Errorf("[QueryRealty] 解析房产信息失败: %v", err)
 	}
-	return &realEstatePublic, nil
+
+	var realEstatePrivate RealEstatePrivate
+	realEstatePrivateBytes, err := ctx.GetStub().GetPrivateData(RealEstatePrivateCollection, realtyCertHash)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryRealty] 查询房产私钥失败: %v", err)
+	}
+	err = json.Unmarshal(realEstatePrivateBytes, &realEstatePrivate)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryRealty] 解析房产私钥失败: %v", err)
+	}
+
+	var realEstatePublicMap, realEstatePrivateMap map[string]interface{}
+	err = json.Unmarshal(realEstatePublicBytes, &realEstatePublicMap)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryRealty] 解析房产信息失败: %v", err)
+	}
+	err = json.Unmarshal(realEstatePrivateBytes, &realEstatePrivateMap)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryRealty] 解析房产私钥失败: %v", err)
+	}
+
+	var realEstateMap map[string]interface{}
+	maps.Copy(realEstateMap, realEstatePublicMap)
+	maps.Copy(realEstateMap, realEstatePrivateMap)
+	realEstateJSON, err := json.Marshal(realEstateMap)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryRealty] 序列化房产信息失败: %v", err)
+	}
+
+	var realEstate RealEstate
+	err = json.Unmarshal(realEstateJSON, &realEstate)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryRealty] 解析房产信息失败: %v", err)
+	}
+
+	return &realEstate, nil
 }
 
 // QueryRealtyList 查询全量房产列表

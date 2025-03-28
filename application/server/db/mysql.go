@@ -70,7 +70,7 @@ func autoMigrate(db *gorm.DB) error {
 	// 在这里添加需要自动迁移的模型
 	err := db.AutoMigrate(
 		&models.User{},
-		&models.RealEstate{},
+		&models.Realty{},
 		&models.Transaction{},
 		&models.Contract{},
 		&models.Payment{},

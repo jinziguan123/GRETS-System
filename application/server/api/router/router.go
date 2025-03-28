@@ -75,7 +75,7 @@ func SetupRouter() *gin.Engine {
 		transactions.Use(middleware.JWTAuth())
 		{
 			transactions.POST("/createTransaction", controller.CreateTransaction)
-			transactions.GET("/queryTransactionList", controller.QueryTransactionList)
+			transactions.POST("/queryTransactionList", controller.QueryTransactionList)
 			transactions.GET("/:id", controller.GetTransactionByID)
 			transactions.POST("/:id/complete", controller.CompleteTransaction)
 		}
@@ -85,7 +85,7 @@ func SetupRouter() *gin.Engine {
 		realEstates.Use(middleware.JWTAuth())
 		{
 			realEstates.POST("/createRealty", controller.CreateRealty)
-			realEstates.GET("/queryRealtyList", controller.QueryRealtyList)
+			realEstates.POST("/queryRealtyList", controller.QueryRealtyList)
 			realEstates.GET("/:id", controller.GetRealtyByID)
 			realEstates.PUT("/:id", controller.UpdateRealty)
 			// 暂时注释审核接口，等待实现

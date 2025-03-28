@@ -9,7 +9,7 @@ type TransactionDTO struct {
 	SellerCitizenIDHash string    `json:"sellerCitizenIDHash"` // 卖方
 	BuyerCitizenIDHash  string    `json:"buyerCitizenIDHash"`  // 买方
 	Status              string    `json:"status"`              // 交易状态
-	CreatedTime         time.Time `json:"createdTime"`         // 创建时间
+	CreateTime          time.Time `json:"createTime"`          // 创建时间
 	UpdateTime          time.Time `json:"updateTime"`          // 更新时间
 	CompletedTime       time.Time `json:"completedTime"`       // 完成时间
 }

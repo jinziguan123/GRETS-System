@@ -30,15 +30,6 @@ func (dao *PaymentDAO) CreatePayment(payment *models.Payment) error {
 		return fmt.Errorf("创建支付记录失败: %v", err)
 	}
 
-	// 保存状态到BoltDB
-	paymentState := map[string]interface{}{
-		"id":         payment.ID,
-		"updated_at": time.Now(),
-	}
-	if err := dao.boltDB.Put("payment_states", payment.ID, paymentState); err != nil {
-		return fmt.Errorf("保存支付状态失败: %v", err)
-	}
-
 	return nil
 }
 
@@ -56,15 +47,6 @@ func (dao *PaymentDAO) UpdatePayment(payment *models.Payment) error {
 	// 更新MySQL数据库
 	if err := dao.mysqlDB.Save(payment).Error; err != nil {
 		return fmt.Errorf("更新支付记录失败: %v", err)
-	}
-
-	// 更新状态到BoltDB
-	paymentState := map[string]interface{}{
-		"id":         payment.ID,
-		"updated_at": time.Now(),
-	}
-	if err := dao.boltDB.Put("payment_states", payment.ID, paymentState); err != nil {
-		return fmt.Errorf("更新支付状态失败: %v", err)
 	}
 
 	return nil
