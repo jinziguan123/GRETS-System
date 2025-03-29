@@ -16,13 +16,13 @@ type TransactionDTO struct {
 
 // CreateTransactionDTO 创建交易请求
 type CreateTransactionDTO struct {
-	RealtyCert      string   `json:"realtyCert" binding:"required"`      // 不动产证号
-	SellerCitizenID string   `json:"sellerCitizenID" binding:"required"` // 卖方身份证号
-	BuyerCitizenID  string   `json:"buyerCitizenID" binding:"required"`  // 买方身份证号
-	ContractUUID    string   `json:"contractUUID" binding:"required"`    // 合同ID
-	PaymentUUIDList []string `json:"paymentUUIDList"`                    // 支付ID列表
-	Tax             float64  `json:"tax" binding:"required"`             // 税费
-	Price           float64  `json:"price" binding:"required"`           // 成交价格
+	RealtyCert          string   `json:"realtyCert" binding:"required"`          // 不动产证号
+	BuyerCitizenIDHash  string   `json:"buyerCitizenIDHash" binding:"required"`  // 买方身份证号
+	SellerCitizenIDHash string   `json:"sellerCitizenIDHash" binding:"required"` // 卖方身份证号
+	ContractUUID        string   `json:"contractUUID" binding:"required"`        // 合同ID
+	PaymentUUIDList     []string `json:"paymentUUIDList"`                        // 支付ID列表
+	Tax                 float64  `json:"tax" binding:"required"`                 // 税费
+	Price               float64  `json:"price" binding:"required"`               // 成交价格
 }
 
 // CheckTransactionDTO 检查交易请求

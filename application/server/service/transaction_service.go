@@ -44,6 +44,7 @@ func NewTransactionService(txDAO *dao.TransactionDAO) TransactionService {
 
 // CreateTransaction 创建交易
 func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransactionDTO) error {
+
 	// 创建交易
 	transactionUUID := uuid.New().String()
 
@@ -61,8 +62,8 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 	_, err = contract.SubmitTransaction("CreateTransaction",
 		utils.GenerateHash(req.RealtyCert),
 		transactionUUID,
-		utils.GenerateHash(req.SellerCitizenID),
-		utils.GenerateHash(req.BuyerCitizenID),
+		req.SellerCitizenIDHash,
+		req.BuyerCitizenIDHash,
 		req.ContractUUID,
 		string(paymentUUIDListJSON),
 		fmt.Sprintf("%.2f", req.Tax),
@@ -74,16 +75,16 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 	}
 
 	tx := &models.Transaction{
-		TransactionUUID: transactionUUID,
-		RealtyCert:      req.RealtyCert,
-		SellerCitizenID: req.SellerCitizenID,
-		BuyerCitizenID:  req.BuyerCitizenID,
-		Price:           req.Price,
-		Tax:             req.Tax,
-		Status:          constants.TxStatusPending,
-		ContractUUID:    req.ContractUUID,
-		CreateTime:      time.Now(),
-		UpdateTime:      time.Now(),
+		TransactionUUID:     transactionUUID,
+		RealtyCertHash:      utils.GenerateHash(req.RealtyCert),
+		SellerCitizenIDHash: req.SellerCitizenIDHash,
+		BuyerCitizenIDHash:  req.BuyerCitizenIDHash,
+		Price:               req.Price,
+		Tax:                 req.Tax,
+		Status:              constants.TxStatusPending,
+		ContractUUID:        req.ContractUUID,
+		CreateTime:          time.Now(),
+		UpdateTime:          time.Now(),
 	}
 
 	// 调用DAO层创建交易
@@ -136,9 +137,9 @@ func (s *transactionService) QueryTransactionList(dto *transactionDto.QueryTrans
 	for _, tx := range transactions {
 		txDTO := &transactionDto.TransactionDTO{
 			TransactionUUID:     tx.TransactionUUID,
-			RealtyCertHash:      utils.GenerateHash(tx.RealtyCert),
-			SellerCitizenIDHash: utils.GenerateHash(tx.SellerCitizenID),
-			BuyerCitizenIDHash:  utils.GenerateHash(tx.BuyerCitizenID),
+			RealtyCertHash:      utils.GenerateHash(tx.RealtyCertHash),
+			SellerCitizenIDHash: tx.SellerCitizenIDHash,
+			BuyerCitizenIDHash:  tx.BuyerCitizenIDHash,
 			Status:              tx.Status,
 			CreateTime:          tx.CreateTime,
 			UpdateTime:          tx.UpdateTime,

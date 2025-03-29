@@ -156,7 +156,7 @@ import { ref, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { Plus } from '@element-plus/icons-vue'
-import { createRealty } from "@/views/realty/api.js"
+import { createRealty } from "@/api/realty.js"
 
 const router = useRouter()
 const realtyFormRef = ref(null)

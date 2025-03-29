@@ -81,7 +81,7 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import { login } from './api'
+import { login } from '../../api/user.js'
 import {useLocalStorage} from "@vueuse/core";
 
 const router = useRouter()

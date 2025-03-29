@@ -132,7 +132,7 @@ type UserPrivate struct {
 }
 
 // 房产信息结构
-type RealEstate struct {
+type Realty struct {
 	RealtyCertHash                  string    `json:"realtyCertHash"`                  // 不动产证ID
 	RealtyCert                      string    `json:"realtyCert"`                      // 不动产证ID
 	RealtyType                      string    `json:"realtyType"`                      // 建筑类型
@@ -143,7 +143,7 @@ type RealEstate struct {
 	LastUpdateDate                  time.Time `json:"lastUpdateDate"`                  // 最后更新时间
 }
 
-type RealEstatePublic struct {
+type RealtyPublic struct {
 	RealtyCertHash   string    `json:"realtyCertHash"`   // 不动产证ID
 	RealtyCert       string    `json:"realtyCert"`       // 不动产证ID
 	RealtyType       string    `json:"realtyType"`       // 建筑类型
@@ -152,7 +152,7 @@ type RealEstatePublic struct {
 	LastUpdateDate   time.Time `json:"lastUpdateDate"`   // 最后更新时间
 }
 
-type RealEstatePrivate struct {
+type RealtyPrivate struct {
 	RealtyCertHash                  string   `json:"realtyCertHash"`                  // 不动产证ID
 	RealtyCert                      string   `json:"realtyCert"`                      // 不动产证ID
 	CurrentOwnerCitizenIDHash       string   `json:"currentOwnerCitizenIDHash"`       // 当前所有者
@@ -640,7 +640,7 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 	}
 
 	// 创建公开房产信息
-	realEstate := RealEstatePublic{
+	realEstate := RealtyPublic{
 		RealtyCertHash:   realtyCertHash,
 		RealtyCert:       realtyCert,
 		RealtyType:       realtyType,
@@ -658,7 +658,7 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 	ctx.GetStub().PutState(key, realEstateJSON)
 
 	// 创建房产私钥
-	realEstatePrivate := RealEstatePrivate{
+	realEstatePrivate := RealtyPrivate{
 		RealtyCertHash:                  realtyCertHash,
 		RealtyCert:                      realtyCert,
 		CurrentOwnerCitizenIDHash:       currentOwnerCitizenIDHash,
@@ -702,7 +702,7 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 // QueryRealty 查询房产信息
 func (s *SmartContract) QueryRealty(ctx contractapi.TransactionContextInterface,
 	realtyCertHash string,
-) (*RealEstate, error) {
+) (*Realty, error) {
 
 	key, err := s.createCompositeKey(ctx, DocTypeRealEstate, []string{realtyCertHash}...)
 	if err != nil {
@@ -717,13 +717,13 @@ func (s *SmartContract) QueryRealty(ctx contractapi.TransactionContextInterface,
 		return nil, fmt.Errorf("[QueryRealty] 房产ID %s 不存在", realtyCertHash)
 	}
 
-	var realEstatePublic RealEstatePublic
+	var realEstatePublic RealtyPublic
 	err = json.Unmarshal(realEstatePublicBytes, &realEstatePublic)
 	if err != nil {
 		return nil, fmt.Errorf("[QueryRealty] 解析房产信息失败: %v", err)
 	}
 
-	var realEstatePrivate RealEstatePrivate
+	var realEstatePrivate RealtyPrivate
 	realEstatePrivateBytes, err := ctx.GetStub().GetPrivateData(RealEstatePrivateCollection, realtyCertHash)
 	if err != nil {
 		return nil, fmt.Errorf("[QueryRealty] 查询房产私钥失败: %v", err)
@@ -751,7 +751,7 @@ func (s *SmartContract) QueryRealty(ctx contractapi.TransactionContextInterface,
 		return nil, fmt.Errorf("[QueryRealty] 序列化房产信息失败: %v", err)
 	}
 
-	var realEstate RealEstate
+	var realEstate Realty
 	err = json.Unmarshal(realEstateJSON, &realEstate)
 	if err != nil {
 		return nil, fmt.Errorf("[QueryRealty] 解析房产信息失败: %v", err)
@@ -764,7 +764,7 @@ func (s *SmartContract) QueryRealty(ctx contractapi.TransactionContextInterface,
 func (s *SmartContract) QueryRealtyList(ctx contractapi.TransactionContextInterface,
 	pageSize int32,
 	bookmark string,
-) ([]*RealEstatePublic, error) {
+) ([]*RealtyPublic, error) {
 
 	iter, _, err := ctx.GetStub().GetStateByPartialCompositeKeyWithPagination(
 		DocTypeRealEstate,
@@ -777,13 +777,13 @@ func (s *SmartContract) QueryRealtyList(ctx contractapi.TransactionContextInterf
 	}
 	defer iter.Close()
 
-	realtyList := []*RealEstatePublic{}
+	realtyList := []*RealtyPublic{}
 	for iter.HasNext() {
 		realty, err := iter.Next()
 		if err != nil {
 			return nil, fmt.Errorf("[QueryRealtyList] 查询房产列表失败: %v", err)
 		}
-		var realtyPublic RealEstatePublic
+		var realtyPublic RealtyPublic
 		err = json.Unmarshal(realty.Value, &realty)
 		if err != nil {
 			return nil, fmt.Errorf("[QueryRealtyList] 解析房产信息失败: %v", err)
@@ -835,7 +835,7 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("[UpdateRealty] 房产私钥不存在")
 	}
 
-	var realEstatePrivate RealEstatePrivate
+	var realEstatePrivate RealtyPrivate
 	err = json.Unmarshal(realEstatePrivateBytes, &realEstatePrivate)
 	if err != nil {
 		return fmt.Errorf("[UpdateRealty] 解析房产私钥失败: %v", err)
@@ -955,7 +955,7 @@ func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInte
 	if realEstatePrivateBytes == nil {
 		return fmt.Errorf("[CreateTransaction] 房产私钥不存在")
 	}
-	var realEstatePrivate RealEstatePrivate
+	var realEstatePrivate RealtyPrivate
 	err = json.Unmarshal(realEstatePrivateBytes, &realEstatePrivate)
 	if err != nil {
 		return fmt.Errorf("[CreateTransaction] 解析房产私钥失败: %v", err)
@@ -1302,7 +1302,7 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 		return fmt.Errorf("[CompleteTransaction] 房产私钥不存在")
 	}
 
-	var realEstatePrivate RealEstatePrivate
+	var realEstatePrivate RealtyPrivate
 	err = json.Unmarshal(realEstatePrivateBytes, &realEstatePrivate)
 	if err != nil {
 		return fmt.Errorf("[CompleteTransaction] 解析房产私钥失败: %v", err)

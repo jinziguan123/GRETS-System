@@ -1,54 +1,90 @@
 <template>
   <div class="realty-detail-container">
-    <el-row :gutter="20">
-      <!-- 左侧房产详情 -->
-      <el-col :span="18">
-        <el-card class="box-card" v-loading="loading">
-          <template #header>
-            <div class="card-header">
-              <h3>房产详情</h3>
-              <div class="header-actions">
-                <el-button type="success" @click="openEditDialog" v-if="canEdit">编辑</el-button>
-                <el-button @click="goBack">返回</el-button>
-                <el-button type="primary" @click="openDrawer">查看交易记录</el-button>
-              </div>
-            </div>
-          </template>
-          
-          <!-- 房产图片展示 -->
-          <div class="realty-images" v-if="realty.images && realty.images.length > 0">
-            <el-carousel :interval="4000" type="card" height="300px">
+    <!-- 页面标题和操作按钮 -->
+    <div class="page-header">
+      <h3>房产详情</h3>
+      <div class="header-actions">
+        <el-button type="success" @click="openEditDialog" v-if="canEdit">编辑</el-button>
+        <el-button @click="goBack">返回</el-button>
+      </div>
+    </div>
+
+    <el-row :gutter="20" v-loading="loading">
+      <!-- 区域1: 房产图片展示 -->
+      <el-col :span="10">
+        <el-card class="image-card">
+          <div v-if="realty.images && realty.images.length > 0" class="realty-images">
+            <el-carousel :interval="4000" arrow="always" indicator-position="outside">
               <el-carousel-item v-for="(image, index) in realty.images" :key="index">
                 <img :src="image" class="carousel-image" />
               </el-carousel-item>
             </el-carousel>
           </div>
-          <div class="no-images" v-else>
-            <el-empty description="暂无房产图片"></el-empty>
+          <div v-else class="no-images">
+            <el-empty description="暂无房产图片">
+              <template #image>
+                <div class="empty-image">
+                  <i class="el-icon-picture" style="font-size: 48px; color: #909399;"></i>
+                </div>
+              </template>
+            </el-empty>
           </div>
           
-          <!-- 房产基本信息 -->
-          <el-descriptions class="margin-top" title="基本信息" :column="2" border>
-            <el-descriptions-item label="不动产证号">{{ realty.realtyCert }}</el-descriptions-item>
-            <el-descriptions-item label="状态">
+          <!-- 房产证号和状态 -->
+          <div class="property-status-bar">
+            <div class="cert-number">
+              <span class="label">不动产证号:</span>
+              <span class="value">{{ realty.realtyCert }}</span>
+            </div>
+            <div class="status">
               <el-tag :type="getStatusTagType(realty.status)">
                 {{ getStatusText(realty.status) }}
               </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item label="房产类型">{{ getRealtyTypeText(realty.realtyType) }}</el-descriptions-item>
-            <el-descriptions-item label="户型">{{ getHouseTypeText(realty.houseType) }}</el-descriptions-item>
-            <el-descriptions-item label="面积">{{ realty.area }} 平方米</el-descriptions-item>
-            <el-descriptions-item label="参考价格">{{ formatPrice(realty.price) }}</el-descriptions-item>
-            <el-descriptions-item label="地址" :span="2">{{ generateAddress(realty) }}</el-descriptions-item>
-          </el-descriptions>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      
+      <!-- 区域2: 房产基本信息 -->
+      <el-col :span="9">
+        <el-card class="info-card">
+          <div class="card-title">基本信息</div>
           
-          <!-- 房产其他信息 -->
-          <el-descriptions class="margin-top" title="其他信息" :column="2" border>
-            <el-descriptions-item label="当前所有者ID">{{ realty.currentOwnerCitizenIDHash || '未知' }}</el-descriptions-item>
-            <el-descriptions-item label="登记日期">{{ formatDate(realty.registrationDate) }}</el-descriptions-item>
-            <el-descriptions-item label="最后更新时间">{{ formatDate(realty.lastUpdateDate) }}</el-descriptions-item>
-            <el-descriptions-item label="描述" :span="2">{{ realty.description || '暂无描述' }}</el-descriptions-item>
-          </el-descriptions>
+          <div class="info-row">
+            <div class="info-label">房产类型</div>
+            <div class="info-value">{{ getRealtyTypeText(realty.realtyType) }}</div>
+          </div>
+          
+          <div class="info-row">
+            <div class="info-label">户型</div>
+            <div class="info-value">{{ getHouseTypeText(realty.houseType) }}</div>
+          </div>
+          
+          <div class="info-row">
+            <div class="info-label">面积</div>
+            <div class="info-value">{{ realty.area }} 平方米</div>
+          </div>
+          
+          <div class="info-row">
+            <div class="info-label">参考价格</div>
+            <div class="info-value">{{ formatPrice(realty.price) }}</div>
+          </div>
+          
+          <div class="info-row">
+            <div class="info-label">地址</div>
+            <div class="info-value address-value">{{ generateAddress(realty) }}</div>
+          </div>
+          
+          <div class="info-row description-row">
+            <el-row>
+              <el-col :span="24">
+                <div class="info-label">描述</div>
+              </el-col>
+              <el-col>
+                <div class="info-value description-value">{{ realty.description || '暂无描述' }}</div>
+              </el-col>
+            </el-row>
+          </div>
           
           <!-- 相关操作 -->
           <div class="actions" v-if="realty.status === 'NORMAL' && hasTransactionPermission">
@@ -58,88 +94,120 @@
         </el-card>
       </el-col>
       
-      <!-- 右侧交易记录抽屉 -->
-      <el-drawer
-        v-model="drawer"
-        title="房产交易记录"
-        direction="rtl"
-        size="50%"
-      >
-        <!-- 交易记录查询条件 -->
-        <el-form :model="transactionQuery" label-width="100px" class="demo-form-inline">
-          <el-form-item label="交易状态">
-            <el-select v-model="transactionQuery.status" placeholder="选择交易状态" clearable style="width: 100%">
-              <el-option label="待处理" value="PENDING"></el-option>
-              <el-option label="已批准" value="APPROVED"></el-option>
-              <el-option label="已拒绝" value="REJECTED"></el-option>
-              <el-option label="已完成" value="COMPLETED"></el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" @click="fetchTransactionHistory">查询</el-button>
-            <el-button @click="resetTransactionQuery">重置</el-button>
-          </el-form-item>
-        </el-form>
-        
-        <!-- 交易记录列表 -->
-        <div v-if="transactionLoading" class="loading-container">
-          <el-skeleton :rows="5" animated />
-        </div>
-        <div v-else-if="transactions.length === 0" class="empty-data">
-          <el-empty description="暂无交易记录" />
-        </div>
-        <div v-else>
-          <el-table :data="transactions" style="width: 100%" stripe>
-            <el-table-column prop="transactionUUID" label="交易ID" width="180" />
-            <el-table-column prop="sellerCitizenIDHash" label="卖方ID" width="120">
-              <template #default="scope">
-                {{ scope.row.sellerCitizenIDHash || '未知' }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="buyerCitizenIDHash" label="买方ID" width="120">
-              <template #default="scope">
-                {{ scope.row.buyerCitizenIDHash || '未知' }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="status" label="状态" width="100">
-              <template #default="scope">
-                <el-tag :type="getTransactionStatusTagType(scope.row.status)">
-                  {{ getTransactionStatusText(scope.row.status) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="createTime" label="创建时间" width="180">
-              <template #default="scope">
-                {{ formatDate(scope.row.createTime) }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="completedTime" label="完成时间" width="180">
-              <template #default="scope">
-                {{ scope.row.completedTime ? formatDate(scope.row.completedTime) : '-' }}
-              </template>
-            </el-table-column>
-            <el-table-column fixed="right" label="操作" width="120">
-              <template #default="scope">
-                <el-button type="primary" link @click="viewTransaction(scope.row.transactionUUID)">查看</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+      <!-- 区域3: 房产其他信息（竖向排列） -->
+      <el-col :span="5">
+        <el-card class="other-info-card">
+          <div class="card-title">其他信息</div>
           
-          <!-- 分页 -->
-          <div class="pagination-container">
-            <el-pagination
-              v-model:current-page="transactionQuery.pageNumber"
-              v-model:page-size="transactionQuery.pageSize"
-              :page-sizes="[10, 20, 30, 50]"
-              layout="total, sizes, prev, pager, next, jumper"
-              :total="transactionTotal"
-              @size-change="handleSizeChange"
-              @current-change="handleCurrentChange"
-            />
+          <div class="other-info-item">
+            <div class="other-info-label">当前所有者ID</div>
+            <div class="other-info-value">{{ realty.currentOwnerCitizenIDHash || '未知' }}</div>
           </div>
+          
+          <div class="other-info-item">
+            <div class="other-info-label">登记日期</div>
+            <div class="other-info-value">{{ formatDate(realty.registrationDate) }}</div>
+          </div>
+          
+          <div class="other-info-item">
+            <div class="other-info-label">最后更新时间</div>
+            <div class="other-info-value">{{ formatDate(realty.lastUpdateDate) }}</div>
+          </div>
+        </el-card>
+        
+        <!-- 查看交易记录按钮（最右侧居中） -->
+        <div class="transaction-record-button" @click="openDrawer">
+          <el-tooltip content="查看交易记录" placement="left">
+            <el-button type="primary" circle>
+              <el-icon><Document /></el-icon>
+            </el-button>
+          </el-tooltip>
+          <div class="button-label">交易记录</div>
         </div>
-      </el-drawer>
+      </el-col>
     </el-row>
+    
+    <!-- 交易记录抽屉 -->
+    <el-drawer
+      v-model="drawer"
+      title="房产交易记录"
+      direction="rtl"
+      size="50%"
+    >
+      <!-- 交易记录查询条件 -->
+      <el-form :model="transactionQuery" label-width="100px" class="demo-form-inline">
+        <el-form-item label="交易状态">
+          <el-select v-model="transactionQuery.status" placeholder="选择交易状态" clearable style="width: 100%">
+            <el-option label="待处理" value="PENDING"></el-option>
+            <el-option label="已批准" value="APPROVED"></el-option>
+            <el-option label="已拒绝" value="REJECTED"></el-option>
+            <el-option label="已完成" value="COMPLETED"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="fetchTransactionHistory">查询</el-button>
+          <el-button @click="resetTransactionQuery">重置</el-button>
+        </el-form-item>
+      </el-form>
+      
+      <!-- 交易记录列表 -->
+      <div v-if="transactionLoading" class="loading-container">
+        <el-skeleton :rows="5" animated />
+      </div>
+      <div v-else-if="transactions.length === 0" class="empty-data">
+        <el-empty description="暂无交易记录" />
+      </div>
+      <div v-else>
+        <el-table :data="transactions" style="width: 100%" stripe>
+          <el-table-column prop="transactionUUID" label="交易ID" width="180" />
+          <el-table-column prop="sellerCitizenIDHash" label="卖方ID" width="120">
+            <template #default="scope">
+              {{ scope.row.sellerCitizenIDHash || '未知' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="buyerCitizenIDHash" label="买方ID" width="120">
+            <template #default="scope">
+              {{ scope.row.buyerCitizenIDHash || '未知' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="scope">
+              <el-tag :type="getTransactionStatusTagType(scope.row.status)">
+                {{ getTransactionStatusText(scope.row.status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createTime" label="创建时间" width="180">
+            <template #default="scope">
+              {{ formatDate(scope.row.createTime) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="completedTime" label="完成时间" width="180">
+            <template #default="scope">
+              {{ scope.row.completedTime ? formatDate(scope.row.completedTime) : '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column fixed="right" label="操作" width="120">
+            <template #default="scope">
+              <el-button type="primary" link @click="viewTransaction(scope.row.transactionUUID)">查看</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+        
+        <!-- 分页 -->
+        <div class="pagination-container">
+          <el-pagination
+            v-model:current-page="transactionQuery.pageNumber"
+            v-model:page-size="transactionQuery.pageSize"
+            :page-sizes="[10, 20, 30, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="transactionTotal"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+      </div>
+    </el-drawer>
     
     <!-- 编辑房产对话框 -->
     <el-dialog
@@ -220,9 +288,10 @@
 import { ref, reactive, onMounted, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Document } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
-import { getRealtyByID, updateRealty, queryTransactionList } from "@/views/realty/api.js"
+import { getRealtyByID, updateRealty, queryTransactionList } from "@/api/realty.js"
+import CryptoJS from 'crypto-js'
 
 const router = useRouter()
 const route = useRoute()
@@ -309,7 +378,7 @@ const isGovernment = computed(() => {
 const isOwner = computed(() => {
   // 这里需要根据实际情况判断当前用户是否为房产拥有者
   // 假设通过比较当前用户ID和房产所有者ID
-  return userStore.citizenID === realty.currentOwnerCitizenIDHash
+  return CryptoJS.SHA256(userStore.citizenID).toString() === realty.currentOwnerCitizenIDHash
 })
 
 // 计算属性：是否有编辑权限
@@ -429,6 +498,9 @@ const fetchRealtyDetail = async () => {
           name: `image-${index + 1}`,
           url
         }))
+      } else {
+        // 如果没有图片，使用默认图片
+        realty.images = ['https://via.placeholder.com/600x400?text=暂无房产图片']
       }
     } else {
       ElMessage.error(response.message || '获取房产详情失败')
@@ -621,10 +693,16 @@ onMounted(() => {
   padding: 20px;
 }
 
-.card-header {
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
+}
+
+.page-header h3 {
+  margin: 0;
+  font-size: 22px;
 }
 
 .header-actions {
@@ -632,36 +710,145 @@ onMounted(() => {
   gap: 10px;
 }
 
-.box-card {
-  margin-bottom: 20px;
-}
-
-.margin-top {
-  margin-top: 20px;
+/* 区域1: 房产图片展示 */
+.image-card {
+  height: 100%;
 }
 
 .realty-images {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .carousel-image {
   width: 100%;
-  height: 100%;
+  height: 350px;
   object-fit: cover;
 }
 
 .no-images {
-  height: 200px;
+  height: 350px;
   display: flex;
   justify-content: center;
   align-items: center;
   background-color: #f5f7fa;
   border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.empty-image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 200px;
+}
+
+.property-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #ebeef5;
+}
+
+.cert-number .label {
+  color: #909399;
+  margin-right: 5px;
+}
+
+.cert-number .value {
+  font-weight: bold;
+}
+
+/* 区域2: 房产基本信息 */
+.info-card {
+  height: 100%;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #303133;
+  border-bottom: 1px solid #ebeef5;
+  padding-bottom: 10px;
+}
+
+.info-row {
+  display: flex;
+  margin-bottom: 15px;
+}
+
+.info-label {
+  flex: 0 0 100px;
+  color: #909399;
+}
+
+.info-value {
+  flex: 1;
+  color: #303133;
+}
+
+.address-value {
+  word-break: break-all;
+}
+
+.description-row {
+  flex-direction: column;
+}
+
+.description-value {
+  margin-top: 10px;
+  background-color: #f5f7fa;
+  padding: 10px;
+  border-radius: 4px;
+  min-height: 80px;
+}
+
+/* 区域3: 房产其他信息 */
+.other-info-card {
+  height: calc(100% - 150px);
   margin-bottom: 20px;
 }
 
-.transaction-history {
-  margin-top: 30px;
+.other-info-item {
+  margin-bottom: 20px;
+}
+
+.other-info-label {
+  color: #909399;
+  margin-bottom: 5px;
+}
+
+.other-info-value {
+  color: #303133;
+  font-weight: bold;
+  word-break: break-all;
+}
+
+/* 交易记录按钮 */
+.transaction-record-button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 130px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.transaction-record-button:hover {
+  background-color: #ecf5ff;
+}
+
+.button-label {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #409EFF;
 }
 
 .loading-container {

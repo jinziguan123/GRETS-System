@@ -19,10 +19,6 @@
           <el-input v-model="transactionForm.realtyCert" placeholder="请输入房产证号" :disabled="!!realtyId"></el-input>
         </el-form-item>
         
-        <el-form-item label="卖方身份证" prop="sellerCitizenID">
-          <el-input v-model="transactionForm.sellerCitizenID" placeholder="请输入卖方身份证号"></el-input>
-        </el-form-item>
-        
         <el-form-item label="买方身份证" prop="buyerCitizenID">
           <el-input v-model="transactionForm.buyerCitizenID" placeholder="请输入买方身份证号"></el-input>
         </el-form-item>
@@ -70,8 +66,7 @@ const realtyId = ref(route.query.realtyId || '')
 
 // 表单数据
 const transactionForm = reactive({
-  realtyCert: '',
-  sellerCitizenID: '',
+  realtyCert: route.query.realtyCert,
   buyerCitizenID: '',
   price: 0
 })
@@ -80,10 +75,6 @@ const transactionForm = reactive({
 const rules = reactive({
   realtyCert: [
     { required: true, message: '请输入房产证号', trigger: 'blur' }
-  ],
-  sellerCitizenID: [
-    { required: true, message: '请输入卖方身份证号', trigger: 'blur' },
-    { pattern: /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/, message: '请输入正确的身份证号', trigger: 'blur' }
   ],
   buyerCitizenID: [
     { required: true, message: '请输入买方身份证号', trigger: 'blur' },

@@ -190,7 +190,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
-import {queryRealtyList} from "@/views/realty/api.js";
+import {queryRealtyList} from "@/api/realty.js";
 
 const router = useRouter()
 const userStore = useUserStore()

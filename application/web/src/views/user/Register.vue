@@ -218,7 +218,7 @@
 import { ref, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { register } from './api.js'
+import { register } from '../../api/user.js'
 
 const router = useRouter()
 const formRef = ref(null)
