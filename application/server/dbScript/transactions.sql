@@ -1,0 +1,21 @@
+CREATE TABLE `transactions` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `transaction_uuid` varchar(36) NOT NULL COMMENT '交易唯一标识',
+  `realty_cert` varchar(50) NOT NULL COMMENT '不动产证号',
+  `seller_citizen_id_hash` varchar(64) NOT NULL COMMENT '卖方身份证号哈希',
+  `buyer_citizen_id_hash` varchar(64) NOT NULL COMMENT '买方身份证号哈希',
+  `contract_hash` varchar(64) NOT NULL COMMENT '合同哈希',
+  `price` decimal(18,2) NOT NULL COMMENT '交易价格',
+  `tax` decimal(18,2) NOT NULL COMMENT '税费',
+  `total_payment` decimal(18,2) DEFAULT '0.00' COMMENT '已支付金额',
+  `status` varchar(20) NOT NULL DEFAULT 'PENDING' COMMENT '状态: PENDING,APPROVED,REJECTED,COMPLETED',
+  `expected_end_time` datetime NOT NULL COMMENT '预计结束时间',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `completed_time` datetime DEFAULT NULL COMMENT '完成时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_transaction_uuid` (`transaction_uuid`),
+  KEY `idx_realty_cert` (`realty_cert`),
+  KEY `idx_seller` (`seller_citizen_id_hash`),
+  KEY `idx_buyer` (`buyer_citizen_id_hash`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='交易表';

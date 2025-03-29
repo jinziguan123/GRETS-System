@@ -114,27 +114,51 @@ func (s *realtyService) GetRealtyByID(id string) (*realtyDto.RealtyDTO, error) {
 	if err != nil {
 		return nil, fmt.Errorf("查询房产失败: %v", err)
 	}
+
+	// 调用链码查询房产信息
+	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return nil, fmt.Errorf("获取合约失败: %v", err)
+	}
+
+	resultBytes, err := contract.EvaluateTransaction(
+		"QueryRealty",
+		realty.RealtyCertHash,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询房产信息失败: %v", err))
+		return nil, fmt.Errorf("查询房产信息失败: %v", err)
+	}
+
+	var blockchainResult realtyDto.RealtyDTO
+	if err := json.Unmarshal(resultBytes, &blockchainResult); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析房产信息失败: %v", err))
+		return nil, fmt.Errorf("解析房产信息失败: %v", err)
+	}
+
 	return &realtyDto.RealtyDTO{
-		ID:               realty.ID,
-		RealtyCertHash:   realty.RealtyCertHash,
-		RealtyCert:       realty.RealtyCert,
-		RealtyType:       realty.RealtyType,
-		Price:            realty.Price,
-		Area:             realty.Area,
-		Province:         realty.Province,
-		City:             realty.City,
-		District:         realty.District,
-		Street:           realty.Street,
-		Community:        realty.Community,
-		Unit:             realty.Unit,
-		Floor:            realty.Floor,
-		Room:             realty.Room,
-		Status:           realty.Status,
-		Description:      realty.Description,
-		Images:           realty.Images,
-		HouseType:        realty.HouseType,
-		RegistrationDate: realty.CreateTime,
-		LastUpdateDate:   realty.UpdateTime,
+		ID:                        realty.ID,
+		RealtyCertHash:            realty.RealtyCertHash,
+		RealtyCert:                realty.RealtyCert,
+		RealtyType:                realty.RealtyType,
+		Price:                     realty.Price,
+		Area:                      realty.Area,
+		Province:                  realty.Province,
+		City:                      realty.City,
+		District:                  realty.District,
+		Street:                    realty.Street,
+		Community:                 realty.Community,
+		Unit:                      realty.Unit,
+		Floor:                     realty.Floor,
+		Room:                      realty.Room,
+		Status:                    realty.Status,
+		Description:               realty.Description,
+		Images:                    realty.Images,
+		HouseType:                 realty.HouseType,
+		RegistrationDate:          realty.CreateTime,
+		LastUpdateDate:            realty.UpdateTime,
+		CurrentOwnerCitizenIDHash: blockchainResult.CurrentOwnerCitizenIDHash,
 	}, nil
 }
 

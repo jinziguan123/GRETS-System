@@ -2,8 +2,8 @@
     {
       "name": "UserDataCollection",
       "policy": "OR('GovernmentMSP.member', 'InvestorMSP.member', 'BankMSP.member', 'AuditMSP.member', 'ThirdpartyMSP.member')",
-      "requiredPeerCount": 1,
-      "maxPeerCount": 3,
+      "requiredPeerCount": 4,
+      "maxPeerCount": 5,
       "blockToLive": 1000000,
       "memberOnlyRead": true,
       "memberOnlyWrite": true
@@ -21,7 +21,7 @@
       "name": "TransactionPrivateCollection",
       "policy": "OR('GovernmentMSP.member', 'InvestorMSP.member')",
       "requiredPeerCount": 1,
-      "maxPeerCount": 3,
+      "maxPeerCount": 2,
       "blockToLive": 0,
       "memberOnlyRead": true,
       "memberOnlyWrite": false
@@ -30,7 +30,7 @@
       "name": "RealEstatePrivateCollection",
       "policy": "OR('GovernmentMSP.member', 'InvestorMSP.member')",
       "requiredPeerCount": 1,
-      "maxPeerCount": 3,
+      "maxPeerCount": 2,
       "blockToLive": 0,
       "memberOnlyRead": true,
       "memberOnlyWrite": true

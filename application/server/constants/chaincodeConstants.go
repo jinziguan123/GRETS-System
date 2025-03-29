@@ -37,7 +37,7 @@ const (
 const (
 	GovernmentMSP = "GovernmentMSP" // 政府MSP ID
 	AuditMSP      = "AuditMSP"      // 审计机构MSP ID
-	ThirdPartyMSP = "ThirdPartyMSP" // 第三方机构MSP ID
+	ThirdpartyMSP = "ThirdpartyMSP" // 第三方机构MSP ID
 	BankMSP       = "BankMSP"       // 银行MSP ID
 	InvestorMSP   = "InvestorMSP"   // 投资者MSP ID
 )

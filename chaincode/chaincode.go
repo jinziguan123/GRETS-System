@@ -52,7 +52,7 @@ const (
 const (
 	GovernmentMSP = "GovernmentMSP" // 政府MSP ID
 	AuditMSP      = "AuditMSP"      // 审计机构MSP ID
-	ThirdPartyMSP = "ThirdPartyMSP" // 第三方机构MSP ID
+	ThirdpartyMSP = "ThirdpartyMSP" // 第三方机构MSP ID
 	BankMSP       = "BankMSP"       // 银行MSP ID
 	InvestorMSP   = "InvestorMSP"   // 投资者MSP ID
 )
@@ -598,6 +598,11 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 	currentOwnerCitizenIDHash string,
 	previousOwnersCitizenIDHashListJSON string,
 ) error {
+	fmt.Println("realtyCertHash:", realtyCertHash)
+	fmt.Println("realtyCert:", realtyCert)
+	fmt.Println("realtyType:", realtyType)
+	fmt.Println("currentOwnerCitizenIDHash:", currentOwnerCitizenIDHash)
+	fmt.Println("previousOwnersCitizenIDHashListJSON:", previousOwnersCitizenIDHashListJSON)
 	// 检查调用者身份
 	clientID, err := ctx.GetClientIdentity().GetID()
 	if err != nil {
@@ -703,6 +708,7 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 func (s *SmartContract) QueryRealty(ctx contractapi.TransactionContextInterface,
 	realtyCertHash string,
 ) (*Realty, error) {
+	fmt.Println("realtyCertHash:", realtyCertHash)
 
 	key, err := s.createCompositeKey(ctx, DocTypeRealEstate, []string{realtyCertHash}...)
 	if err != nil {
@@ -743,7 +749,7 @@ func (s *SmartContract) QueryRealty(ctx contractapi.TransactionContextInterface,
 		return nil, fmt.Errorf("[QueryRealty] 解析房产私钥失败: %v", err)
 	}
 
-	var realEstateMap map[string]interface{}
+	realEstateMap := make(map[string]interface{})
 	maps.Copy(realEstateMap, realEstatePublicMap)
 	maps.Copy(realEstateMap, realEstatePrivateMap)
 	realEstateJSON, err := json.Marshal(realEstateMap)
