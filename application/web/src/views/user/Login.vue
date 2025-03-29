@@ -87,6 +87,7 @@ import {useLocalStorage} from "@vueuse/core";
 const router = useRouter()
 const formRef = ref(null)
 const loading = ref(false)
+const userStore = useUserStore()
 
 // 登录表单数据
 const loginForm = reactive({
@@ -139,7 +140,7 @@ const handleLogin = () => {
               // 保存token
               localStorage.setItem('token', res.data.token)
               // 保存用户信息
-              localStorage.setItem('userInfo', JSON.stringify(res.data.user))
+              userStore.updateUserInfo(res.data.user)
               // 重定向到仪表盘或之前访问的页面
               const redirect = router.currentRoute.value.query.redirect || '/'
               router.push(redirect)

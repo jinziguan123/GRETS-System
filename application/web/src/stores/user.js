@@ -104,7 +104,7 @@ export const useUserStore = defineStore('user', () => {
   // 初始化axios头部
   const initAxiosHeaders = () => {
     if (token.value) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
+      axios.defaults.headers.common['Authorization'] = `${token.value}`
     }
   }
 
