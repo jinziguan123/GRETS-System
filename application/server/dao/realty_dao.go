@@ -63,15 +63,7 @@ func (dao *RealEstateDAO) GetRealEstateByID(id string) (*models.Realty, error) {
 
 // UpdateRealEstate 更新房产信息
 func (dao *RealEstateDAO) UpdateRealEstate(re *models.Realty) error {
-	// 开启事务
-	tx := dao.mysqlDB.Begin()
-	if tx.Error != nil {
-		return fmt.Errorf("开启事务失败: %v", tx.Error)
-	}
-
-	// 更新MySQL数据库
-	if err := tx.Save(re).Error; err != nil {
-		tx.Rollback()
+	if err := dao.mysqlDB.Save(re).Error; err != nil {
 		return fmt.Errorf("更新房产记录失败: %v", err)
 	}
 

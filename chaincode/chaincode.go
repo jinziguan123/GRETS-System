@@ -598,11 +598,6 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 	currentOwnerCitizenIDHash string,
 	previousOwnersCitizenIDHashListJSON string,
 ) error {
-	fmt.Println("realtyCertHash:", realtyCertHash)
-	fmt.Println("realtyCert:", realtyCert)
-	fmt.Println("realtyType:", realtyType)
-	fmt.Println("currentOwnerCitizenIDHash:", currentOwnerCitizenIDHash)
-	fmt.Println("previousOwnersCitizenIDHashListJSON:", previousOwnersCitizenIDHashListJSON)
 	// 检查调用者身份
 	clientID, err := ctx.GetClientIdentity().GetID()
 	if err != nil {
@@ -847,7 +842,7 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("[UpdateRealty] 解析房产私钥失败: %v", err)
 	}
 
-	modifyFields := []string{}
+	var modifyFields []string
 	// 更新信息
 	if realtyType != "" && realtyType != realEstatePublic.RealtyType {
 		realEstatePublic.RealtyType = realtyType

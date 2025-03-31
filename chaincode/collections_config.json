@@ -6,7 +6,7 @@
       "maxPeerCount": 5,
       "blockToLive": 1000000,
       "memberOnlyRead": true,
-      "memberOnlyWrite": true
+      "memberOnlyWrite": false
     },
     {
       "name": "MortgageDataCollection",
@@ -19,20 +19,20 @@
     },
     {
       "name": "TransactionPrivateCollection",
-      "policy": "OR('GovernmentMSP.member', 'InvestorMSP.member')",
+      "policy": "OR('GovernmentMSP.member', 'InvestorMSP.member', 'BankMSP.member', 'AuditMSP.member')",
       "requiredPeerCount": 1,
-      "maxPeerCount": 2,
+      "maxPeerCount": 4,
       "blockToLive": 0,
       "memberOnlyRead": true,
       "memberOnlyWrite": false
     },
     {
       "name": "RealEstatePrivateCollection",
-      "policy": "OR('GovernmentMSP.member', 'InvestorMSP.member')",
+      "policy": "OR('GovernmentMSP.member', 'InvestorMSP.member', 'BankMSP.member', 'AuditMSP.member')",
       "requiredPeerCount": 1,
-      "maxPeerCount": 2,
+      "maxPeerCount": 4,
       "blockToLive": 0,
       "memberOnlyRead": true,
-      "memberOnlyWrite": true
+      "memberOnlyWrite": false
     }
 ]

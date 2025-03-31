@@ -478,7 +478,7 @@ const formatDate = (date) => {
 
 // 生成地址信息
 const generateAddress = (item) => {
-  return `${item.province || ''}${item.province ? '省' : ''}${item.city || ''}${item.city ? '市' : ''}${item.district || ''}${item.district ? '区' : ''}${item.street || ''}${item.community || ''}${item.unit || ''}${item.unit ? '单元' : ''}${item.floor || ''}${item.floor ? '楼' : ''}${item.room || ''}`
+  return `${item.province || ''}${item.province ? '省' : ''}${item.city || ''}${item.city ? '市' : ''}${item.district || ''}${item.district ? '区' : ''}${item.street || ''}${item.community || ''}${item.unit || ''}${item.unit ? '单元' : ''}${item.floor || ''}${item.floor ? '楼' : ''}${item.room || ''}${item.room ? '号' : ''}`
 }
 
 // 获取房产详情
@@ -499,8 +499,9 @@ const fetchRealtyDetail = async () => {
           url
         }))
       } else {
+        console.log('no images found')
         // 如果没有图片，使用默认图片
-        realty.images = ['https://via.placeholder.com/600x400?text=暂无房产图片']
+        realty.images = ['/Users/jinziguan/Pictures/孤独摇滚.jpg']
       }
     } else {
       ElMessage.error(response.message || '获取房产详情失败')

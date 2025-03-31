@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"grets_server/constants"
 	"grets_server/dao"
@@ -11,6 +12,7 @@ import (
 	"grets_server/pkg/utils"
 	"time"
 
+	"github.com/hyperledger/fabric-gateway/pkg/client"
 	"gorm.io/gorm"
 )
 
@@ -45,7 +47,7 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 
 	// 查询房产是否存在
 	realty, err := s.realtyDAO.GetRealtyByRealtyCert(req.RealtyCert)
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("查询房产失败: %v", err)
 	}
 	if realty != nil {
@@ -67,10 +69,11 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 	}
 
 	// 调用智能合约创建房产
-	_, err = contract.SubmitTransaction("CreateRealty",
-		utils.GenerateHash(req.RealtyCert),            // realtyCertHash
-		req.RealtyCert,                                // realtyCert
-		req.RealtyType,                                // realtyType
+	_, err = contract.SubmitTransaction(
+		"CreateRealty",
+		utils.GenerateHash(req.RealtyCert), // realtyCertHash
+		req.RealtyCert,                     // realtyCert
+		req.RealtyType,                     // realtyType
 		utils.GenerateHash(req.CurrentOwnerCitizenID), // currentOwnerCitizenIDHash
 		string(previousOwnersJSON),                    // previousOwnersCitizenIDHashListJSON
 	)
@@ -272,7 +275,7 @@ func (s *realtyService) UpdateRealty(req *realtyDto.UpdateRealtyDTO) error {
 
 	// 查询房产是否存在
 	realty, err := s.realtyDAO.GetRealtyByRealtyCert(req.RealtyCert)
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return fmt.Errorf("查询房产失败: %v", err)
 	}
 	if realty == nil {
@@ -311,12 +314,17 @@ func (s *realtyService) UpdateRealty(req *realtyDto.UpdateRealtyDTO) error {
 			return fmt.Errorf("序列化历史所有者列表失败: %v", err)
 		}
 
-		_, err = contract.SubmitTransaction(
+		options := client.WithEndorsingOrganizations("GovernmentMSP", "InvestorMSP", "BankMSP", "AuditMSP")
+		_, err = contract.Submit(
 			"UpdateRealty",
-			utils.GenerateHash(req.RealtyCert),
-			req.RealtyType,
-			result.CurrentOwnerCitizenIDHash,
-			string(previousOwnersCitizenIDListJSON),
+			client.WithBytesArguments(
+				[]byte(utils.GenerateHash(req.RealtyCert)),
+				[]byte(req.RealtyType),
+				[]byte(req.Status),
+				[]byte(result.CurrentOwnerCitizenIDHash),
+				[]byte(string(previousOwnersCitizenIDListJSON)),
+			),
+			options,
 		)
 
 		if err != nil {
