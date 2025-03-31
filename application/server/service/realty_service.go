@@ -201,6 +201,9 @@ func (s *realtyService) QueryRealtyList(dto *realtyDto.QueryRealtyListDTO) ([]*r
 	if dto.Room != "" {
 		conditions["room"] = dto.Room
 	}
+	if dto.HouseType != "" {
+		conditions["house_type"] = dto.HouseType
+	}
 
 	// 价格范围条件
 	if dto.MinPrice > 0 || dto.MaxPrice > 0 {

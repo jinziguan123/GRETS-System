@@ -71,6 +71,7 @@ type QueryRealtyDTO struct {
 type QueryRealtyListDTO struct {
 	RealtyCert string  `json:"realtyCert"` // 不动产证号
 	RealtyType string  `json:"realtyType"` // 建筑类型
+	HouseType  string  `json:"houseType"`  // 户型
 	MinPrice   float64 `json:"minPrice"`   // 最小价格
 	MaxPrice   float64 `json:"maxPrice"`   // 最大价格
 	MinArea    float64 `json:"minArea"`    // 最小面积
