@@ -44,9 +44,9 @@ func NewContractService(contractDAO *dao.ContractDAO) ContractService {
 // CreateContract 创建合同
 func (s *contractService) CreateContract(dto *contractDto.CreateContractDTO) error {
 	contractUUID := uuid.New().String()
-	docHash := utils.GenerateRandomHashWithPrefix("contract")
+	docHash := utils.GenerateRandomHash()
 
-	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	contract, err := blockchain.GetContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
@@ -168,7 +168,7 @@ func (s *contractService) QueryContractList(dto *contractDto.QueryContractDTO) (
 // SignContract 签署合同
 func (s *contractService) SignContract(id string, req *contractDto.SignContractDTO) error {
 	// 调用链码签署合同
-	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	contract, err := blockchain.GetContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
@@ -189,7 +189,7 @@ func (s *contractService) SignContract(id string, req *contractDto.SignContractD
 // AuditContract 审核合同
 func (s *contractService) AuditContract(id string, req *contractDto.AuditContractDTO) error {
 	// 调用链码审核合同
-	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+	contract, err := blockchain.GetContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
@@ -235,7 +235,7 @@ func (s *contractService) UpdateContract(id string, dto *contractDto.UpdateContr
 
 	if dto.DocHash != "" || dto.Status != "" || dto.ContractType != "" {
 		// 调用链码更新合同
-		contract, err := blockchain.GetContract(constants.AgencyOrganization)
+		contract, err := blockchain.GetContract(constants.InvestorOrganization)
 		if err != nil {
 			utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 			return fmt.Errorf("获取合约失败: %v", err)

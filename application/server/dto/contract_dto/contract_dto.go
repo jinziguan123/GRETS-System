@@ -20,7 +20,7 @@ type ContractDTO struct {
 type CreateContractDTO struct {
 	ID               string `json:"id"`
 	Title            string `json:"title"`
-	DocHash          string `json:"doc_hash"`
+	DocHash          string `json:"docHash"`
 	Content          string `json:"content"`
 	ContractType     string `json:"contractType"`
 	CreatorCitizenID string `json:"creatorCitizenID"`
