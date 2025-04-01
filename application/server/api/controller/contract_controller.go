@@ -37,10 +37,7 @@ func (ctrl *ContractController) CreateContract(c *gin.Context) {
 	}
 
 	// 返回成功结果
-	utils.ResponseSuccess(c, gin.H{
-		"contractId": req.ID,
-		"message":    "合同创建成功",
-	})
+	utils.ResponseSuccess(c, "合同创建成功", nil)
 }
 
 // QueryContractList 查询合同列表
@@ -60,7 +57,7 @@ func (ctrl *ContractController) QueryContractList(c *gin.Context) {
 	}
 
 	// 返回查询结果
-	utils.ResponseSuccess(c, gin.H{
+	utils.ResponseSuccess(c, "查询合同列表成功", gin.H{
 		"contracts": contracts,
 		"total":     total,
 	})
@@ -83,7 +80,7 @@ func (ctrl *ContractController) GetContractByID(c *gin.Context) {
 	}
 
 	// 返回合同信息
-	utils.ResponseSuccess(c, contract)
+	utils.ResponseSuccess(c, "查询合同成功", contract)
 }
 
 // SignContract 签署合同
@@ -109,10 +106,7 @@ func (ctrl *ContractController) SignContract(c *gin.Context) {
 	}
 
 	// 返回成功结果
-	utils.ResponseSuccess(c, gin.H{
-		"contractId": id,
-		"message":    "合同签署成功",
-	})
+	utils.ResponseSuccess(c, "合同签署成功", nil)
 }
 
 // AuditContract 审核合同
@@ -138,10 +132,7 @@ func (ctrl *ContractController) AuditContract(c *gin.Context) {
 	}
 
 	// 返回成功结果
-	utils.ResponseSuccess(c, gin.H{
-		"contractId": id,
-		"message":    "合同审核完成",
-	})
+	utils.ResponseSuccess(c, "合同审核完成", nil)
 }
 
 // 创建全局合同控制器实例

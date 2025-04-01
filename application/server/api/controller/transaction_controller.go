@@ -43,7 +43,7 @@ func (c *TransactionController) CreateTransaction(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseSuccess(ctx, gin.H{})
+	utils.ResponseSuccess(ctx, "交易创建成功", nil)
 }
 
 // GetTransactionByID 根据ID获取交易
@@ -69,7 +69,7 @@ func (c *TransactionController) GetTransactionByID(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseSuccess(ctx, tx)
+	utils.ResponseSuccess(ctx, "查询交易成功", tx)
 }
 
 // QueryTransactionList 获取交易列表
@@ -88,7 +88,7 @@ func (c *TransactionController) QueryTransactionList(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseSuccess(ctx, gin.H{
+	utils.ResponseSuccess(ctx, "查询交易列表成功", gin.H{
 		"transactions": txList,
 		"total":        total,
 	})
@@ -183,7 +183,7 @@ func (c *TransactionController) CompleteTransaction(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseSuccess(ctx, nil)
+	utils.ResponseSuccess(ctx, "交易完成成功", nil)
 }
 
 // 创建全局交易控制器实例

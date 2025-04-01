@@ -18,7 +18,6 @@ type ContractDTO struct {
 
 // CreateContractDTO 合同请求和响应结构体
 type CreateContractDTO struct {
-	ID               string `json:"id"`
 	Title            string `json:"title"`
 	DocHash          string `json:"docHash"`
 	Content          string `json:"content"`

@@ -14,10 +14,10 @@ type Response struct {
 }
 
 // ResponseSuccess 返回成功响应
-func ResponseSuccess(c *gin.Context, data interface{}) {
+func ResponseSuccess(c *gin.Context, message string, data interface{}) {
 	c.JSON(http.StatusOK, Response{
-		Code:    200,
-		Message: "操作成功",
+		Code:    http.StatusOK,
+		Message: message,
 		Data:    data,
 	})
 }

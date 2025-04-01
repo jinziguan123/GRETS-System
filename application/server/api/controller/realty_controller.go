@@ -36,10 +36,7 @@ func (ctrl *RealtyController) CreateRealty(c *gin.Context) {
 	}
 
 	// 返回成功结果
-	utils.ResponseSuccess(c, gin.H{
-		"realtyCert": req.RealtyCert,
-		"message":    "房产创建成功",
-	})
+	utils.ResponseSuccess(c, "房产创建成功", nil)
 }
 
 // QueryRealtyList 查询房产列表
@@ -58,7 +55,7 @@ func (ctrl *RealtyController) QueryRealtyList(c *gin.Context) {
 	}
 
 	// 返回查询结果
-	utils.ResponseSuccess(c, gin.H{
+	utils.ResponseSuccess(c, "查询房产列表成功", gin.H{
 		"realtyList": realtyList,
 		"total":      total,
 	})
@@ -81,7 +78,7 @@ func (ctrl *RealtyController) GetRealtyByID(c *gin.Context) {
 	}
 
 	// 返回房产信息
-	utils.ResponseSuccess(c, realty)
+	utils.ResponseSuccess(c, "查询房产成功", realty)
 }
 
 // UpdateRealty 更新房产信息
@@ -107,10 +104,7 @@ func (ctrl *RealtyController) UpdateRealty(c *gin.Context) {
 	}
 
 	// 返回成功结果
-	utils.ResponseSuccess(c, gin.H{
-		"realtyId": id,
-		"message":  "房产更新成功",
-	})
+	utils.ResponseSuccess(c, "房产更新成功", nil)
 }
 
 // GlobalRealtyController 创建全局房产控制器实例

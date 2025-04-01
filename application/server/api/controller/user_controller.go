@@ -38,7 +38,7 @@ func (c *UserController) Register(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseSuccess(ctx, nil)
+	utils.ResponseSuccess(ctx, "用户注册成功", nil)
 }
 
 // Login 用户登录
@@ -58,7 +58,7 @@ func (c *UserController) Login(ctx *gin.Context) {
 	}
 
 	// 返回用户信息和token
-	utils.ResponseSuccess(ctx, gin.H{
+	utils.ResponseSuccess(ctx, "用户登录成功", gin.H{
 		"user":  userDTO,
 		"token": token,
 	})
@@ -82,7 +82,7 @@ func (c *UserController) GetUserList(ctx *gin.Context) {
 	}
 
 	// 返回用户列表和总数
-	utils.ResponseSuccess(ctx, gin.H{
+	utils.ResponseSuccess(ctx, "查询用户列表成功", gin.H{
 		"users": users,
 		"total": total,
 	})
@@ -104,7 +104,7 @@ func (c *UserController) GetUserRealty(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseSuccess(ctx, realty)
+	utils.ResponseSuccess(ctx, "查询用户房产成功", realty)
 }
 
 // GetUserByID 根据ID获取用户
@@ -123,7 +123,7 @@ func (c *UserController) GetUserByID(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseSuccess(ctx, user)
+	utils.ResponseSuccess(ctx, "查询用户成功", user)
 }
 
 // GetUserByCitizenID 根据身份证号获取用户
@@ -144,7 +144,7 @@ func (c *UserController) GetUserByCitizenID(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseSuccess(ctx, user)
+	utils.ResponseSuccess(ctx, "查询用户成功", user)
 }
 
 // UpdateUser 更新用户信息
@@ -170,7 +170,7 @@ func (c *UserController) UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseSuccess(ctx, nil)
+	utils.ResponseSuccess(ctx, "用户更新成功", nil)
 }
 
 // 创建全局用户控制器实例
