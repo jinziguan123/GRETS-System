@@ -190,7 +190,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
-import {queryRealtyList} from "@/api/realty.js";
+import {queryRealtyList} from "@/api/realty.ts";
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -291,67 +291,90 @@ const getHouseTypeText = (houseType) => {
 
 // 生成房产标题
 const generateTitle = (item) => {
+  if (!item) return '未知房产'
+  
   let title = ''
-  if (item.houseType) {
-    title += getHouseTypeText(item.houseType) + ' '
+  
+  // 房产类型
+  const typeMap = {
+    'HOUSE': '住宅',
+    'SHOP': '商铺',
+    'OFFICE': '办公',
+    'INDUSTRIAL': '工业',
+    'OTHER': '其他'
   }
-  if (item.area) {
-    title += item.area + '平米 '
+  
+  title += typeMap[item.realtyType] || '未知类型'
+  
+  // 户型信息
+  if (item.realtyType === 'HOUSE') {
+    title += ' - ' + getHouseTypeText(item.houseType)
   }
-  if (item.realtyType) {
-    const typeMap = {
-      'HOUSE': '住宅',
-      'SHOP': '商铺',
-      'OFFICE': '办公',
-      'INDUSTRIAL': '工业',
-      'OTHER': '其他'
-    }
-    title += typeMap[item.realtyType] || item.realtyType
+  
+  // 小区/位置信息
+  if (item.community) {
+    title += ' - ' + item.community
   }
-  return title || '未知房产'
+  
+  return title
 }
 
-// 生成地址信息
+// 生成房产地址
 const generateAddress = (item) => {
-  return `${item.province || ''}${item.province ? '省' : ''}${item.city || ''}${item.city ? '市' : ''}${item.district || ''}${item.district ? '区' : ''}${item.street || ''}${item.community || ''}${item.unit || ''}${item.unit ? '单元' : ''}${item.floor || ''}${item.floor ? '楼' : ''}${item.room || ''}`
+  if (!item) return '地址不详'
+  
+  const parts = []
+  if (item.province) parts.push(item.province)
+  if (item.city && item.city !== item.province) parts.push(item.city)
+  if (item.district && item.district !== item.city) parts.push(item.district)
+  if (item.street) parts.push(item.street)
+  if (item.community) parts.push(item.community)
+  if (item.unit) parts.push(item.unit + '单元')
+  if (item.floor) parts.push(item.floor + '层')
+  if (item.room) parts.push(item.room + '室')
+  
+  return parts.length > 0 ? parts.join(' ') : '地址不详'
 }
 
-// 房产列表
+// 房产列表数据
 const realtyList = ref([])
-const loading = ref(false)
+const loading = ref(true)
 const total = ref(0)
 
-// 获取房产列表
-const fetchRealtyList = async () => {
+// 获取房产列表数据
+const fetchData = async () => {
   loading.value = true
   try {
-    // 构建API请求参数
-    const params = {
+    const response = await queryRealtyList({
+      realtyCert: searchForm.realtyCert,
+      realtyType: searchForm.realtyType,
+      houseType: searchForm.houseType,
+      minPrice: searchForm.minPrice,
+      maxPrice: searchForm.maxPrice,
+      minArea: searchForm.minArea,
+      maxArea: searchForm.maxArea,
+      province: searchForm.province,
+      city: searchForm.city,
+      district: searchForm.district,
+      street: searchForm.street,
+      community: searchForm.community,
+      unit: searchForm.unit,
+      floor: searchForm.floor,
+      room: searchForm.room,
       pageSize: searchForm.pageSize,
       pageNumber: searchForm.pageNumber
+    })
+
+    // 适配新的API返回格式
+    if (response && response.realtyList) {
+      realtyList.value = response.realtyList
+      total.value = response.total || 0
+    } else {
+      realtyList.value = []
+      total.value = 0
     }
-
-    // 添加所有非空的查询条件
-    Object.keys(searchForm).forEach(key => {
-      if (key !== 'pageSize' && key !== 'pageNumber' && searchForm[key] !== '' && searchForm[key] !== null) {
-        params[key] = searchForm[key]
-      }
-    })
-
-    // 发送请求
-    await queryRealtyList(searchForm).then((res) => {
-      if (res.code === 200) {
-        realtyList.value = res.data.realtyList || []
-        total.value = res.data.total || 0
-      }else{
-        ElMessage.error(res.message || '获取房产列表失败')
-        realtyList.value = []
-        total.value = 0
-      }
-    })
   } catch (error) {
-    console.error('Failed to fetch realty list:', error)
-    ElMessage.error('获取房产列表失败')
+    ElMessage.error('获取房产列表失败，请稍后再试')
     realtyList.value = []
     total.value = 0
   } finally {
@@ -362,19 +385,19 @@ const fetchRealtyList = async () => {
 // 处理搜索
 const handleSearch = () => {
   searchForm.pageNumber = 1
-  fetchRealtyList()
+  fetchData()
 }
 
 // 改变每页显示数量
 const handleSizeChange = (size) => {
   searchForm.pageSize = size
-  fetchRealtyList()
+  fetchData()
 }
 
 // 改变页码
 const handleCurrentChange = (page) => {
   searchForm.pageNumber = page
-  fetchRealtyList()
+  fetchData()
 }
 
 // 查看详情
@@ -397,7 +420,7 @@ const editRealty = (item) => {
 
 // 初始加载
 onMounted(() => {
-  fetchRealtyList()
+  fetchData()
 })
 </script>
 

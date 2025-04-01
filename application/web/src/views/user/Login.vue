@@ -76,21 +76,34 @@
   </div>
 </template>
 
-<script setup>
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/user'
-import { ElMessage } from 'element-plus'
-import { login } from '@/api/user.js'
-import {useLocalStorage} from "@vueuse/core";
+<script setup lang="ts">
+import {useRouter} from 'vue-router'
+import {useUserStore} from '@/stores/user.ts'
+import type {FormInstance, FormRules} from 'element-plus'
+import {ElMessage} from 'element-plus'
+import {login} from '@/api/user'
+import type {LoginData} from '@/types/api'
+
+interface LoginResponse {
+  code: number
+  message: string
+  data: {
+    token: string
+    user?: any
+  }
+}
 
 const router = useRouter()
-const formRef = ref(null)
-const loading = ref(false)
+const formRef = ref<FormInstance | null>(null)
+const loading = ref<boolean>(false)
 const userStore = useUserStore()
 
 // 登录表单数据
-const loginForm = reactive({
+interface LoginForm extends LoginData {
+  remember: boolean
+}
+
+const loginForm = reactive<LoginForm>({
   citizenID: '',
   password: '',
   organization: '',
@@ -98,7 +111,12 @@ const loginForm = reactive({
 })
 
 // 可选组织列表
-const organizations = [
+interface Organization {
+  label: string
+  value: string
+}
+
+const organizations: Organization[] = [
   { label: '政府监管部门', value: 'government' },
   { label: '投资者/买家', value: 'investor' },
   { label: '银行机构', value: 'bank' },
@@ -107,10 +125,13 @@ const organizations = [
 ]
 
 // 表单验证规则
-const loginRules = reactive({
+const loginRules = reactive<FormRules>({
   citizenID: [
     { required: true, message: '请输入身份证号', trigger: 'blur' },
     { min: 18, max: 18, message: '身份证号长度应为18个字符', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' }
   ],
   organization: [
     { required: true, message: '请选择组织', trigger: 'change' }
@@ -122,32 +143,32 @@ if (localStorage.getItem('token') !== null) {
 }
 
 // 处理登录
-const handleLogin = () => {
+const handleLogin = (): void => {
   if (formRef.value) {
-    formRef.value.validate(async (valid) => {
+    formRef.value.validate(async (valid: boolean) => {
       if (valid) {
         loading.value = true
         try {
           // 调用登录接口
-          await login({
+          const res = await login({
             citizenID: loginForm.citizenID,
             password: loginForm.password,
-            organization: loginForm.organization,
-            remember: loginForm.remember
-          }).then(res => {
-            if (res.code === 200) {
-              ElMessage.success('登录成功')
-              // 保存token
-              localStorage.setItem('token', res.data.token)
-              // 保存用户信息
-              userStore.updateUserInfo(res.data.user)
-              // 重定向到仪表盘或之前访问的页面
-              const redirect = router.currentRoute.value.query.redirect || '/'
-              router.push(redirect)
-            }else{
-              ElMessage.error('用户不存在，请先注册')
-            }
-          })
+            organization: loginForm.organization
+          }) as unknown as LoginResponse
+
+          ElMessage.success('登录成功')
+          // 保存token
+          localStorage.setItem('token', res.token)
+          // 保存用户信息
+          if (res.user) {
+            userStore.updateUserInfo(res.user)
+          }
+          // 重定向到仪表盘或之前访问的页面
+          const redirect = router.currentRoute.value.query.redirect as string || '/'
+          router.push(redirect)
+        } catch (error) {
+          console.error('登录失败:', error)
+          ElMessage.error('登录失败，请检查网络连接')
         } finally {
           loading.value = false
         }
@@ -157,7 +178,7 @@ const handleLogin = () => {
 }
 
 // 忘记密码处理
-const forgotPassword = () => {
+const forgotPassword = (): void => {
   router.push('/forgot-password')
 }
 </script>

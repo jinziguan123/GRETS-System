@@ -1,40 +1,17 @@
 package service
 
 import (
-	"encoding/json"
 	"fmt"
 	"grets_server/constants"
 	"grets_server/dao"
+	"grets_server/db/models"
+	contractDto "grets_server/dto/contract_dto"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
+	"time"
+
+	"github.com/google/uuid"
 )
-
-// 合同请求和响应结构体
-type CreateContractDTO struct {
-	ID            string `json:"id"`
-	TransactionID string `json:"transactionId"`
-	Content       string `json:"content"`
-	ContractType  string `json:"contractType"`
-	TemplateID    string `json:"templateId"`
-}
-
-type QueryContractDTO struct {
-	TransactionID string `json:"transactionId"`
-	Status        string `json:"status"`
-	PageSize      int    `json:"pageSize"`
-	PageNumber    int    `json:"pageNumber"`
-}
-
-type SignContractDTO struct {
-	SignerType string `json:"signerType"`
-}
-
-type AuditContractDTO struct {
-	Result               string `json:"result"`               // 审核结果：approved/rejected/needRevision
-	Comments             string `json:"comments"`             // 审核意见
-	RevisionRequirements string `json:"revisionRequirements"` // 修改要求
-	RejectionReason      string `json:"rejectionReason"`      // 拒绝理由
-}
 
 // 全局合同服务实例
 var GlobalContractService ContractService
@@ -46,11 +23,12 @@ func InitContractService(contractDAO *dao.ContractDAO) {
 
 // ContractService 合同服务接口
 type ContractService interface {
-	CreateContract(req *CreateContractDTO) error
-	GetContractByID(id string) (map[string]interface{}, error)
-	QueryContractList(query *QueryContractDTO) ([]map[string]interface{}, int, error)
-	SignContract(id string, req *SignContractDTO) error
-	AuditContract(id string, req *AuditContractDTO) error
+	CreateContract(req *contractDto.CreateContractDTO) error
+	GetContractByID(id string) (*contractDto.ContractDTO, error)
+	QueryContractList(query *contractDto.QueryContractDTO) ([]*contractDto.ContractDTO, int, error)
+	SignContract(id string, req *contractDto.SignContractDTO) error
+	AuditContract(id string, req *contractDto.AuditContractDTO) error
+	UpdateContract(id string, req *contractDto.UpdateContractDTO) error
 }
 
 // contractService 合同服务实现
@@ -64,19 +42,22 @@ func NewContractService(contractDAO *dao.ContractDAO) ContractService {
 }
 
 // CreateContract 创建合同
-func (s *contractService) CreateContract(req *CreateContractDTO) error {
+func (s *contractService) CreateContract(dto *contractDto.CreateContractDTO) error {
+	contractUUID := uuid.New().String()
+	docHash := utils.GenerateRandomHashWithPrefix("contract")
+
 	contract, err := blockchain.GetContract(constants.AgencyOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
 	// 调用链码创建合同
-	_, err = contract.SubmitTransaction("CreateContract",
-		req.ID,
-		req.TransactionID,
-		req.Content,
-		req.ContractType,
-		req.TemplateID,
+	_, err = contract.SubmitTransaction(
+		"CreateContract",
+		contractUUID,
+		docHash,
+		dto.ContractType,
+		utils.GenerateHash(dto.CreatorCitizenID),
 	)
 
 	if err != nil {
@@ -84,86 +65,108 @@ func (s *contractService) CreateContract(req *CreateContractDTO) error {
 		return fmt.Errorf("创建合同失败: %v", err)
 	}
 
+	// 将合同信息保存到数据库
+	contractModel := &models.Contract{
+		ContractUUID:         contractUUID,
+		Title:                dto.Title,
+		DocHash:              docHash,
+		ContractType:         dto.ContractType,
+		Status:               constants.ContractStatusNormal,
+		Content:              dto.Content,
+		CreatorCitizenIDHash: utils.GenerateHash(dto.CreatorCitizenID),
+		CreateTime:           time.Now(),
+		UpdateTime:           time.Now(),
+	}
+
+	err = s.contractDAO.CreateContract(contractModel)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("保存合同信息失败: %v", err))
+		return fmt.Errorf("保存合同信息失败: %v", err)
+	}
+
 	return nil
 }
 
 // GetContractByID 根据ID获取合同信息
-func (s *contractService) GetContractByID(id string) (map[string]interface{}, error) {
-	// 调用链码查询合同信息
-	contract, err := blockchain.GetContract(constants.AgencyOrganization)
+func (s *contractService) GetContractByID(id string) (*contractDto.ContractDTO, error) {
+	// 从数据库中获取合同信息
+	contract, err := s.contractDAO.GetContractByID(id)
 	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return nil, fmt.Errorf("获取合约失败: %v", err)
-	}
-	resultBytes, err := contract.SubmitTransaction("QueryContract", id)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("查询合同信息失败: %v", err))
-		return nil, fmt.Errorf("查询合同信息失败: %v", err)
+		utils.Log.Error(fmt.Sprintf("获取合同信息失败: %v", err))
+		return nil, fmt.Errorf("获取合同信息失败: %v", err)
 	}
 
-	// 解析返回结果
-	var result map[string]interface{}
-	if err := json.Unmarshal(resultBytes, &result); err != nil {
-		utils.Log.Error(fmt.Sprintf("解析合同信息失败: %v", err))
-		return nil, fmt.Errorf("解析合同信息失败: %v", err)
-	}
-
-	return result, nil
+	return &contractDto.ContractDTO{
+		ID:                   contract.ID,
+		Title:                contract.Title,
+		DocHash:              contract.DocHash,
+		ContractType:         contract.ContractType,
+		CreatorCitizenIDHash: contract.CreatorCitizenIDHash,
+		CreateTime:           contract.CreateTime,
+		UpdateTime:           contract.UpdateTime,
+	}, nil
 }
 
 // QueryContractList 查询合同列表
-func (s *contractService) QueryContractList(query *QueryContractDTO) ([]map[string]interface{}, int, error) {
-	// 构建查询参数
-	queryParams := []string{
-		query.TransactionID,
-		query.Status,
-		fmt.Sprintf("%d", query.PageSize),
-		fmt.Sprintf("%d", query.PageNumber),
+func (s *contractService) QueryContractList(dto *contractDto.QueryContractDTO) ([]*contractDto.ContractDTO, int, error) {
+	// 构建查询条件
+	conditions := make(map[string]interface{})
+
+	// 添加字符串条件
+	if dto.ContractUUID != "" {
+		conditions["contract_uuid"] = dto.ContractUUID
+	}
+	if dto.DocHash != "" {
+		conditions["doc_hash"] = dto.DocHash
+	}
+	if dto.ContractType != "" {
+		conditions["contract_type"] = dto.ContractType
+	}
+	if dto.CreatorCitizenID != "" {
+		conditions["creator_citizen_id_hash"] = utils.GenerateHash(dto.CreatorCitizenID)
+	}
+	if dto.Status != "" {
+		conditions["status"] = dto.Status
 	}
 
-	// 调用链码查询合同列表
-	contract, err := blockchain.GetContract(constants.AgencyOrganization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return nil, 0, fmt.Errorf("获取合约失败: %v", err)
+	// 设置默认分页参数
+	pageSize := 10
+	pageNumber := 1
+	if dto.PageSize > 0 {
+		pageSize = dto.PageSize
 	}
-	resultBytes, err := contract.SubmitTransaction("QueryContractList", queryParams...)
+	if dto.PageNumber > 0 {
+		pageNumber = dto.PageNumber
+	}
+
+	// 查询数据库
+	contractList, total, err := s.contractDAO.QueryContractsWithPagination(conditions, pageSize, pageNumber)
 	if err != nil {
-		utils.Log.Error(fmt.Sprintf("查询合同列表失败: %v", err))
 		return nil, 0, fmt.Errorf("查询合同列表失败: %v", err)
 	}
 
-	// 解析返回结果
-	var result map[string]interface{}
-	if err := json.Unmarshal(resultBytes, &result); err != nil {
-		utils.Log.Error(fmt.Sprintf("解析合同列表失败: %v", err))
-		return nil, 0, fmt.Errorf("解析合同列表失败: %v", err)
-	}
-
-	// 提取合同列表和总数
-	records, ok := result["records"].([]interface{})
-	if !ok {
-		return []map[string]interface{}{}, 0, nil
-	}
-
-	var contractList []map[string]interface{}
-	for _, record := range records {
-		if contractMap, ok := record.(map[string]interface{}); ok {
-			contractList = append(contractList, contractMap)
+	// 将数据库模型转换为DTO
+	result := make([]*contractDto.ContractDTO, 0, len(contractList))
+	for _, contract := range contractList {
+		dto := &contractDto.ContractDTO{
+			ID:                   contract.ID,
+			ContractUUID:         contract.ContractUUID,
+			Title:                contract.Title,
+			Content:              contract.Content,
+			DocHash:              contract.DocHash,
+			ContractType:         contract.ContractType,
+			CreatorCitizenIDHash: contract.CreatorCitizenIDHash,
+			CreateTime:           contract.CreateTime,
+			UpdateTime:           contract.UpdateTime,
 		}
+		result = append(result, dto)
 	}
 
-	// 获取总记录数
-	totalCount := 0
-	if count, ok := result["recordsCount"].(float64); ok {
-		totalCount = int(count)
-	}
-
-	return contractList, totalCount, nil
+	return result, int(total), nil
 }
 
 // SignContract 签署合同
-func (s *contractService) SignContract(id string, req *SignContractDTO) error {
+func (s *contractService) SignContract(id string, req *contractDto.SignContractDTO) error {
 	// 调用链码签署合同
 	contract, err := blockchain.GetContract(constants.AgencyOrganization)
 	if err != nil {
@@ -184,7 +187,7 @@ func (s *contractService) SignContract(id string, req *SignContractDTO) error {
 }
 
 // AuditContract 审核合同
-func (s *contractService) AuditContract(id string, req *AuditContractDTO) error {
+func (s *contractService) AuditContract(id string, req *contractDto.AuditContractDTO) error {
 	// 调用链码审核合同
 	contract, err := blockchain.GetContract(constants.AgencyOrganization)
 	if err != nil {
@@ -204,6 +207,77 @@ func (s *contractService) AuditContract(id string, req *AuditContractDTO) error 
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("审核合同失败: %v", err))
 		return fmt.Errorf("审核合同失败: %v", err)
+	}
+
+	return nil
+}
+
+// UpdateContract 更新合同
+func (s *contractService) UpdateContract(id string, dto *contractDto.UpdateContractDTO) error {
+
+	// 先查询合同
+	contractModelList, count, err := s.contractDAO.QueryContractsWithPagination(
+		map[string]interface{}{
+			"contract_uuid": dto.ContractUUID,
+		},
+		1,
+		1,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合同失败: %v", err))
+		return fmt.Errorf("获取合同失败: %v", err)
+	}
+
+	if count == 0 {
+		utils.Log.Error(fmt.Sprintf("合同不存在: %v", dto.ContractUUID))
+		return fmt.Errorf("合同不存在: %v", dto.ContractUUID)
+	}
+
+	if dto.DocHash != "" || dto.Status != "" || dto.ContractType != "" {
+		// 调用链码更新合同
+		contract, err := blockchain.GetContract(constants.AgencyOrganization)
+		if err != nil {
+			utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+			return fmt.Errorf("获取合约失败: %v", err)
+		}
+
+		// 构建更新参数
+		_, err = contract.SubmitTransaction(
+			"UpdateContract",
+			dto.ContractUUID,
+			dto.DocHash,
+			dto.ContractType,
+			dto.Status,
+		)
+
+		if err != nil {
+			utils.Log.Error(fmt.Sprintf("更新合同失败: %v", err))
+			return fmt.Errorf("更新合同失败: %v", err)
+		}
+	}
+
+	// 更新数据库
+	contractModel := contractModelList[0]
+	if dto.DocHash != "" {
+		contractModel.DocHash = dto.DocHash
+	}
+	if dto.Status != "" {
+		contractModel.Status = dto.Status
+	}
+	if dto.Content != "" {
+		contractModel.Content = dto.Content
+	}
+	if dto.Title != "" {
+		contractModel.Title = dto.Title
+	}
+	if dto.ContractType != "" {
+		contractModel.ContractType = dto.ContractType
+	}
+
+	err = s.contractDAO.UpdateContract(contractModel)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("更新合同失败: %v", err))
+		return fmt.Errorf("更新合同失败: %v", err)
 	}
 
 	return nil

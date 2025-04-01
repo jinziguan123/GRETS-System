@@ -2,14 +2,14 @@ package controller
 
 import (
 	"grets_server/dao"
+	contractDto "grets_server/dto/contract_dto"
 	"grets_server/pkg/utils"
 	"grets_server/service"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-// 合同控制器结构体
+// ContractController 合同控制器结构体
 type ContractController struct {
 	contractService service.ContractService
 }
@@ -24,7 +24,7 @@ func NewContractController() *ContractController {
 // CreateContract 创建合同
 func (ctrl *ContractController) CreateContract(c *gin.Context) {
 	// 解析请求参数
-	var req service.CreateContractDTO
+	var req contractDto.CreateContractDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ResponseBadRequest(c, "无效的请求参数")
 		return
@@ -46,23 +46,14 @@ func (ctrl *ContractController) CreateContract(c *gin.Context) {
 // QueryContractList 查询合同列表
 func (ctrl *ContractController) QueryContractList(c *gin.Context) {
 	// 解析查询参数
-	query := &service.QueryContractDTO{
-		TransactionID: c.Query("transactionId"),
-		Status:        c.Query("status"),
-		PageSize:      10,
-		PageNumber:    1,
-	}
-
-	// 解析数值类型参数
-	if pageSize, err := strconv.Atoi(c.Query("pageSize")); err == nil && pageSize > 0 {
-		query.PageSize = pageSize
-	}
-	if pageNum, err := strconv.Atoi(c.Query("pageNumber")); err == nil && pageNum > 0 {
-		query.PageNumber = pageNum
+	var req contractDto.QueryContractDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ResponseBadRequest(c, "无效的请求参数")
+		return
 	}
 
 	// 调用服务查询合同列表
-	contracts, total, err := ctrl.contractService.QueryContractList(query)
+	contracts, total, err := ctrl.contractService.QueryContractList(&req)
 	if err != nil {
 		utils.ResponseInternalServerError(c, err.Error())
 		return
@@ -70,10 +61,8 @@ func (ctrl *ContractController) QueryContractList(c *gin.Context) {
 
 	// 返回查询结果
 	utils.ResponseSuccess(c, gin.H{
-		"items": contracts,
-		"total": total,
-		"page":  query.PageNumber,
-		"size":  query.PageSize,
+		"contracts": contracts,
+		"total":     total,
 	})
 }
 
@@ -107,7 +96,7 @@ func (ctrl *ContractController) SignContract(c *gin.Context) {
 	}
 
 	// 解析请求参数
-	var req service.SignContractDTO
+	var req contractDto.SignContractDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ResponseBadRequest(c, "无效的请求参数")
 		return
@@ -136,7 +125,7 @@ func (ctrl *ContractController) AuditContract(c *gin.Context) {
 	}
 
 	// 解析请求参数
-	var req service.AuditContractDTO
+	var req contractDto.AuditContractDTO
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ResponseBadRequest(c, "无效的请求参数")
 		return

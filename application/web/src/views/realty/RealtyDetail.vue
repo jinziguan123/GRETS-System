@@ -100,7 +100,7 @@
           <div class="card-title">其他信息</div>
           
           <div class="other-info-item">
-            <div class="other-info-label">当前所有者ID</div>
+            <div class="other-info-label">当前所有者ID哈希</div>
             <div class="other-info-value">{{ realty.currentOwnerCitizenIDHash || '未知' }}</div>
           </div>
           
@@ -290,8 +290,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Document } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
-import { getRealtyByID, updateRealty, queryTransactionList } from "@/api/realty.js"
+import { getRealtyDetail, updateRealty } from "@/api/realty.js"
 import CryptoJS from 'crypto-js'
+import {queryTransactionList} from "@/api/transaction.js";
 
 const router = useRouter()
 const route = useRoute()
@@ -485,26 +486,21 @@ const generateAddress = (item) => {
 const fetchRealtyDetail = async () => {
   loading.value = true
   try {
-    const response = await getRealtyByID(route.params.id)
-    if (response.code === 200) {
-      Object.assign(realty, response.data)
-      
-      // 更新交易查询条件中的房产证号
-      transactionQuery.realtyCert = realty.realtyCert
-      
-      // 初始化文件列表
-      if (realty.images && realty.images.length > 0) {
-        fileList.value = realty.images.map((url, index) => ({
-          name: `image-${index + 1}`,
-          url
-        }))
-      } else {
-        console.log('no images found')
-        // 如果没有图片，使用默认图片
-        realty.images = ['/Users/jinziguan/Pictures/孤独摇滚.jpg']
-      }
+    const response = await getRealtyDetail(route.params.id)
+    Object.assign(realty, response)
+
+    // 更新交易查询条件中的房产证号
+    transactionQuery.realtyCert = realty.realtyCert
+
+    // 初始化文件列表
+    if (realty.images && realty.images.length > 0) {
+      fileList.value = realty.images.map((url, index) => ({
+        name: `image-${index + 1}`,
+        url
+      }))
     } else {
-      ElMessage.error(response.message || '获取房产详情失败')
+      // 如果没有图片，使用默认图片
+      realty.images = ['/Users/jinziguan/Pictures/孤独摇滚.jpg']
     }
   } catch (error) {
     console.error('获取房产详情失败:', error)
@@ -532,15 +528,9 @@ const fetchTransactionHistory = async () => {
       }
     })
     
-    const response = await queryTransactionList(params)
-    if (response.code === 200) {
-      transactions.value = response.data.list || []
-      transactionTotal.value = response.data.total || 0
-    } else {
-      ElMessage.error(response.message || '获取交易历史失败')
-      transactions.value = []
-      transactionTotal.value = 0
-    }
+    const response = await queryTransactionList(transactionQuery)
+    transactions.value = response.transactions || []
+    transactionTotal.value = response.total || 0
   } catch (error) {
     console.error('获取交易历史失败:', error)
     ElMessage.error('获取交易历史失败')
@@ -624,17 +614,11 @@ const submitEditForm = async () => {
           }
         }
         
-        const response = await updateRealty(realty.id, updateData)
-        if (response.code === 200) {
-          ElMessage.success('更新房产信息成功')
-          editDialogVisible.value = false
-          // 刷新房产详情
-          fetchRealtyDetail()
-        } else {
-          ElMessage.error(response.message || '更新房产信息失败')
-        }
+        await updateRealty(realty.id, updateData)
+        ElMessage.success('更新房产信息成功')
+        await fetchRealtyDetail()
+        editDialogVisible.value = false
       } catch (error) {
-        console.error('更新房产信息失败:', error)
         ElMessage.error(error.response?.data?.message || '更新房产信息失败')
       } finally {
         submitLoading.value = false

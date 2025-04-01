@@ -2,7 +2,7 @@ package realty_dto
 
 import "time"
 
-// RealtyDTO
+// RealtyDTO 房产基本DTO
 type RealtyDTO struct {
 	ID                              int64     `json:"id"`                              // 房产ID
 	RealtyCertHash                  string    `json:"realtyCertHash"`                  // 不动产证ID
@@ -19,12 +19,13 @@ type RealtyDTO struct {
 	Floor                           string    `json:"floor"`                           // 楼层
 	Room                            string    `json:"room"`                            // 房号
 	HouseType                       string    `json:"houseType"`                       // 户型
+	IsNewHouse                      bool      `json:"isNewHouse"`                      // 是否为新房
 	Images                          []string  `json:"images"`                          // 图片链接JSON数组
 	CurrentOwnerCitizenIDHash       string    `json:"currentOwnerCitizenIDHash"`       // 当前所有者
 	PreviousOwnersCitizenIDHashList []string  `json:"previousOwnersCitizenIDHashList"` // 历史所有者
-	RegistrationDate                time.Time `json:"registrationDate"`                // 登记日期
+	CreateTime                      time.Time `json:"createTime"`                      // 创建时间
 	Status                          string    `json:"status"`                          // 房产当前状态
-	LastUpdateDate                  time.Time `json:"lastUpdateDate"`                  // 最后更新时间
+	LastUpdateTime                  time.Time `json:"lastUpdateTime"`                  // 最后更新时间
 	Description                     string    `json:"description"`                     // 房产描述
 }
 
@@ -84,6 +85,7 @@ type QueryRealtyListDTO struct {
 	Unit       string  `json:"unit"`       // 单元
 	Floor      string  `json:"floor"`      // 楼层
 	Room       string  `json:"room"`       // 房号
+	IsNewHouse bool    `json:"isNewHouse"` // 是否为新房
 	PageSize   int     `json:"pageSize"`   // 每页条数
 	PageNumber int     `json:"pageNumber"` // 页码
 }

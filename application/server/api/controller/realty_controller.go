@@ -113,15 +113,15 @@ func (ctrl *RealtyController) UpdateRealty(c *gin.Context) {
 	})
 }
 
-// 创建全局房产控制器实例
+// GlobalRealtyController 创建全局房产控制器实例
 var GlobalRealtyController *RealtyController
 
-// 初始化房产控制器
+// InitRealtyController 初始化房产控制器
 func InitRealtyController() {
 	GlobalRealtyController = NewRealtyController(service.GlobalRealtyService)
 }
 
-// 为兼容现有路由，提供这些函数
+// CreateRealty 为兼容现有路由，提供这些函数
 func CreateRealty(c *gin.Context) {
 	GlobalRealtyController.CreateRealty(c)
 }

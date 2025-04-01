@@ -52,9 +52,9 @@
           </el-col>
         </el-row>
 
-        <el-form-item label="当前所有者" prop="currentOwnerCitizenID">
-          <el-input v-model="realtyForm.currentOwnerCitizenID" placeholder="请输入当前所有者身份证号"></el-input>
-        </el-form-item>
+<!--        <el-form-item label="当前所有者" prop="currentOwnerCitizenID">-->
+<!--          <el-input v-model="realtyForm.currentOwnerCitizenID" placeholder="请输入当前所有者身份证号"></el-input>-->
+<!--        </el-form-item>-->
 
         <el-form-item label="状态" prop="status">
           <el-select v-model="realtyForm.status" placeholder="请选择房产状态" style="width: 100%">
@@ -282,7 +282,7 @@ const submitForm = async () => {
           realtyType: realtyForm.realtyType,
           price: realtyForm.price,
           area: realtyForm.area,
-          currentOwnerCitizenID: realtyForm.currentOwnerCitizenID,
+          currentOwnerCitizenID: 'GovernmentDefault',
           status: realtyForm.status,
           houseType: realtyForm.houseType,
           province: realtyForm.province,
@@ -294,21 +294,15 @@ const submitForm = async () => {
           floor: realtyForm.floor,
           room: realtyForm.room,
           description: realtyForm.description,
+          isNewHouse: true,
           // 默认传递空数组
           images: [],
           previousOwnersCitizenIDList: []
         }
-
-        await createRealty(requestData).then(res => {
-          if (res.code === 200) {
-            ElMessage.success('房产创建成功')
-            router.push('/realty')
-          } else {
-            ElMessage.error(res.message || '创建房产失败')
-          }
-        })
+        await createRealty(requestData)
+        ElMessage.success('房产创建成功')
+        router.push('/realty')
       } catch (error) {
-        console.error('创建房产失败:', error)
         ElMessage.error(error.response?.data?.message || '创建房产失败')
       } finally {
         loading.value = false

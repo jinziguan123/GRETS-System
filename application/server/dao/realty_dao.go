@@ -151,6 +151,8 @@ func (dao *RealEstateDAO) QueryRealEstatesWithPagination(
 				query = query.Where("floor = ?", v)
 			} else if field == "room" {
 				query = query.Where("room = ?", v)
+			} else if field == "house_type" {
+				query = query.Where("house_type = ?", v)
 			}
 		} else if v, ok := value.(map[string]float64); ok {
 			// 范围查询条件
@@ -167,6 +169,12 @@ func (dao *RealEstateDAO) QueryRealEstatesWithPagination(
 				}
 				if max, exists := v["max"]; exists && max > 0 {
 					query = query.Where("area <= ?", max)
+				}
+			}
+		} else if v, ok := value.(map[string]bool); ok {
+			if field == "is_new_house" {
+				if isNewHouse, exists := v["is_new_house"]; exists {
+					query = query.Where("is_new_house is", isNewHouse)
 				}
 			}
 		}

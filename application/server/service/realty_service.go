@@ -102,6 +102,7 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 		Unit:           req.Unit,
 		Floor:          req.Floor,
 		Room:           req.Room,
+		IsNewHouse:     true,
 		CreateTime:     time.Now(),
 		UpdateTime:     time.Now(),
 	}
@@ -159,8 +160,8 @@ func (s *realtyService) GetRealtyByID(id string) (*realtyDto.RealtyDTO, error) {
 		Description:               realty.Description,
 		Images:                    realty.Images,
 		HouseType:                 realty.HouseType,
-		RegistrationDate:          realty.CreateTime,
-		LastUpdateDate:            realty.UpdateTime,
+		CreateTime:                realty.CreateTime,
+		LastUpdateTime:            realty.UpdateTime,
 		CurrentOwnerCitizenIDHash: blockchainResult.CurrentOwnerCitizenIDHash,
 	}, nil
 }
@@ -229,6 +230,11 @@ func (s *realtyService) QueryRealtyList(dto *realtyDto.QueryRealtyListDTO) ([]*r
 		conditions["area_range"] = areaRange
 	}
 
+	// 是否为新房条件
+	if dto.IsNewHouse {
+		conditions["is_new_house"] = dto.IsNewHouse
+	}
+
 	// 设置默认分页参数
 	pageSize := 10
 	pageNumber := 1
@@ -249,23 +255,23 @@ func (s *realtyService) QueryRealtyList(dto *realtyDto.QueryRealtyListDTO) ([]*r
 	result := make([]*realtyDto.RealtyDTO, 0, len(realtyList))
 	for _, realty := range realtyList {
 		dto := &realtyDto.RealtyDTO{
-			ID:               realty.ID,
-			RealtyType:       realty.RealtyType,
-			Price:            realty.Price,
-			Area:             realty.Area,
-			Province:         realty.Province,
-			City:             realty.City,
-			District:         realty.District,
-			Street:           realty.Street,
-			Community:        realty.Community,
-			Unit:             realty.Unit,
-			Floor:            realty.Floor,
-			Room:             realty.Room,
-			Status:           realty.Status,
-			HouseType:        realty.HouseType,
-			Images:           realty.Images,
-			RegistrationDate: realty.CreateTime,
-			LastUpdateDate:   realty.UpdateTime,
+			ID:             realty.ID,
+			RealtyType:     realty.RealtyType,
+			Price:          realty.Price,
+			Area:           realty.Area,
+			Province:       realty.Province,
+			City:           realty.City,
+			District:       realty.District,
+			Street:         realty.Street,
+			Community:      realty.Community,
+			Unit:           realty.Unit,
+			Floor:          realty.Floor,
+			Room:           realty.Room,
+			Status:         realty.Status,
+			HouseType:      realty.HouseType,
+			Images:         realty.Images,
+			CreateTime:     realty.CreateTime,
+			LastUpdateTime: realty.UpdateTime,
 		}
 		result = append(result, dto)
 	}

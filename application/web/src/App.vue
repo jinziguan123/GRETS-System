@@ -4,7 +4,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 // App.vue 是应用的根组件，只需要包含路由视图
 </script>
 

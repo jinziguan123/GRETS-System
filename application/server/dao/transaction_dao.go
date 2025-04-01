@@ -5,6 +5,7 @@ import (
 	"grets_server/constants"
 	"grets_server/db"
 	"grets_server/db/models"
+	"grets_server/pkg/utils"
 	"time"
 
 	"gorm.io/gorm"
@@ -33,7 +34,7 @@ func (dao *TransactionDAO) QueryTransactionList(
 			} else if field == "seller_citizen_id" {
 				query = query.Where("seller_citizen_id = ?", v)
 			} else if field == "realty_cert" {
-				query = query.Where("realty_cert = ?", v)
+				query = query.Where("realty_cert_hash = ?", utils.GenerateHash(v))
 			} else if field == "status" {
 				query = query.Where("status = ?", v)
 			}

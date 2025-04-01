@@ -31,7 +31,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 // 认证布局组件，用于登录、注册等页面
 </script>
 

@@ -117,10 +117,19 @@
           </el-button>
         </div>
         <div class="header-right">
-          <span class="organization-badge" :class="organizationClass">{{ organizationName }}</span>
+          <div class="user-info">
+            <el-tag
+                class="organization-tag"
+                :type="getOrganizationTagType(userOrganization)"
+                size="small"
+            >
+              {{ organizationName }}
+            </el-tag>
+            <span class="username" style="margin-left: 5px">{{ username }}</span>
+          </div>
           <el-dropdown trigger="click">
             <span class="user-dropdown">
-              {{ username }}
+              <el-avatar :size="32" :icon="UserFilled"></el-avatar>
               <el-icon class="el-icon--right"><arrow-down /></el-icon>
             </span>
             <template #dropdown>
@@ -142,7 +151,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
@@ -158,7 +167,8 @@ import {
   Setting, 
   Monitor,
   ArrowDown,
-  DataAnalysis
+  DataAnalysis,
+  UserFilled
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -166,12 +176,12 @@ const router = useRouter()
 const userStore = useUserStore()
 
 // 用户信息
-const username = computed(() => userStore.username)
-const userOrganization = computed(() => userStore.organization || '')
+const username = computed(() => userStore.user?.name || '')
+const userOrganization = computed(() => userStore.user?.organization || '')
 
 // 组织名称和样式
 const organizationName = computed(() => {
-  const orgMap = {
+  const orgMap: Record<string, string> = {
     'administrator': '系统管理员',
     'government': '政府监管部门',
     'investor': '投资者/买家',
@@ -186,8 +196,8 @@ const organizationClass = computed(() => {
 })
 
 // 侧边栏折叠状态
-const isCollapse = ref(false)
-const toggleSidebar = () => {
+const isCollapse = ref<boolean>(false)
+const toggleSidebar = (): void => {
   isCollapse.value = !isCollapse.value
 }
 
@@ -197,7 +207,7 @@ const activeMenu = computed(() => {
 })
 
 // 组织权限检查
-const hasOrganization = (orgs) => {
+const hasOrganization = (orgs: string | string[]): boolean => {
   if (!orgs) return true
   if (typeof orgs === 'string') {
     return userOrganization.value === orgs
@@ -206,8 +216,22 @@ const hasOrganization = (orgs) => {
 }
 
 // 退出登录
-const logout = () => {
+const logout = (): void => {
   userStore.logout()
+  router.push('/auth/login')
+}
+
+// 组织样式
+const getOrganizationTagType = (org: string): 'success' | 'warning' | 'danger' | 'info' | 'primary' | undefined => {
+  const typeMap: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'primary' | undefined> = {
+    'administrator': 'primary',
+    'government': 'danger',
+    'investor': 'success',
+    'bank': 'warning',
+    'audit': 'info',
+    'thirdparty': 'primary'
+  }
+  return typeMap[org]
 }
 </script>
 
@@ -266,11 +290,32 @@ const logout = () => {
   align-items: center;
 }
 
-.user-dropdown {
-  cursor: pointer;
+.header-right {
   display: flex;
   align-items: center;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+}
+
+.username {
   font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-right: 10px;
+}
+
+.organization-tag {
+  font-weight: normal;
+}
+
+.user-dropdown {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0 8px;
 }
 
 .main-content {

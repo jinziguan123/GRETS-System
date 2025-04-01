@@ -20,8 +20,9 @@ type Realty struct {
 	Room           string    `gorm:"size:50;not null" json:"room"`                    // 房号
 	RealtyType     string    `gorm:"size:50;not null" json:"realtyType"`              // 类型：apartment, house, commercial, etc.
 	Status         string    `gorm:"size:30;not null" json:"status"`                  // 状态：available, sold, locked, etc.
+	IsNewHouse     bool      `gorm:"not null" json:"isNewHouse"`                      // 是否为新房
 	Description    string    `gorm:"type:text" json:"description"`                    // 描述
 	Images         []string  `gorm:"type:json" json:"images"`                         // 图片链接JSON数组
 	CreateTime     time.Time `gorm:"autoCreateTime" json:"createTime"`                // 创建时间
-	UpdateTime     time.Time `gorm:"autoUpdateTime" json:"updateTime"`                // 更新时间                  // 链上交易ID
+	UpdateTime     time.Time `gorm:"autoUpdateTime" json:"updateTime"`                // 更新时间
 }

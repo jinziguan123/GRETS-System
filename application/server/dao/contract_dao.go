@@ -14,6 +14,10 @@ type ContractDAO struct {
 	boltDB  *db.BoltDB
 }
 
+func (dao *ContractDAO) QueryContractsWithPagination(conditions map[string]interface{}, pageSize int, pageNumber int) ([]*models.Contract, int64, error) {
+	panic("unimplemented")
+}
+
 // 创建新的ContractDAO实例
 func NewContractDAO() *ContractDAO {
 	return &ContractDAO{

@@ -108,7 +108,7 @@ func SetupRouter() *gin.Engine {
 		contracts.Use(middleware.JWTAuth())
 		{
 			contracts.POST("/createContract", controller.CreateContract)
-			contracts.GET("/queryContractList", controller.QueryContractList)
+			contracts.POST("/queryContractList", controller.QueryContractList)
 			contracts.GET("/:id", controller.GetContractByID)
 			contracts.POST("/:id/sign", controller.SignContract)
 			contracts.POST("/:id/audit", controller.AuditContract)

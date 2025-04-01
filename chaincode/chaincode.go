@@ -107,7 +107,7 @@ type User struct {
 	Phone          string    `json:"phone"`          // 联系电话
 	Email          string    `json:"email"`          // 电子邮箱
 	Organization   string    `json:"organization"`   // 所属组织
-	CreatedTime    time.Time `json:"createdTime"`    // 创建时间
+	CreateTime     time.Time `json:"createTime"`     // 创建时间
 	LastUpdateTime time.Time `json:"lastUpdateTime"` // 最后更新时间
 	Status         string    `json:"status"`         // 状态（激活/禁用）
 	Balance        float64   `json:"balance"`        // 余额
@@ -118,7 +118,7 @@ type UserPublic struct {
 	Name           string    `json:"name"`           // 用户名称
 	Role           string    `json:"role"`           // 用户角色
 	Organization   string    `json:"organization"`   // 所属组织
-	CreatedTime    time.Time `json:"createdTime"`    // 创建时间
+	CreateTime     time.Time `json:"createTime"`     // 创建时间
 	LastUpdateTime time.Time `json:"lastUpdateTime"` // 最后更新时间
 	Status         string    `json:"status"`         // 状态（激活/禁用）
 }
@@ -131,25 +131,25 @@ type UserPrivate struct {
 	Email        string  `json:"email"`        // 电子邮箱
 }
 
-// 房产信息结构
+// Realty 房产信息结构
 type Realty struct {
 	RealtyCertHash                  string    `json:"realtyCertHash"`                  // 不动产证ID
 	RealtyCert                      string    `json:"realtyCert"`                      // 不动产证ID
 	RealtyType                      string    `json:"realtyType"`                      // 建筑类型
 	CurrentOwnerCitizenIDHash       string    `json:"currentOwnerCitizenIDHash"`       // 当前所有者
 	PreviousOwnersCitizenIDHashList []string  `json:"previousOwnersCitizenIDHashList"` // 历史所有者
-	RegistrationDate                time.Time `json:"registrationDate"`                // 登记日期
+	CreateTime                      time.Time `json:"createTime"`                      // 创建时间
 	Status                          string    `json:"status"`                          // 房产当前状态
-	LastUpdateDate                  time.Time `json:"lastUpdateDate"`                  // 最后更新时间
+	LastUpdateTime                  time.Time `json:"lastUpdateTime"`                  // 最后更新时间
 }
 
 type RealtyPublic struct {
-	RealtyCertHash   string    `json:"realtyCertHash"`   // 不动产证ID
-	RealtyCert       string    `json:"realtyCert"`       // 不动产证ID
-	RealtyType       string    `json:"realtyType"`       // 建筑类型
-	RegistrationDate time.Time `json:"registrationDate"` // 登记日期
-	Status           string    `json:"status"`           // 房产当前状态
-	LastUpdateDate   time.Time `json:"lastUpdateDate"`   // 最后更新时间
+	RealtyCertHash string    `json:"realtyCertHash"` // 不动产证ID
+	RealtyCert     string    `json:"realtyCert"`     // 不动产证ID
+	RealtyType     string    `json:"realtyType"`     // 建筑类型
+	CreateTime     time.Time `json:"createTime"`     // 创建时间
+	Status         string    `json:"status"`         // 房产当前状态
+	LastUpdateTime time.Time `json:"lastUpdateTime"` // 最后更新时间
 }
 
 type RealtyPrivate struct {
@@ -159,31 +159,31 @@ type RealtyPrivate struct {
 	PreviousOwnersCitizenIDHashList []string `json:"previousOwnersCitizenIDHashList"` // 历史所有者
 }
 
-// 交易信息结构
+// Transaction 交易信息结构
 type Transaction struct {
-	TransactionUUID     string    `json:"transactionUUID"`     // 交易UUID
-	RealtyCert          string    `json:"realtyCert"`          // 房产ID
-	SellerCitizenIDHash string    `json:"sellerCitizenIDHash"` // 卖方
-	BuyerCitizenIDHash  string    `json:"buyerCitizenIDHash"`  // 买方
-	Price               float64   `json:"price"`               // 成交价格
-	Tax                 float64   `json:"tax"`                 // 应缴税费
-	Status              string    `json:"status"`              // 交易状态
-	CreatedTime         time.Time `json:"createdTime"`         // 创建时间
-	UpdateTime          time.Time `json:"updateTime"`          // 更新时间
-	CompletedTime       time.Time `json:"completedTime"`       // 完成时间
-	PaymentUUIDList     []string  `json:"paymentUUIDList"`     // 关联支付ID
-	ContractIDHash      string    `json:"contractIdHash"`      // 关联合同ID
+	TransactionUUID        string    `json:"transactionUUID"`        // 交易UUID
+	RealtyCert             string    `json:"realtyCert"`             // 房产ID
+	SellerCitizenIDHash    string    `json:"sellerCitizenIDHash"`    // 卖方
+	BuyerCitizenIDHash     string    `json:"buyerCitizenIDHash"`     // 买方
+	Price                  float64   `json:"price"`                  // 成交价格
+	Tax                    float64   `json:"tax"`                    // 应缴税费
+	Status                 string    `json:"status"`                 // 交易状态
+	CreateTime             time.Time `json:"createTime"`             // 创建时间
+	UpdateTime             time.Time `json:"updateTime"`             // 更新时间
+	EstimatedCompletedTime time.Time `json:"estimatedCompletedTime"` // 预计完成时间
+	PaymentUUIDList        []string  `json:"paymentUUIDList"`        // 关联支付ID
+	ContractIDHash         string    `json:"contractIdHash"`         // 关联合同ID
 }
 
 type TransactionPublic struct {
-	TransactionUUID     string    `json:"transactionUUID"`     // 交易UUID
-	RealtyCertHash      string    `json:"realtyCertHash"`      // 房产ID
-	SellerCitizenIDHash string    `json:"sellerCitizenIDHash"` // 卖方
-	BuyerCitizenIDHash  string    `json:"buyerCitizenIDHash"`  // 买方
-	Status              string    `json:"status"`              // 交易状态
-	CreatedTime         time.Time `json:"createdTime"`         // 创建时间
-	UpdateTime          time.Time `json:"updateTime"`          // 更新时间
-	CompletedTime       time.Time `json:"completedTime"`       // 完成时间
+	TransactionUUID        string    `json:"transactionUUID"`        // 交易UUID
+	RealtyCertHash         string    `json:"realtyCertHash"`         // 房产ID
+	SellerCitizenIDHash    string    `json:"sellerCitizenIDHash"`    // 卖方
+	BuyerCitizenIDHash     string    `json:"buyerCitizenIDHash"`     // 买方
+	Status                 string    `json:"status"`                 // 交易状态
+	CreateTime             time.Time `json:"createTime"`             // 创建时间
+	UpdateTime             time.Time `json:"updateTime"`             // 更新时间
+	EstimatedCompletedTime time.Time `json:"estimatedCompletedTime"` // 预计完成时间
 }
 
 type TransactionPrivate struct {
@@ -194,18 +194,18 @@ type TransactionPrivate struct {
 	ContractUUID    string   `json:"contractUUID"`    // 关联合同ID
 }
 
-// 合同信息结构
+// Contract 合同信息结构
 type Contract struct {
-	ContractIDHash      string    `json:"contractIdHash"`      // 合同ID
-	DocHash             string    `json:"docHash"`             // 文档哈希
-	ContractType        string    `json:"contractType"`        // 合同类型
-	SellerCitizenIDHash string    `json:"sellerCitizenIDHash"` // 卖方身份证号
-	BuyerCitizenIDHash  string    `json:"buyerCitizenIDHash"`  // 买方身份证号
-	Status              string    `json:"status"`              // 合同状态
-	CreatedTime         time.Time `json:"createdTime"`         // 创建时间
+	ContractUUID         string    `json:"contractUUID"`         // 合同UUID
+	DocHash              string    `json:"docHash"`              // 文档哈希
+	ContractType         string    `json:"contractType"`         // 合同类型
+	Status               string    `json:"status"`               // 合同状态
+	CreatorCitizenIDHash string    `json:"creatorCitizenIDHash"` // 创建人
+	CreateTime           time.Time `json:"createTime"`           // 创建时间
+	UpdateTime           time.Time `json:"updateTime"`           // 更新时间
 }
 
-// 支付信息结构
+// Payment 支付信息结构
 type Payment struct {
 	PaymentUUID           string    `json:"paymentUUID"`           // 支付ID
 	TransactionUUID       string    `json:"transactionUUID"`       // 关联交易ID
@@ -213,7 +213,7 @@ type Payment struct {
 	PaymentType           string    `json:"paymentType"`           // 支付类型（现金/贷款/转账）
 	PayerCitizenIDHash    string    `json:"payerCitizenIDHash"`    // 付款人ID
 	ReceiverCitizenIDHash string    `json:"receiverCitizenIDHash"` // 收款人ID
-	CreatedTime           time.Time `json:"createdTime"`           // 创建时间
+	CreateTime            time.Time `json:"createTime"`            // 创建时间
 }
 
 // 抵押信息结构
@@ -230,7 +230,7 @@ type Mortgage struct {
 	Status          string    `json:"status"`          // 状态
 	ApprovedBy      string    `json:"approvedBy"`      // 批准人
 	ApprovedAt      time.Time `json:"approvedAt"`      // 批准时间
-	LastUpdated     time.Time `json:"lastUpdated"`     // 最后更新时间
+	LastUpdateTime  time.Time `json:"lastUpdateTime"`  // 最后更新时间
 	PaymentPlan     string    `json:"paymentPlan"`     // 还款计划
 	CollateralValue float64   `json:"collateralValue"` // 抵押物估值
 }
@@ -477,7 +477,7 @@ func (s *SmartContract) Register(ctx contractapi.TransactionContextInterface,
 		Organization:   organization,
 		Role:           role,
 		Status:         status,
-		CreatedTime:    time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+		CreateTime:     time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 		LastUpdateTime: time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 	}
 
@@ -641,12 +641,12 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 
 	// 创建公开房产信息
 	realEstate := RealtyPublic{
-		RealtyCertHash:   realtyCertHash,
-		RealtyCert:       realtyCert,
-		RealtyType:       realtyType,
-		RegistrationDate: time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
-		Status:           RealtyStatusNormal,
-		LastUpdateDate:   time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+		RealtyCertHash: realtyCertHash,
+		RealtyCert:     realtyCert,
+		RealtyType:     realtyType,
+		CreateTime:     time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+		Status:         RealtyStatusNormal,
+		LastUpdateTime: time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 	}
 
 	// 序列化并保存
@@ -870,7 +870,7 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 	if err != nil {
 		return fmt.Errorf("[UpdateRealty] 获取交易时间戳失败: %v", err)
 	}
-	realEstatePublic.LastUpdateDate = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
+	realEstatePublic.LastUpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
 	// 获取复合键
 	key, err := s.createCompositeKey(ctx, DocTypeRealEstate, []string{realEstatePublic.RealtyCertHash}...)
@@ -989,7 +989,7 @@ func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInte
 		SellerCitizenIDHash: sellerCitizenIDHash,
 		BuyerCitizenIDHash:  buyerCitizenIDHash,
 		Status:              TxStatusPending,
-		CreatedTime:         time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+		CreateTime:          time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 		UpdateTime:          time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 	}
 
@@ -1273,7 +1273,6 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 
 	// 更新交易状态
 	transactionPublic.Status = TxStatusCompleted
-	transactionPublic.CompletedTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 	transactionPublic.UpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
 	// 序列化交易信息
@@ -1407,7 +1406,7 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 		PayerCitizenIDHash:    fromCitizenIDHash,
 		ReceiverCitizenIDHash: toCitizenIDHash,
 		PaymentType:           paymentType,
-		CreatedTime:           time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+		CreateTime:            time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 	}
 
 	// 序列化支付信息
@@ -1599,7 +1598,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		PaymentType:           paymentType,
 		PayerCitizenIDHash:    fromCitizenIDHash,
 		ReceiverCitizenIDHash: toCitizenIDHash,
-		CreatedTime:           time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+		CreateTime:            time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 	}
 
 	// 序列化支付信息
@@ -1937,9 +1936,10 @@ func (s *SmartContract) Hello(ctx contractapi.TransactionContextInterface) (stri
 
 // CreateContract 创建合同（仅投资者和政府机构可以调用）
 func (s *SmartContract) CreateContract(ctx contractapi.TransactionContextInterface,
-	contractIDHash string,
+	contractUUID string,
 	docHash string,
 	contractType string,
+	creatorCitizenIDHash string,
 ) error {
 	// 检查调用者身份
 	clientMSPID, err := s.getClientIdentityMSPID(ctx)
@@ -1952,7 +1952,7 @@ func (s *SmartContract) CreateContract(ctx contractapi.TransactionContextInterfa
 	}
 
 	// 创建合同信息复合键
-	key, err := s.createCompositeKey(ctx, DocTypeContract, []string{contractIDHash}...)
+	key, err := s.createCompositeKey(ctx, DocTypeContract, []string{contractUUID}...)
 	if err != nil {
 		return err
 	}
@@ -1963,7 +1963,7 @@ func (s *SmartContract) CreateContract(ctx contractapi.TransactionContextInterfa
 		return fmt.Errorf("[CreateContract] 查询合同信息失败: %v", err)
 	}
 	if exists != nil {
-		return fmt.Errorf("[CreateContract] 合同ID %s 已存在", contractIDHash)
+		return fmt.Errorf("[CreateContract] 合同UUID %s 已存在", contractUUID)
 	}
 
 	now, err := ctx.GetStub().GetTxTimestamp()
@@ -1973,11 +1973,13 @@ func (s *SmartContract) CreateContract(ctx contractapi.TransactionContextInterfa
 
 	// 创建合同信息
 	contract := Contract{
-		ContractIDHash: contractIDHash,
-		CreatedTime:    time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
-		DocHash:        docHash,
-		ContractType:   contractType,
-		Status:         ContractStatusNormal,
+		ContractUUID:         contractUUID,
+		CreateTime:           time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+		UpdateTime:           time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+		DocHash:              docHash,
+		CreatorCitizenIDHash: creatorCitizenIDHash,
+		ContractType:         contractType,
+		Status:               ContractStatusNormal,
 	}
 
 	// 序列化并保存合同信息
@@ -1991,7 +1993,7 @@ func (s *SmartContract) CreateContract(ctx contractapi.TransactionContextInterfa
 
 // QueryContract 查询合同信息（仅投资者、政府机构和审计机构可以调用）
 func (s *SmartContract) QueryContract(ctx contractapi.TransactionContextInterface,
-	contractIDHash string,
+	contractUUID string,
 ) (*Contract, error) {
 	// 检查调用者身份
 	clientMSPID, err := s.getClientIdentityMSPID(ctx)
@@ -2002,7 +2004,7 @@ func (s *SmartContract) QueryContract(ctx contractapi.TransactionContextInterfac
 	if clientMSPID != InvestorMSP && clientMSPID != GovernmentMSP && clientMSPID != AuditMSP {
 		return nil, fmt.Errorf("[QueryContract] 只有投资者、政府机构和审计机构可以查询合同信息")
 	}
-	key, err := s.createCompositeKey(ctx, DocTypeContract, []string{contractIDHash}...)
+	key, err := s.createCompositeKey(ctx, DocTypeContract, []string{contractUUID}...)
 	if err != nil {
 		return nil, fmt.Errorf("[QueryContract] 创建复合键失败: %v", err)
 	}
@@ -2011,7 +2013,7 @@ func (s *SmartContract) QueryContract(ctx contractapi.TransactionContextInterfac
 		return nil, fmt.Errorf("[QueryContract] 查询合同信息失败: %v", err)
 	}
 	if contractBytes == nil {
-		return nil, fmt.Errorf("[QueryContract] 合同ID %s 不存在", contractIDHash)
+		return nil, fmt.Errorf("[QueryContract] 合同UUID %s 不存在", contractUUID)
 	}
 
 	var contract Contract
@@ -2023,9 +2025,11 @@ func (s *SmartContract) QueryContract(ctx contractapi.TransactionContextInterfac
 	return &contract, nil
 }
 
-// UpdateContractStatus 更新合同状态（仅投资者、政府机构、审计机构可以调用）
-func (s *SmartContract) UpdateContractStatus(ctx contractapi.TransactionContextInterface,
-	contractIDHash string,
+// UpdateContract 更新合同状态（仅投资者、政府机构、审计机构可以调用）
+func (s *SmartContract) UpdateContract(ctx contractapi.TransactionContextInterface,
+	contractUUID string,
+	docHash string,
+	contractType string,
 	status string,
 ) error {
 	// 检查调用者身份
@@ -2039,7 +2043,7 @@ func (s *SmartContract) UpdateContractStatus(ctx contractapi.TransactionContextI
 	}
 
 	// 检查合同是否存在
-	contract, err := s.QueryContract(ctx, contractIDHash)
+	contract, err := s.QueryContract(ctx, contractUUID)
 	if err != nil {
 		return fmt.Errorf("[UpdateContractStatus] 查询合同信息失败: %v", err)
 	}
@@ -2049,8 +2053,21 @@ func (s *SmartContract) UpdateContractStatus(ctx contractapi.TransactionContextI
 		return fmt.Errorf("[UpdateContractStatus] 合同已冻结，无法更新状态")
 	}
 
-	// 更新合同状态
-	contract.Status = status
+	// 更新合同
+	if docHash != "" {
+		contract.DocHash = docHash
+	}
+	if status != "" {
+		contract.Status = status
+	}
+	if contractType != "" {
+		contract.ContractType = contractType
+	}
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[UpdateContractStatus] 获取交易时间戳失败: %v", err)
+	}
+	contract.UpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
 	// 序列化并保存合同信息
 	contractJSON, err := json.Marshal(contract)
@@ -2058,7 +2075,7 @@ func (s *SmartContract) UpdateContractStatus(ctx contractapi.TransactionContextI
 		return fmt.Errorf("[UpdateContractStatus] 序列化合同信息失败: %v", err)
 	}
 
-	return ctx.GetStub().PutState(contract.ContractIDHash, contractJSON)
+	return ctx.GetStub().PutState(contract.ContractUUID, contractJSON)
 }
 
 func main() {
