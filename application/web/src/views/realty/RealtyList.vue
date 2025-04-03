@@ -90,6 +90,11 @@
               <el-input v-model="searchForm.room" placeholder="请输入房号" clearable />
             </el-form-item>
           </el-col>
+          <el-col :span="8">
+            <el-form-item label="是否为新房">
+              <el-switch v-model="searchForm.isNewHouse" />
+            </el-form-item>
+          </el-col>
         </el-row>
 
         <el-row :gutter="20">
@@ -134,6 +139,7 @@
           <div class="realty-image">
             <img :src="getRandomImage(item.realtyCert)" alt="房产图片" />
             <div class="realty-status" :class="getStatusClass(item.status)">{{ getStatusText(item.status) }}</div>
+            <div class="realty-type-tag">{{ item.isNewHouse ? '新房' : '二手房' }}</div>
           </div>
           <div class="realty-info">
             <h3 class="realty-title">{{ generateTitle(item) }}</h3>
@@ -212,6 +218,7 @@ const searchForm = reactive({
   unit: '',
   floor: '',
   room: '',
+  isNewHouse: false,
   pageSize: 10,
   pageNumber: 1
 })
@@ -496,14 +503,26 @@ onMounted(() => {
   position: absolute;
   top: 10px;
   right: 10px;
-  padding: 4px 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 2px 8px;
   border-radius: 4px;
   font-size: 12px;
+}
+
+.realty-type-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
   color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
 }
 
 .status-normal {
-  background-color: #67C23A;
+  background-color: rgba(25, 190, 107, 0.7);
 }
 
 .status-pending {

@@ -1,37 +1,64 @@
 import request from '@/utils/request'
 
 // 获取合同列表
-export function getContractList(params: {
-  page?: number
-  pageSize?: number
-  status?: string
+export function queryContractList(data: {
+  contractUUID?: string
+  docHash?: string
   contractType?: string
+  creatorCitizenID?: string
+  status?: string
+  pageSize?: number
+  pageNumber?: number
 }) {
   return request({
-    url: '/api/v1/contracts',
-    method: 'get',
-    params
+    url: '/contracts/queryContractList',
+    method: 'post',
+    data
   })
 }
 
 // 获取合同详情
-export function getContractDetail(contractID: string) {
+export function getContractDetail(id: string) {
   return request({
-    url: `/api/v1/contracts/${contractID}`,
+    url: `/contracts/${id}`,
     method: 'get'
   })
 }
 
 // 创建合同
 export function createContract(data: {
-  contractType: string
-  docContent: string
   title: string
-  sellerCitizenID?: string
-  buyerCitizenID?: string
+  content: string
+  contractType: string
+  creatorCitizenID: string
 }) {
   return request({
-    url: '/api/v1/contracts',
+    url: '/contracts/createContract',
+    method: 'post',
+    data
+  })
+}
+
+// 签署合同
+export function signContract(id: string, data: {
+  signerType: string
+}) {
+  return request({
+    url: `/contracts/${id}/sign`,
+    method: 'post',
+    data
+  })
+}
+
+// 审核合同
+export function auditContract(id: string, data: {
+  result: string
+  comments?: string
+  revisionRequirements?: string
+  rejectionReason?: string
+}) {
+  return request({
+    url: `/contracts/${id}/audit`,
     method: 'post',
     data
   })
@@ -40,7 +67,7 @@ export function createContract(data: {
 // 更新合同状态
 export function updateContractStatus(contractID: string, status: string) {
   return request({
-    url: `/api/v1/contracts/${contractID}/status`,
+    url: `/contracts/${contractID}/status`,
     method: 'put',
     data: { status }
   })
@@ -52,11 +79,18 @@ export function uploadContractFile(file: File) {
   formData.append('file', file)
   
   return request({
-    url: '/api/v1/contracts/upload',
+    url: '/contracts/upload',
     method: 'post',
     data: formData,
     headers: {
       'Content-Type': 'multipart/form-data'
     }
   })
-} 
+}
+
+export function getContractByID(id: number) {
+  return request({
+    url: `/contracts/${id}`,
+    method: 'get'
+  })
+}

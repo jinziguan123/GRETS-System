@@ -50,7 +50,7 @@
             <span>合同管理</span>
           </template>
           <el-menu-item index="/contract">合同列表</el-menu-item>
-          <el-menu-item index="/contract/create" v-if="hasOrganization(['investor'])">创建合同</el-menu-item>
+          <el-menu-item index="/contract/create" v-if="hasOrganization(['investor', 'government'])">创建合同</el-menu-item>
           <!-- 审计组织特有 - 合规审核 -->
           <el-menu-item index="/contract/audit" v-if="hasOrganization('audit')">合规审核</el-menu-item>
         </el-sub-menu>

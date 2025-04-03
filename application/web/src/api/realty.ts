@@ -45,8 +45,19 @@ export function createRealty(data: {
   contractID?: string
   description?: string
   price?: number
+  area?: number
   houseType?: string
   images?: string[]
+  isNewHouse?: boolean
+  province?: string
+  city?: string
+  district?: string
+  street?: string
+  community?: string
+  unit?: string
+  floor?: string
+  room?: string
+  address?: string
 }) {
   return request({
     url: '/realty/createRealty',

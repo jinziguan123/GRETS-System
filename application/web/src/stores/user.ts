@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+// import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
 import type { UserInfo } from '@/types/api'
@@ -18,7 +18,7 @@ interface LoginResponse {
 }
 
 export const useUserStore = defineStore('user', () => {
-  const router = useRouter()
+  // const router = useRouter()
 
   // 状态
   const token = ref<string>(localStorage.getItem('token') || '')

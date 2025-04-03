@@ -48,6 +48,7 @@ export interface RealtyData {
   price?: number
   houseType?: string
   images?: string[]
+  isNewHouse?: boolean
 }
 
 // 交易相关类型

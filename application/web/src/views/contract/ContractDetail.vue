@@ -320,14 +320,9 @@ const getContractTypeName = (type) => {
 // 获取状态标签类型
 const getStatusTag = (status) => {
   const tagMap = {
-    pending: 'info',
-    signed: 'warning',
-    approved: 'success',
-    effective: 'success',
-    completed: 'success',
-    cancelled: 'danger',
-    rejected: 'danger',
-    needRevision: 'warning'
+    NORMAL: 'primary',
+    FROZEN: 'warning',
+    COMPLETED: 'success'
   }
   return tagMap[status] || ''
 }
@@ -335,14 +330,9 @@ const getStatusTag = (status) => {
 // 获取状态名称
 const getStatusName = (status) => {
   const nameMap = {
-    pending: '待签署',
-    signed: '待审核',
-    approved: '已审核',
-    effective: '已生效',
-    completed: '已完成',
-    cancelled: '已取消',
-    rejected: '已拒绝',
-    needRevision: '需修改'
+    NORMAL: '正常',
+    FROZEN: '冻结',
+    COMPLETED: '已完成',
   }
   return nameMap[status] || status
 }

@@ -11,36 +11,32 @@
     <!-- 筛选器 -->
     <el-card class="filter-card">
       <el-form :inline="true" :model="filterForm" class="contract-filter" size="small">
-        <el-form-item label="合同状态">
-          <el-select v-model="filterForm.status" placeholder="选择合同状态" clearable>
-            <el-option label="待签署" value="pending" />
-            <el-option label="待审核" value="signed" />
-            <el-option label="审核通过" value="approved" />
-            <el-option label="已生效" value="effective" />
-            <el-option label="已完成" value="completed" />
-            <el-option label="已取消" value="cancelled" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="合同类型">
-          <el-select v-model="filterForm.contractType" placeholder="选择合同类型" clearable>
-            <el-option label="购房合同" value="purchase" />
-            <el-option label="贷款合同" value="mortgage" />
-            <el-option label="租赁合同" value="lease" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="创建日期">
-          <el-date-picker
-            v-model="filterForm.dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-          />
-        </el-form-item>
-        <el-form-item label="关键词">
-          <el-input v-model="filterForm.keyword" placeholder="合同编号/标题" clearable />
-        </el-form-item>
+        <el-row>
+          <el-col>
+            <el-form-item label="合同编号">
+              <el-input v-model="filterForm.contractUUID" placeholder="输入合同编号" clearable />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col>
+            <el-form-item label="合同状态">
+              <el-select v-model="filterForm.status" placeholder="选择合同状态" clearable>
+                <el-option label="正常" value="NORMAL" />
+                <el-option label="冻结" value="FROZEN" />
+                <el-option label="已完成" value="COMPLETED" />
+                
+              </el-select>
+            </el-form-item>
+            <el-form-item label="合同类型">
+              <el-select v-model="filterForm.contractType" placeholder="选择合同类型" clearable>
+                <el-option label="购房合同" value="purchase" />
+                <el-option label="贷款合同" value="mortgage" />
+                <el-option label="租赁合同" value="lease" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-form-item>
           <el-button type="primary" @click="searchContracts">查询</el-button>
           <el-button @click="resetFilter">重置</el-button>
@@ -62,7 +58,7 @@
           row-key="id"
           v-loading="tableLoading"
         >
-          <el-table-column prop="id" label="合同编号" width="160" />
+          <el-table-column prop="contractUUID" label="合同编号" width="180" />
           <el-table-column prop="contractType" label="合同类型" width="120">
             <template #default="scope">
               <el-tag 
@@ -74,20 +70,15 @@
             </template>
           </el-table-column>
           <el-table-column prop="title" label="合同标题" min-width="200" />
-          <el-table-column prop="parties" label="合同方" width="260">
-            <template #default="scope">
-              <div>买方: {{ scope.row.parties.buyer }}</div>
-              <div>卖方: {{ scope.row.parties.seller }}</div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="amount" label="合同金额" width="150">
-            <template #default="scope">
-              ¥{{ formatCurrency(scope.row.amount) }}
-            </template>
-          </el-table-column>
+          <el-table-column prop="creatorCitizenIDHash" label="创建者ID" width="180" />
           <el-table-column prop="createTime" label="创建日期" width="120">
             <template #default="scope">
               {{ formatDate(scope.row.createTime) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="updateTime" label="更新日期" width="120">
+            <template #default="scope">
+              {{ formatDate(scope.row.updateTime) }}
             </template>
           </el-table-column>
           <el-table-column prop="status" label="状态" width="100">
@@ -152,8 +143,9 @@
         <p>您正在签署合同《{{ currentContract.title }}》。</p>
         <p>请确认以下信息无误：</p>
         <ul>
-          <li>合同编号：{{ currentContract.id }}</li>
-          <li>合同金额：¥{{ formatCurrency(currentContract.amount) }}</li>
+          <li>合同编号：{{ currentContract.contractUUID }}</li>
+          <li>合同类型：{{ getContractTypeName(currentContract.contractType) }}</li>
+          <li>创建时间：{{ formatDate(currentContract.createTime) }}</li>
           <li>签署身份：{{ userStore.organization === 'investor' ? '买方' : '卖方' }}</li>
         </ul>
         <p class="sign-tip">点击"确认签署"，即表示您已阅读并同意本合同的全部条款。</p>
@@ -176,8 +168,8 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import axios from 'axios'
 import dayjs from 'dayjs'
+import { queryContractList, signContract } from '@/api/contract'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -197,8 +189,7 @@ const currentContract = ref(null)
 const filterForm = reactive({
   status: '',
   contractType: '',
-  dateRange: [],
-  keyword: ''
+  contractUUID: ''
 })
 
 // 分页相关
@@ -216,7 +207,7 @@ const hasPermissionToCreate = computed(() => {
 
 // 判断是否可以签署合同
 const canSign = (contract) => {
-  if (contract.status !== 'pending') return false
+  if (contract.status !== 'PENDING') return false
   
   // 根据组织类型判断签署权限
   if (userStore.hasOrganization('investor') && !contract.buyerSigned) {
@@ -232,15 +223,14 @@ const canSign = (contract) => {
 
 // 判断是否可以审核合同
 const canAudit = (contract) => {
-  return userStore.hasOrganization('audit') && contract.status === 'signed'
+  return userStore.hasOrganization('audit') && contract.status === 'SIGNED'
 }
 
 // 重置筛选条件
 const resetFilter = () => {
   filterForm.status = ''
   filterForm.contractType = ''
-  filterForm.dateRange = []
-  filterForm.keyword = ''
+  filterForm.contractUUID = ''
   searchContracts()
 }
 
@@ -263,31 +253,29 @@ const fetchContractsData = async () => {
     const params = {
       status: filterForm.status,
       contractType: filterForm.contractType,
+      contractUUID: filterForm.contractUUID,
       pageSize: pageSize.value,
       pageNumber: currentPage.value
     }
     
-    if (filterForm.keyword) {
-      params.keyword = filterForm.keyword
-    }
-    
-    if (filterForm.dateRange && filterForm.dateRange.length === 2) {
-      params.startDate = filterForm.dateRange[0]
-      params.endDate = filterForm.dateRange[1]
-    }
+    tableLoading.value = true
     
     // 调用API
-    const { data } = await axios.get('/contracts', { params })
+    const response = await queryContractList(params)
     
-    if (data.code === 200) {
-      contractsData.value = data.data.items || []
-      totalItems.value = data.data.total || 0
+    if (response && response.contracts) {
+      contractsData.value = response.contracts || []
+      totalItems.value = response.total || 0
     } else {
-      ElMessage.error(data.message || '获取合同列表失败')
+      contractsData.value = []
+      totalItems.value = 0
+      ElMessage.warning('未获取到合同数据')
     }
   } catch (error) {
     console.error('Failed to fetch contracts:', error)
     ElMessage.error('获取合同列表失败')
+    contractsData.value = []
+    totalItems.value = 0
   } finally {
     tableLoading.value = false
     loading.value = false
@@ -308,7 +296,7 @@ const handleCurrentChange = (val) => {
 
 // 处理行点击
 const handleRowClick = (row) => {
-  viewContractDetail(row.id)
+  viewContractDetail(row.contractUUID)
 }
 
 // 创建合同
@@ -321,12 +309,6 @@ const viewContractDetail = (id) => {
   router.push(`/contract/${id}`)
 }
 
-// 签署合同
-const signContract = (contract) => {
-  currentContract.value = contract
-  signDialogVisible.value = true
-}
-
 // 确认签署
 const confirmSign = async () => {
   if (!currentContract.value) return
@@ -336,17 +318,13 @@ const confirmSign = async () => {
   try {
     const signerType = userStore.hasOrganization('investor') ? 'buyer' : 'seller'
     
-    const { data } = await axios.post(`/contracts/${currentContract.value.id}/sign`, {
+    const response = await signContract(currentContract.value.contractUUID, {
       signerType
     })
     
-    if (data.code === 200) {
-      ElMessage.success('合同签署成功')
-      signDialogVisible.value = false
-      refreshContracts()
-    } else {
-      ElMessage.error(data.message || '合同签署失败')
-    }
+    ElMessage.success('合同签署成功')
+    signDialogVisible.value = false
+    refreshContracts()
   } catch (error) {
     console.error('Failed to sign contract:', error)
     ElMessage.error('合同签署失败')
@@ -359,7 +337,7 @@ const confirmSign = async () => {
 const auditContract = (contract) => {
   router.push({
     path: '/contract/audit',
-    query: { id: contract.id }
+    query: { id: contract.contractUUID }
   })
 }
 
@@ -368,7 +346,7 @@ const getContractTypeTag = (type) => {
   const tagMap = {
     purchase: 'success',
     mortgage: 'primary',
-    lease: 'info'
+    lease: 'primary'
   }
   return tagMap[type] || ''
 }
@@ -386,12 +364,9 @@ const getContractTypeName = (type) => {
 // 获取状态标签类型
 const getStatusTag = (status) => {
   const tagMap = {
-    pending: 'info',
-    signed: 'warning',
-    approved: 'success',
-    effective: 'success',
-    completed: 'success',
-    cancelled: 'danger'
+    'NORMAL': 'primary',
+    'FROZEN': 'warning',
+    'COMPLETED': 'success',
   }
   return tagMap[status] || ''
 }
@@ -399,12 +374,9 @@ const getStatusTag = (status) => {
 // 获取状态名称
 const getStatusName = (status) => {
   const nameMap = {
-    pending: '待签署',
-    signed: '待审核',
-    approved: '已审核',
-    effective: '已生效',
-    completed: '已完成',
-    cancelled: '已取消'
+    'NORMAL': '正常',
+    'FROZEN': '冻结',
+    'COMPLETED': '已完成',
   }
   return nameMap[status] || status
 }

@@ -5,20 +5,6 @@ import type { UserInfo as UserInfoType, LoginData } from '@/types/api'
 // 定义用户角色类型
 export type UserRole = 'GOVERNMENT' | 'BANK' | 'INVESTOR' | 'AUDITOR' | 'THIRDPARTY'
 
-// 定义用户信息类型
-interface UserInfo {
-  citizenID: string
-  name: string
-  role: UserRole
-  organization: string
-  phone: string
-  email: string
-  balance?: number
-  createdTime: string
-  lastUpdateTime: string
-  status: string
-}
-
 // 定义store的state类型
 interface UserState {
   token: string

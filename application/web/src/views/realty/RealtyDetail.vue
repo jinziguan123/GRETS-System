@@ -40,6 +40,9 @@
               <el-tag :type="getStatusTagType(realty.status)">
                 {{ getStatusText(realty.status) }}
               </el-tag>
+              <el-tag type="info" style="margin-left: 8px;">
+                {{ realty.isNewHouse ? '新房' : '二手房' }}
+              </el-tag>
             </div>
           </div>
         </el-card>
@@ -328,7 +331,8 @@ const realty = reactive({
   images: [],
   currentOwnerCitizenIDHash: '',
   registrationDate: '',
-  lastUpdateDate: ''
+  lastUpdateDate: '',
+  isNewHouse: false
 })
 
 // 交易记录

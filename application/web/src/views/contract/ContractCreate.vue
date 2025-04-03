@@ -13,7 +13,7 @@
         v-loading="loading"
       >
         <!-- 合同基本信息 -->
-        <el-divider content-position="left">基本信息</el-divider>
+        <el-divider content-position="center">基本信息</el-divider>
         <el-form-item label="合同类型" prop="contractType">
           <el-select v-model="contractForm.contractType" placeholder="请选择合同类型">
             <el-option label="购房合同" value="purchase" />
@@ -24,52 +24,9 @@
         <el-form-item label="合同标题" prop="title">
           <el-input v-model="contractForm.title" placeholder="请输入合同标题" />
         </el-form-item>
-        <el-form-item label="关联交易" prop="transactionId">
-          <el-select 
-            v-model="contractForm.transactionId" 
-            placeholder="请选择关联交易"
-            @change="handleTransactionChange"
-            filterable
-          >
-            <el-option 
-              v-for="item in transactionOptions" 
-              :key="item.id" 
-              :label="`${item.id} - ${item.title}`" 
-              :value="item.id" 
-            />
-          </el-select>
-        </el-form-item>
         
-        <!-- 交易方信息 -->
-        <el-divider content-position="left">交易方信息</el-divider>
-        <el-form-item label="买方信息" prop="buyerInfo">
-          <el-input v-model="contractForm.buyerInfo" placeholder="买方姓名/公司名称" />
-        </el-form-item>
-        <el-form-item label="买方证件号" prop="buyerId">
-          <el-input v-model="contractForm.buyerId" placeholder="买方身份证/营业执照号" />
-        </el-form-item>
-        <el-form-item label="卖方信息" prop="sellerInfo">
-          <el-input v-model="contractForm.sellerInfo" placeholder="卖方姓名/公司名称" />
-        </el-form-item>
-        <el-form-item label="卖方证件号" prop="sellerId">
-          <el-input v-model="contractForm.sellerId" placeholder="卖方身份证/营业执照号" />
-        </el-form-item>
-        
-        <!-- 合同内容 -->
-        <el-divider content-position="left">合同内容</el-divider>
-        <el-form-item label="合同金额" prop="amount">
-          <el-input-number 
-            v-model="contractForm.amount" 
-            :min="0" 
-            :step="10000" 
-            :precision="2"
-            :formatter="value => `¥ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
-            :parser="value => value.replace(/[^\d.]/g, '')"
-            style="width: 220px;"
-          />
-        </el-form-item>
-        <el-form-item label="合同模板" prop="templateId">
-          <el-select v-model="contractForm.templateId" placeholder="请选择合同模板">
+        <el-form-item label="合同模板">
+          <el-select v-model="selectedTemplate" placeholder="请选择合同模板" @change="selectTemplate">
             <el-option 
               v-for="item in templateOptions" 
               :key="item.id" 
@@ -77,12 +34,14 @@
               :value="item.id" 
             />
           </el-select>
+          <div class="form-tip">选择模板将自动填充合同标题和内容</div>
         </el-form-item>
+        
         <el-form-item label="合同内容" prop="content">
           <el-input 
             v-model="contractForm.content" 
             type="textarea" 
-            :rows="10" 
+            :rows="15" 
             placeholder="请输入合同内容"
           />
         </el-form-item>
@@ -91,7 +50,7 @@
         <el-form-item>
           <el-button type="primary" @click="submitContract" :loading="submitting">创建合同</el-button>
           <el-button @click="resetForm">重置</el-button>
-          <el-button @click="goBack">取消</el-button>
+          <el-button @click="goBack">返回</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -103,7 +62,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import axios from 'axios'
+import { createContract } from '@/api/contract'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -117,15 +76,12 @@ const submitting = ref(false)
 const contractForm = reactive({
   contractType: 'purchase',
   title: '',
-  transactionId: '',
-  buyerInfo: '',
-  buyerId: '',
-  sellerInfo: '',
-  sellerId: '',
-  amount: 0,
-  templateId: 'T001', // 默认模板
-  content: ''
+  content: '',
+  creatorCitizenID: userStore.user.citizenID || ''
 })
+
+// 选中的模板
+const selectedTemplate = ref('')
 
 // 表单验证规则
 const contractRules = {
@@ -224,49 +180,39 @@ const handleTransactionChange = (transactionId) => {
   }
 }
 
+// 选择模板
+const selectTemplate = (templateId) => {
+  const template = templateOptions.value.find(t => t.id === templateId)
+  if (template) {
+    contractForm.title = `${template.name} - ${new Date().toLocaleDateString()}`
+    // 这里可以加载模板内容
+    contractForm.content = `这是${template.name}的默认内容，可以根据需要进行修改。\n\n合同条款：\n1. 甲方（买方）...\n2. 乙方（卖方）...\n3. 房产信息...\n4. 交易价格...\n5. 支付方式...\n6. 交付条件...\n7. 违约责任...\n8. 争议解决...`
+  }
+}
+
 // 提交合同
 const submitContract = async () => {
   if (!contractFormRef.value) return
   
   await contractFormRef.value.validate(async (valid) => {
-    if (!valid) {
-      ElMessage.warning('请完善表单信息')
-      return
-    }
-    
-    submitting.value = true
+    if (!valid) return
     
     try {
-      // 准备提交数据
-      const contractData = {
-        id: `CT${Date.now()}`, // 临时ID生成方式，实际应后端生成
-        contractType: contractForm.contractType,
-        title: contractForm.title,
-        transactionId: contractForm.transactionId,
-        content: contractForm.content,
-        templateId: contractForm.templateId,
-        parties: {
-          buyer: contractForm.buyerInfo,
-          seller: contractForm.sellerInfo
-        },
-        buyerId: contractForm.buyerId,
-        sellerId: contractForm.sellerId,
-        amount: contractForm.amount
-      }
+      submitting.value = true
       
       // 调用API创建合同
-      const { data } = await axios.post('/contracts', contractData)
+      await createContract({
+        title: contractForm.title,
+        content: contractForm.content,
+        contractType: contractForm.contractType,
+        creatorCitizenID: contractForm.creatorCitizenID
+      })
       
-      if (data.code === 200) {
-        ElMessage.success('合同创建成功')
-        // 跳转到合同列表
-        router.push('/contract')
-      } else {
-        ElMessage.error(data.message || '合同创建失败')
-      }
+      ElMessage.success('合同创建成功')
+      router.push('/contract')
     } catch (error) {
       console.error('Failed to create contract:', error)
-      ElMessage.error('合同创建失败')
+      ElMessage.error('创建合同失败')
     } finally {
       submitting.value = false
     }
@@ -277,6 +223,10 @@ const submitContract = async () => {
 const resetForm = () => {
   if (contractFormRef.value) {
     contractFormRef.value.resetFields()
+    contractForm.contractType = 'purchase'
+    contractForm.title = ''
+    contractForm.content = ''
+    selectedTemplate.value = ''
   }
 }
 
@@ -286,9 +236,7 @@ const goBack = () => {
 }
 
 // 页面加载时获取相关数据
-onMounted(() => {
-  fetchTransactions()
-})
+onMounted(() => {})
 </script>
 
 <style scoped>
@@ -296,16 +244,26 @@ onMounted(() => {
   padding: 20px;
 }
 
-.page-header {
-  margin-bottom: 20px;
-}
-
-.page-header h2 {
-  margin: 0;
-  font-size: 22px;
-}
-
 .contract-form-card {
   margin-bottom: 20px;
+}
+
+.page-header {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 5px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
 }
 </style>

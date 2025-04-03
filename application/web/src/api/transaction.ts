@@ -1,5 +1,4 @@
 import request from '@/utils/request'
-import type {ApiResponse, QueryTransactionListResponse} from "@/types/api.ts";
 
 // 获取交易列表
 export function getTransactionList(params: {

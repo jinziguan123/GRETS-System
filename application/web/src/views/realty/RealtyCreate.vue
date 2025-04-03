@@ -65,6 +65,18 @@
           </el-select>
         </el-form-item>
         
+        <el-form-item label="关联合同" prop="contractID" v-if="realtyForm.status === 'NORMAL'">
+          <el-select v-model="realtyForm.contractID" placeholder="请选择关联合同" style="width: 100%" filterable>
+            <el-option 
+              v-for="contract in contractList" 
+              :key="contract.contractUUID" 
+              :label="contract.title" 
+              :value="contract.contractUUID" 
+            ></el-option>
+          </el-select>
+          <div class="form-tip">新房设置为"正常"状态时，必须选择一份合同</div>
+        </el-form-item>
+        
         <!-- 地址信息 -->
         <h4>地址信息</h4>
         <el-row :gutter="20">
@@ -152,16 +164,40 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { Plus } from '@element-plus/icons-vue'
 import { createRealty } from "@/api/realty.js"
+import { useUserStore } from '@/stores/user'
+import axios from 'axios'
 
 const router = useRouter()
+const userStore = useUserStore()
 const realtyFormRef = ref(null)
 const loading = ref(false)
 const fileList = ref([])
+const contractList = ref([])
+
+// 获取合同列表
+const fetchContracts = async () => {
+  try {
+    const response = await axios.post('/api/contract/list', {
+      status: 'NORMAL',
+      pageSize: 100,
+      pageNumber: 1
+    })
+    
+    if (response.data.code === 200) {
+      contractList.value = response.data.data.contracts || []
+    } else {
+      ElMessage.error('获取合同列表失败')
+    }
+  } catch (error) {
+    console.error('Failed to fetch contracts:', error)
+    ElMessage.error('获取合同列表失败')
+  }
+}
 
 // 表单数据
 const realtyForm = reactive({
@@ -170,7 +206,7 @@ const realtyForm = reactive({
   houseType: '',
   price: 0,
   area: 0,
-  currentOwnerCitizenID: '',
+  currentOwnerCitizenID: 'GovernmentDefault', // 政府默认账户
   status: 'NORMAL',
   province: '',
   city: '',
@@ -184,7 +220,8 @@ const realtyForm = reactive({
   // 这些将作为计算属性或默认值
   address: '',
   images: [],
-  previousOwnersCitizenIDList: []
+  previousOwnersCitizenIDList: [],
+  contractID: ''
 })
 
 // 计算完整地址
@@ -198,6 +235,19 @@ addressFields.forEach(field => {
   watch(() => realtyForm[field], () => {
     updateAddress()
   })
+})
+
+// 监听状态变化，如果状态为NORMAL，则需要选择合同
+watch(() => realtyForm.status, (newVal) => {
+  if (newVal === 'NORMAL') {
+    // 修改规则，添加合同ID验证
+    rules.contractID = [
+      { required: true, message: '正常状态的新房必须选择关联合同', trigger: 'change' }
+    ]
+  } else {
+    // 移除合同ID验证
+    delete rules.contractID
+  }
 })
 
 // 文件上传相关方法
@@ -267,49 +317,44 @@ const rules = reactive({
 // 提交表单
 const submitForm = async () => {
   if (!realtyFormRef.value) return
-
-  // 更新地址，确保是最新的
-  updateAddress()
   
-  await realtyFormRef.value.validate(async (valid, fields) => {
-    if (valid) {
-      loading.value = true
-      try {
-        // 准备请求参数，确保包含所有必要字段
-        const requestData = {
-          realtyCert: realtyForm.realtyCert,
-          address: realtyForm.address,
-          realtyType: realtyForm.realtyType,
-          price: realtyForm.price,
-          area: realtyForm.area,
-          currentOwnerCitizenID: 'GovernmentDefault',
-          status: realtyForm.status,
-          houseType: realtyForm.houseType,
-          province: realtyForm.province,
-          city: realtyForm.city,
-          district: realtyForm.district,
-          street: realtyForm.street, 
-          community: realtyForm.community,
-          unit: realtyForm.unit,
-          floor: realtyForm.floor,
-          room: realtyForm.room,
-          description: realtyForm.description,
-          isNewHouse: true,
-          // 默认传递空数组
-          images: [],
-          previousOwnersCitizenIDList: []
-        }
-        await createRealty(requestData)
-        ElMessage.success('房产创建成功')
-        router.push('/realty')
-      } catch (error) {
-        ElMessage.error(error.response?.data?.message || '创建房产失败')
-      } finally {
-        loading.value = false
+  await realtyFormRef.value.validate(async (valid) => {
+    if (!valid) {
+      ElMessage.warning('请完善表单信息')
+      return
+    }
+    
+    // 检查状态为NORMAL时是否选择了合同
+    if (realtyForm.status === 'NORMAL' && !realtyForm.contractID) {
+      ElMessage.warning('正常状态的新房必须选择关联合同')
+      return
+    }
+    
+    loading.value = true
+    
+    try {
+      // 准备提交数据
+      const requestData = {
+        ...realtyForm,
+        address: realtyForm.address,
+        // 由于是新房，设置默认所有者为政府
+        currentOwnerCitizenID: 'GovernmentDefault',
+        // 设置为新房
+        isNewHouse: true,
+        // 默认传递空数组
+        images: [],
+        previousOwnersCitizenIDList: [],
+        contractID: realtyForm.contractID
       }
-    } else {
-      console.log('表单验证失败:', fields)
-      ElMessage.error('请完善表单信息')
+      
+      await createRealty(requestData)
+      ElMessage.success('房产创建成功')
+      router.push('/realty/list')
+    } catch (error) {
+      console.error('Failed to create realty:', error)
+      ElMessage.error('创建房产失败')
+    } finally {
+      loading.value = false
     }
   })
 }
@@ -326,6 +371,12 @@ const resetForm = () => {
 const goBack = () => {
   router.back()
 }
+
+// 组件初始化
+onMounted(() => {
+  // 获取合同列表
+  fetchContracts()
+})
 </script>
 
 <style scoped>
@@ -344,11 +395,18 @@ const goBack = () => {
   margin-bottom: 20px;
 }
 
+.form-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 5px;
+}
+
+/* 卡片内部每个小标题的样式 */
 h4 {
   margin-top: 20px;
   margin-bottom: 15px;
   padding-bottom: 10px;
   border-bottom: 1px solid #ebeef5;
-  color: #409EFF;
+  color: #303133;
 }
 </style>

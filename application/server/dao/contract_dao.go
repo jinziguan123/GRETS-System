@@ -14,11 +14,50 @@ type ContractDAO struct {
 	boltDB  *db.BoltDB
 }
 
-func (dao *ContractDAO) QueryContractsWithPagination(conditions map[string]interface{}, pageSize int, pageNumber int) ([]*models.Contract, int64, error) {
-	panic("unimplemented")
+func (dao *ContractDAO) QueryContractsWithPagination(
+	conditions map[string]interface{},
+	pageSize int,
+	pageNumber int,
+) ([]*models.Contract, int64, error) {
+	var contracts []*models.Contract
+	var total int64
+
+	// 构建查询
+	query := dao.mysqlDB.Model(&models.Contract{})
+
+	// 添加精确匹配条件
+	for field, value := range conditions {
+		if v, ok := value.(string); ok && v != "" {
+			// 字符串类型且不为空
+			if field == "contractUUID" {
+				query = query.Where("contract_uuid = ?", v)
+			} else if field == "status" {
+				query = query.Where("status = ?", v)
+			} else if field == "contractType" {
+				query = query.Where("contract_type = ?", v)
+			} else if field == "creatorCitizenIDHash" {
+				query = query.Where("creator_citizen_id_hash = ?", v)
+			} else if field == "docHash" {
+				query = query.Where("doc_hash = ?", v)
+			}
+		}
+	}
+
+	// 计算总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("计算合同总数失败: %v", err)
+	}
+
+	// 分页查询
+	offset := (pageNumber - 1) * pageSize
+	if err := query.Offset(offset).Limit(pageSize).Find(&contracts).Error; err != nil {
+		return nil, 0, fmt.Errorf("分页查询合同列表失败: %v", err)
+	}
+
+	return contracts, total, nil
 }
 
-// 创建新的ContractDAO实例
+// NewContractDAO 创建新的ContractDAO实例
 func NewContractDAO() *ContractDAO {
 	return &ContractDAO{
 		mysqlDB: db.GlobalMysql,

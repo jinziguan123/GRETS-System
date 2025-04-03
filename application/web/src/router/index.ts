@@ -146,7 +146,7 @@ const routes: Array<RouteRecordRaw> = [
         path: 'contract/create',
         name: 'ContractCreate',
         component: ContractCreate,
-        meta: { title: '创建合同', organizations: ['investor'] } as RouteMeta
+        meta: { title: '创建合同', organizations: ['investor', 'government'] } as RouteMeta
       },
       {
         path: 'contract/:id',
@@ -277,7 +277,7 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _, next) => {
   // 设置页面标题
   document.title = to.meta.title ? `${to.meta.title} - 房地产交易系统` : '房地产交易系统'
   
