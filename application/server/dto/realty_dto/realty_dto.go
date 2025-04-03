@@ -23,6 +23,7 @@ type RealtyDTO struct {
 	Images                          []string  `json:"images"`                          // 图片链接JSON数组
 	CurrentOwnerCitizenIDHash       string    `json:"currentOwnerCitizenIDHash"`       // 当前所有者
 	PreviousOwnersCitizenIDHashList []string  `json:"previousOwnersCitizenIDHashList"` // 历史所有者
+	RelContractUUID                 string    `json:"relContractUUID"`                 // 关联合同UUID
 	CreateTime                      time.Time `json:"createTime"`                      // 创建时间
 	Status                          string    `json:"status"`                          // 房产当前状态
 	LastUpdateTime                  time.Time `json:"lastUpdateTime"`                  // 最后更新时间
@@ -50,17 +51,19 @@ type CreateRealtyDTO struct {
 	Unit                        string   `json:"unit,omitempty"`                           // 单元
 	Floor                       string   `json:"floor,omitempty"`                          // 楼层
 	Room                        string   `json:"room,omitempty"`                           // 房号
+	RelContractUUID             string   `json:"relContractUUID,omitempty"`                // 关联合同UUID
 }
 
 // UpdateRealtyDTO 更新房产请求
 type UpdateRealtyDTO struct {
-	RealtyCert  string   `json:"realtyCert" binding:"required"` // 不动产证号
-	RealtyType  string   `json:"realtyType,omitempty"`          // 类型
-	HouseType   string   `json:"houseType,omitempty"`           // 户型
-	Price       float64  `json:"price,omitempty"`               // 价格
-	Status      string   `json:"status,omitempty"`              // 状态
-	Description string   `json:"description,omitempty"`         // 描述
-	Images      []string `json:"images,omitempty"`              // 图片链接JSON数组
+	RealtyCert      string   `json:"realtyCert" binding:"required"` // 不动产证号
+	RealtyType      string   `json:"realtyType,omitempty"`          // 类型
+	HouseType       string   `json:"houseType,omitempty"`           // 户型
+	RelContractUUID string   `json:"relContractUUID,omitempty"`     // 关联合同UUID
+	Price           float64  `json:"price,omitempty"`               // 价格
+	Status          string   `json:"status,omitempty"`              // 状态
+	Description     string   `json:"description,omitempty"`         // 描述
+	Images          []string `json:"images,omitempty"`              // 图片链接JSON数组
 }
 
 // QueryRealtyDTO 查询房产请求

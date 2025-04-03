@@ -85,26 +85,27 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 
 	// 保存到本地数据库
 	re := &models.Realty{
-		RealtyCert:     req.RealtyCert,
-		RealtyCertHash: utils.GenerateHash(req.RealtyCert),
-		RealtyType:     req.RealtyType,
-		Price:          req.Price,
-		Area:           req.Area,
-		Status:         req.Status,
-		Description:    req.Description,
-		Images:         req.Images,
-		HouseType:      req.HouseType,
-		Province:       req.Province,
-		City:           req.City,
-		District:       req.District,
-		Street:         req.Street,
-		Community:      req.Community,
-		Unit:           req.Unit,
-		Floor:          req.Floor,
-		Room:           req.Room,
-		IsNewHouse:     true,
-		CreateTime:     time.Now(),
-		UpdateTime:     time.Now(),
+		RealtyCert:      req.RealtyCert,
+		RealtyCertHash:  utils.GenerateHash(req.RealtyCert),
+		RealtyType:      req.RealtyType,
+		Price:           req.Price,
+		Area:            req.Area,
+		Status:          req.Status,
+		Description:     req.Description,
+		Images:          req.Images,
+		HouseType:       req.HouseType,
+		Province:        req.Province,
+		City:            req.City,
+		District:        req.District,
+		Street:          req.Street,
+		Community:       req.Community,
+		Unit:            req.Unit,
+		Floor:           req.Floor,
+		Room:            req.Room,
+		IsNewHouse:      true,
+		RelContractUUID: req.RelContractUUID,
+		CreateTime:      time.Now(),
+		UpdateTime:      time.Now(),
 	}
 	if err := s.realtyDAO.CreateRealEstate(re); err != nil {
 		return fmt.Errorf("保存房产失败: %v", err)
@@ -163,6 +164,7 @@ func (s *realtyService) GetRealtyByID(id string) (*realtyDto.RealtyDTO, error) {
 		CreateTime:                realty.CreateTime,
 		LastUpdateTime:            realty.UpdateTime,
 		CurrentOwnerCitizenIDHash: blockchainResult.CurrentOwnerCitizenIDHash,
+		RelContractUUID:           realty.RelContractUUID,
 	}, nil
 }
 
@@ -255,23 +257,24 @@ func (s *realtyService) QueryRealtyList(dto *realtyDto.QueryRealtyListDTO) ([]*r
 	result := make([]*realtyDto.RealtyDTO, 0, len(realtyList))
 	for _, realty := range realtyList {
 		dto := &realtyDto.RealtyDTO{
-			ID:             realty.ID,
-			RealtyType:     realty.RealtyType,
-			Price:          realty.Price,
-			Area:           realty.Area,
-			Province:       realty.Province,
-			City:           realty.City,
-			District:       realty.District,
-			Street:         realty.Street,
-			Community:      realty.Community,
-			Unit:           realty.Unit,
-			Floor:          realty.Floor,
-			Room:           realty.Room,
-			Status:         realty.Status,
-			HouseType:      realty.HouseType,
-			Images:         realty.Images,
-			CreateTime:     realty.CreateTime,
-			LastUpdateTime: realty.UpdateTime,
+			ID:              realty.ID,
+			RealtyType:      realty.RealtyType,
+			Price:           realty.Price,
+			Area:            realty.Area,
+			Province:        realty.Province,
+			City:            realty.City,
+			District:        realty.District,
+			Street:          realty.Street,
+			Community:       realty.Community,
+			Unit:            realty.Unit,
+			Floor:           realty.Floor,
+			Room:            realty.Room,
+			Status:          realty.Status,
+			HouseType:       realty.HouseType,
+			RelContractUUID: realty.RelContractUUID,
+			Images:          realty.Images,
+			CreateTime:      realty.CreateTime,
+			LastUpdateTime:  realty.UpdateTime,
 		}
 		result = append(result, dto)
 	}
@@ -360,6 +363,9 @@ func (s *realtyService) UpdateRealty(req *realtyDto.UpdateRealtyDTO) error {
 	}
 	if req.Price != 0 {
 		realty.Price = req.Price
+	}
+	if req.RelContractUUID != "" {
+		realty.RelContractUUID = req.RelContractUUID
 	}
 
 	if err := s.realtyDAO.UpdateRealEstate(realty); err != nil {

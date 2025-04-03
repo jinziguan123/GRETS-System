@@ -188,11 +188,7 @@ const fetchContracts = async () => {
       pageSize: 100,
       pageNumber: 1
     })
-    if (response.data.code === 200) {
-      contractList.value = response.data.data.contracts || []
-    } else {
-      ElMessage.error('获取合同列表失败')
-    }
+    contractList.value = response.contracts || []
   } catch (error) {
     console.error('Failed to fetch contracts:', error)
     ElMessage.error('获取合同列表失败')
