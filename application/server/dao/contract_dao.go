@@ -29,16 +29,18 @@ func (dao *ContractDAO) QueryContractsWithPagination(
 	for field, value := range conditions {
 		if v, ok := value.(string); ok && v != "" {
 			// 字符串类型且不为空
-			if field == "contractUUID" {
+			if field == "contract_uuid" {
 				query = query.Where("contract_uuid = ?", v)
 			} else if field == "status" {
 				query = query.Where("status = ?", v)
-			} else if field == "contractType" {
+			} else if field == "contract_type" {
 				query = query.Where("contract_type = ?", v)
-			} else if field == "creatorCitizenIDHash" {
+			} else if field == "creator_citizen_id_hash" {
 				query = query.Where("creator_citizen_id_hash = ?", v)
-			} else if field == "docHash" {
+			} else if field == "doc_hash" {
 				query = query.Where("doc_hash = ?", v)
+			} else if field == "transaction_uuid" {
+				query = query.Where("transaction_uuid = ?", v)
 			}
 		}
 	}

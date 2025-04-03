@@ -110,6 +110,7 @@ func SetupRouter() *gin.Engine {
 			contracts.POST("/createContract", controller.CreateContract)
 			contracts.POST("/queryContractList", controller.QueryContractList)
 			contracts.GET("/:id", controller.GetContractByID)
+			contracts.GET("/getContractByUUID/:contractUUID", controller.GetContractByUUID)
 			contracts.POST("/:id/sign", controller.SignContract)
 			contracts.POST("/:id/audit", controller.AuditContract)
 		}

@@ -6,6 +6,7 @@ import "time"
 type ContractDTO struct {
 	ID                   int64     `json:"id"`
 	ContractUUID         string    `json:"contractUUID"`
+	TransactionUUID      string    `json:"transactionUUID"`
 	Title                string    `json:"title"`
 	DocHash              string    `json:"docHash"`
 	Content              string    `json:"content"`
@@ -28,6 +29,7 @@ type CreateContractDTO struct {
 type QueryContractDTO struct {
 	ContractUUID     string `json:"contractUUID"`
 	DocHash          string `json:"docHash"`
+	TransactionUUID  string `json:"transactionUUID"`
 	ContractType     string `json:"contractType"`
 	CreatorCitizenID string `json:"creatorCitizenID"`
 	Status           string `json:"status"`
@@ -47,10 +49,11 @@ type AuditContractDTO struct {
 }
 
 type UpdateContractDTO struct {
-	ContractUUID string `json:"contractUUID"`
-	Title        string `json:"title"`
-	Content      string `json:"content"`
-	ContractType string `json:"contractType"`
-	DocHash      string `json:"docHash"`
-	Status       string `json:"status"`
+	ContractUUID    string `json:"contractUUID"`
+	Title           string `json:"title"`
+	TransactionUUID string `json:"transactionUUID"`
+	Content         string `json:"content"`
+	ContractType    string `json:"contractType"`
+	DocHash         string `json:"docHash"`
+	Status          string `json:"status"`
 }

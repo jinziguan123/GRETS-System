@@ -180,12 +180,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/user'
-import { ElMessage } from 'element-plus'
+import {computed, onMounted, ref} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
+import {useUserStore} from '@/stores/user'
+import {ElMessage} from 'element-plus'
 import axios from 'axios'
 import dayjs from 'dayjs'
+import {getContractByUUID} from "@/api/contract.js";
 
 const route = useRoute()
 const router = useRouter()
@@ -200,7 +201,7 @@ const contract = ref(null)
 const signDialogVisible = ref(false)
 
 // 合同ID
-const contractId = computed(() => route.params.id)
+const contractUUID = computed(() => route.params.id)
 
 // 判断是否可以签署合同
 const canSign = computed(() => {
@@ -231,13 +232,7 @@ const fetchContractDetail = async () => {
     loading.value = true
     
     // 调用API获取合同详情
-    const { data } = await axios.get(`/contracts/${contractId.value}`)
-    
-    if (data.code === 200) {
-      contract.value = data.data
-    } else {
-      ElMessage.error(data.message || '获取合同详情失败')
-    }
+    contract.value = await getContractByUUID(contractUUID.value)
   } catch (error) {
     console.error('Failed to fetch contract details:', error)
     ElMessage.error('获取合同详情失败')
@@ -258,7 +253,7 @@ const confirmSign = async () => {
   try {
     const signerType = userStore.hasOrganization('investor') ? 'buyer' : 'seller'
     
-    const { data } = await axios.post(`/contracts/${contractId.value}/sign`, {
+    const { data } = await axios.post(`/contracts/${contractUUID.value}/sign`, {
       signerType
     })
     
@@ -282,7 +277,7 @@ const confirmSign = async () => {
 const auditContract = () => {
   router.push({
     path: '/contract/audit',
-    query: { id: contractId.value }
+    query: { id: contractUUID.value }
   })
 }
 
@@ -398,7 +393,7 @@ const formatFileSize = (bytes) => {
 
 // 页面加载时获取合同详情
 onMounted(() => {
-  if (contractId.value) {
+  if (contractUUID.value) {
     fetchContractDetail()
   } else {
     loading.value = false

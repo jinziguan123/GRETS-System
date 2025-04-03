@@ -171,6 +171,7 @@ import { Plus } from '@element-plus/icons-vue'
 import { createRealty } from "@/api/realty.js"
 import { useUserStore } from '@/stores/user'
 import axios from 'axios'
+import { queryContractList } from '@/api/contract'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -182,12 +183,11 @@ const contractList = ref([])
 // 获取合同列表
 const fetchContracts = async () => {
   try {
-    const response = await axios.post('/api/contract/list', {
+    const response = await queryContractList({
       status: 'NORMAL',
       pageSize: 100,
       pageNumber: 1
     })
-    
     if (response.data.code === 200) {
       contractList.value = response.data.data.contracts || []
     } else {

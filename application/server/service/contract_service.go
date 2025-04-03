@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// 全局合同服务实例
+// GlobalContractService 全局合同服务实例
 var GlobalContractService ContractService
 
 // InitContractService 初始化合同服务
@@ -29,6 +29,7 @@ type ContractService interface {
 	SignContract(id string, req *contractDto.SignContractDTO) error
 	AuditContract(id string, req *contractDto.AuditContractDTO) error
 	UpdateContract(id string, req *contractDto.UpdateContractDTO) error
+	GetContractByUUID(contractUUID string) (*contractDto.ContractDTO, error)
 }
 
 // contractService 合同服务实现
@@ -73,6 +74,7 @@ func (s *contractService) CreateContract(dto *contractDto.CreateContractDTO) err
 		ContractType:         dto.ContractType,
 		Status:               constants.ContractStatusNormal,
 		Content:              dto.Content,
+		TransactionUUID:      "",
 		CreatorCitizenIDHash: utils.GenerateHash(dto.CreatorCitizenID),
 		CreateTime:           time.Now(),
 		UpdateTime:           time.Now(),
@@ -101,6 +103,7 @@ func (s *contractService) GetContractByID(id string) (*contractDto.ContractDTO, 
 		Title:                contract.Title,
 		DocHash:              contract.DocHash,
 		Status:               contract.Status,
+		TransactionUUID:      contract.TransactionUUID,
 		ContractType:         contract.ContractType,
 		CreatorCitizenIDHash: contract.CreatorCitizenIDHash,
 		CreateTime:           contract.CreateTime,
@@ -128,6 +131,9 @@ func (s *contractService) QueryContractList(dto *contractDto.QueryContractDTO) (
 	}
 	if dto.Status != "" {
 		conditions["status"] = dto.Status
+	}
+	if dto.TransactionUUID != "" {
+		conditions["transaction_uuid"] = dto.TransactionUUID
 	}
 
 	// 设置默认分页参数
@@ -283,4 +289,39 @@ func (s *contractService) UpdateContract(id string, dto *contractDto.UpdateContr
 	}
 
 	return nil
+}
+
+// GetContractByUUID 根据UUID获取合同信息
+func (s *contractService) GetContractByUUID(contractUUID string) (*contractDto.ContractDTO, error) {
+	// 从数据库中获取合同信息
+	contractList, count, err := s.contractDAO.QueryContractsWithPagination(
+		map[string]interface{}{
+			"contract_uuid": contractUUID,
+		},
+		1,
+		1,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合同失败: %v", err))
+		return nil, fmt.Errorf("获取合同失败: %v", err)
+	}
+
+	if count == 0 {
+		utils.Log.Error(fmt.Sprintf("合同不存在: %v", contractUUID))
+		return nil, fmt.Errorf("合同不存在: %v", contractUUID)
+	}
+
+	contract := contractList[0]
+	return &contractDto.ContractDTO{
+		ID:                   contract.ID,
+		ContractUUID:         contract.ContractUUID,
+		Title:                contract.Title,
+		Content:              contract.Content,
+		DocHash:              contract.DocHash,
+		Status:               contract.Status,
+		ContractType:         contract.ContractType,
+		CreatorCitizenIDHash: contract.CreatorCitizenIDHash,
+		CreateTime:           contract.CreateTime,
+		UpdateTime:           contract.UpdateTime,
+	}, nil
 }

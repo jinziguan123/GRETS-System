@@ -135,6 +135,26 @@ func (ctrl *ContractController) AuditContract(c *gin.Context) {
 	utils.ResponseSuccess(c, "合同审核完成", nil)
 }
 
+// GetContractByUUID 根据UUID获取合同信息
+func (ctrl *ContractController) GetContractByUUID(c *gin.Context) {
+	// 获取路径参数
+	contractUUID := c.Param("contractUUID")
+	if contractUUID == "" {
+		utils.ResponseBadRequest(c, "合同UUID不能为空")
+		return
+	}
+
+	// 调用服务获取合同信息
+	contract, err := ctrl.contractService.GetContractByUUID(contractUUID)
+	if err != nil {
+		utils.ResponseInternalServerError(c, err.Error())
+		return
+	}
+
+	// 返回合同信息
+	utils.ResponseSuccess(c, "查询合同成功", contract)
+}
+
 // 创建全局合同控制器实例
 var GlobalContractController *ContractController
 
@@ -162,4 +182,8 @@ func SignContract(c *gin.Context) {
 
 func AuditContract(c *gin.Context) {
 	GlobalContractController.AuditContract(c)
+}
+
+func GetContractByUUID(c *gin.Context) {
+	GlobalContractController.GetContractByUUID(c)
 }

@@ -94,3 +94,10 @@ export function getContractByID(id: number) {
     method: 'get'
   })
 }
+
+export function getContractByUUID(uuid: string) {
+  return request({
+    url: `/contracts/getContractByUUID/${uuid}`,
+    method: 'get'
+  })
+}

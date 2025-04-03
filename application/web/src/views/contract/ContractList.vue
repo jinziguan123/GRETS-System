@@ -93,7 +93,7 @@
               <el-button 
                 type="primary" 
                 link 
-                @click.stop="viewContractDetail(scope.row.id)"
+                @click.stop="viewContractDetail(scope.row.contractUUID)"
               >
                 查看
               </el-button>
@@ -305,8 +305,8 @@ const createContract = () => {
 }
 
 // 查看合同详情
-const viewContractDetail = (id) => {
-  router.push(`/contract/${id}`)
+const viewContractDetail = (contractUUID) => {
+  router.push(`/contract/${contractUUID}`)
 }
 
 // 确认签署
