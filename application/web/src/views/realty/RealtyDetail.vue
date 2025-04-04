@@ -40,8 +40,11 @@
               <el-tag :type="getStatusTagType(realty.status)">
                 {{ getStatusText(realty.status) }}
               </el-tag>
-              <el-tag type="info" style="margin-left: 8px;">
-                {{ realty.isNewHouse ? '新房' : '二手房' }}
+              <el-tag type="info" color="green" effect="dark" style="margin-left: 8px;" v-if="realty.isNewHouse">
+                {{ '新房' }}
+              </el-tag>
+              <el-tag type="warning" effect="dark" style="margin-left: 8px;" v-if="!realty.isNewHouse">
+                {{ '二手房' }}
               </el-tag>
             </div>
           </div>

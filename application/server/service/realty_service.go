@@ -165,6 +165,7 @@ func (s *realtyService) GetRealtyByID(id string) (*realtyDto.RealtyDTO, error) {
 		LastUpdateTime:            realty.UpdateTime,
 		CurrentOwnerCitizenIDHash: blockchainResult.CurrentOwnerCitizenIDHash,
 		RelContractUUID:           realty.RelContractUUID,
+		IsNewHouse:                realty.IsNewHouse,
 	}, nil
 }
 
@@ -233,8 +234,8 @@ func (s *realtyService) QueryRealtyList(dto *realtyDto.QueryRealtyListDTO) ([]*r
 	}
 
 	// 是否为新房条件
-	if dto.IsNewHouse {
-		conditions["is_new_house"] = dto.IsNewHouse
+	if dto.IsNewHouse != nil {
+		conditions["is_new_house"] = *dto.IsNewHouse
 	}
 
 	// 设置默认分页参数
@@ -272,6 +273,7 @@ func (s *realtyService) QueryRealtyList(dto *realtyDto.QueryRealtyListDTO) ([]*r
 			Status:          realty.Status,
 			HouseType:       realty.HouseType,
 			RelContractUUID: realty.RelContractUUID,
+			IsNewHouse:      realty.IsNewHouse,
 			Images:          realty.Images,
 			CreateTime:      realty.CreateTime,
 			LastUpdateTime:  realty.UpdateTime,

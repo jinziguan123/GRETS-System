@@ -10,26 +10,27 @@
     
     <!-- 筛选器 -->
     <el-card class="filter-card">
-      <el-form :inline="true" :model="filterForm" class="contract-filter" size="small">
-        <el-row>
-          <el-col>
+      <el-form :model="filterForm" class="contract-filter" size="small">
+        <el-row :gutter="20">
+          <el-col :span="24">
             <el-form-item label="合同编号">
-              <el-input v-model="filterForm.contractUUID" placeholder="输入合同编号" clearable />
+              <el-input style="width: 200px" v-model="filterForm.contractUUID" placeholder="输入合同编号" clearable />
             </el-form-item>
           </el-col>
         </el-row>
-        <el-row>
-          <el-col>
+        <el-row :gutter="20">
+          <el-col :span="12">
             <el-form-item label="合同状态">
-              <el-select v-model="filterForm.status" placeholder="选择合同状态" clearable>
+              <el-select style="width: 200px" v-model="filterForm.status" placeholder="选择合同状态" clearable>
                 <el-option label="正常" value="NORMAL" />
                 <el-option label="冻结" value="FROZEN" />
                 <el-option label="已完成" value="COMPLETED" />
-                
               </el-select>
             </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="合同类型">
-              <el-select v-model="filterForm.contractType" placeholder="选择合同类型" clearable>
+              <el-select style="width: 200px" v-model="filterForm.contractType" placeholder="选择合同类型" clearable>
                 <el-option label="购房合同" value="purchase" />
                 <el-option label="贷款合同" value="mortgage" />
                 <el-option label="租赁合同" value="lease" />
@@ -37,10 +38,12 @@
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item>
-          <el-button type="primary" @click="searchContracts">查询</el-button>
-          <el-button @click="resetFilter">重置</el-button>
-        </el-form-item>
+        <el-row>
+          <el-form-item>
+            <el-button type="primary" @click="searchContracts">查询</el-button>
+            <el-button @click="resetFilter">重置</el-button>
+          </el-form-item>
+        </el-row>
       </el-form>
     </el-card>
     

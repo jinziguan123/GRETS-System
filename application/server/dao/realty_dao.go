@@ -154,28 +154,27 @@ func (dao *RealEstateDAO) QueryRealEstatesWithPagination(
 			} else if field == "house_type" {
 				query = query.Where("house_type = ?", v)
 			}
-		} else if v, ok := value.(map[string]float64); ok {
-			// 范围查询条件
-			if field == "price_range" {
-				if min, exists := v["min"]; exists && min > 0 {
+		} else if field == "price_range" {
+			if priceRange, ok := value.(map[string]float64); ok {
+				if min, exists := priceRange["min"]; exists && min > 0 {
 					query = query.Where("price >= ?", min)
 				}
-				if max, exists := v["max"]; exists && max > 0 {
+				if max, exists := priceRange["max"]; exists && max > 0 {
 					query = query.Where("price <= ?", max)
 				}
-			} else if field == "area_range" {
-				if min, exists := v["min"]; exists && min > 0 {
+			}
+		} else if field == "area_range" {
+			if areaRange, ok := value.(map[string]float64); ok {
+				if min, exists := areaRange["min"]; exists && min > 0 {
 					query = query.Where("area >= ?", min)
 				}
-				if max, exists := v["max"]; exists && max > 0 {
+				if max, exists := areaRange["max"]; exists && max > 0 {
 					query = query.Where("area <= ?", max)
 				}
 			}
-		} else if v, ok := value.(map[string]bool); ok {
-			if field == "is_new_house" {
-				if isNewHouse, exists := v["is_new_house"]; exists {
-					query = query.Where("is_new_house is", isNewHouse)
-				}
+		} else if field == "is_new_house" {
+			if isNewHouse, ok := value.(bool); ok {
+				query = query.Where("is_new_house = ?", isNewHouse)
 			}
 		}
 	}

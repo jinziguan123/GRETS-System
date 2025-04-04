@@ -37,7 +37,7 @@
         <el-tab-pane label="基本信息">
           <el-card>
             <el-descriptions title="合同信息" :column="2" border>
-              <el-descriptions-item label="合同编号">{{ contract.id }}</el-descriptions-item>
+              <el-descriptions-item label="合同编号">{{ contract.contractUUID }}</el-descriptions-item>
               <el-descriptions-item label="合同类型">{{ getContractTypeName(contract.contractType) }}</el-descriptions-item>
               <el-descriptions-item label="合同标题">{{ contract.title }}</el-descriptions-item>
               <el-descriptions-item label="创建日期">{{ formatDate(contract.createTime) }}</el-descriptions-item>
@@ -90,33 +90,33 @@
           </el-card>
         </el-tab-pane>
         
-        <el-tab-pane label="签署记录">
-          <el-card>
-            <div v-if="contract.auditLogs && contract.auditLogs.length > 0">
-              <el-timeline>
-                <el-timeline-item
-                  v-for="(log, index) in contract.auditLogs"
-                  :key="index"
-                  :type="getAuditLogType(log.action)"
-                  :timestamp="formatDateTime(log.timestamp)"
-                >
-                  <h4>{{ getAuditLogTitle(log.action) }}</h4>
-                  <p>{{ log.comments }}</p>
-                  <p v-if="log.revisionRequirements" class="log-details">
-                    <strong>修改要求：</strong> {{ log.revisionRequirements }}
-                  </p>
-                  <p v-if="log.rejectionReason" class="log-details">
-                    <strong>拒绝理由：</strong> {{ log.rejectionReason }}
-                  </p>
-                  <div class="log-meta">
-                    <span>操作人：{{ log.auditor }}</span>
-                  </div>
-                </el-timeline-item>
-              </el-timeline>
-            </div>
-            <el-empty v-else description="暂无签署/审核记录" />
-          </el-card>
-        </el-tab-pane>
+<!--        <el-tab-pane label="签署记录">-->
+<!--          <el-card>-->
+<!--            <div v-if="contract.auditLogs && contract.auditLogs.length > 0">-->
+<!--              <el-timeline>-->
+<!--                <el-timeline-item-->
+<!--                  v-for="(log, index) in contract.auditLogs"-->
+<!--                  :key="index"-->
+<!--                  :type="getAuditLogType(log.action)"-->
+<!--                  :timestamp="formatDateTime(log.timestamp)"-->
+<!--                >-->
+<!--                  <h4>{{ getAuditLogTitle(log.action) }}</h4>-->
+<!--                  <p>{{ log.comments }}</p>-->
+<!--                  <p v-if="log.revisionRequirements" class="log-details">-->
+<!--                    <strong>修改要求：</strong> {{ log.revisionRequirements }}-->
+<!--                  </p>-->
+<!--                  <p v-if="log.rejectionReason" class="log-details">-->
+<!--                    <strong>拒绝理由：</strong> {{ log.rejectionReason }}-->
+<!--                  </p>-->
+<!--                  <div class="log-meta">-->
+<!--                    <span>操作人：{{ log.auditor }}</span>-->
+<!--                  </div>-->
+<!--                </el-timeline-item>-->
+<!--              </el-timeline>-->
+<!--            </div>-->
+<!--            <el-empty v-else description="暂无签署/审核记录" />-->
+<!--          </el-card>-->
+<!--        </el-tab-pane>-->
         
         <el-tab-pane label="附件">
           <el-card>

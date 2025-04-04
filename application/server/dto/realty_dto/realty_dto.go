@@ -88,7 +88,7 @@ type QueryRealtyListDTO struct {
 	Unit       string  `json:"unit"`       // 单元
 	Floor      string  `json:"floor"`      // 楼层
 	Room       string  `json:"room"`       // 房号
-	IsNewHouse bool    `json:"isNewHouse"` // 是否为新房
+	IsNewHouse *bool   `json:"isNewHouse"` // 是否为新房
 	PageSize   int     `json:"pageSize"`   // 每页条数
 	PageNumber int     `json:"pageNumber"` // 页码
 }

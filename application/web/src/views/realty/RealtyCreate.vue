@@ -66,7 +66,7 @@
         </el-form-item>
         
         <el-form-item label="关联合同" prop="contractID" v-if="realtyForm.status === 'NORMAL'">
-          <el-select v-model="realtyForm.contractID" placeholder="请选择关联合同" style="width: 100%" filterable>
+          <el-select v-model="realtyForm.contractUUID" placeholder="请选择关联合同" style="width: 100%" filterable>
             <el-option 
               v-for="contract in contractList" 
               :key="contract.contractUUID" 
@@ -170,7 +170,6 @@ import { useRouter } from 'vue-router'
 import { Plus } from '@element-plus/icons-vue'
 import { createRealty } from "@/api/realty.js"
 import { useUserStore } from '@/stores/user'
-import axios from 'axios'
 import { queryContractList } from '@/api/contract'
 
 const router = useRouter()
@@ -188,7 +187,7 @@ const fetchContracts = async () => {
       pageSize: 100,
       pageNumber: 1
     })
-    contractList.value = response.contracts || []
+    contractList.value = response.contracts.filter(e => !e.transactionUUID) || []
   } catch (error) {
     console.error('Failed to fetch contracts:', error)
     ElMessage.error('获取合同列表失败')
@@ -217,7 +216,7 @@ const realtyForm = reactive({
   address: '',
   images: [],
   previousOwnersCitizenIDList: [],
-  contractID: ''
+  contractUUID: ''
 })
 
 // 计算完整地址
@@ -237,12 +236,12 @@ addressFields.forEach(field => {
 watch(() => realtyForm.status, (newVal) => {
   if (newVal === 'NORMAL') {
     // 修改规则，添加合同ID验证
-    rules.contractID = [
+    rules.contractUUID = [
       { required: true, message: '正常状态的新房必须选择关联合同', trigger: 'change' }
     ]
   } else {
     // 移除合同ID验证
-    delete rules.contractID
+    delete rules.contractUUID
   }
 })
 
@@ -321,7 +320,7 @@ const submitForm = async () => {
     }
     
     // 检查状态为NORMAL时是否选择了合同
-    if (realtyForm.status === 'NORMAL' && !realtyForm.contractID) {
+    if (realtyForm.status === 'NORMAL' && !realtyForm.contractUUID) {
       ElMessage.warning('正常状态的新房必须选择关联合同')
       return
     }
@@ -332,7 +331,6 @@ const submitForm = async () => {
       // 准备提交数据
       const requestData = {
         ...realtyForm,
-        address: realtyForm.address,
         // 由于是新房，设置默认所有者为政府
         currentOwnerCitizenID: 'GovernmentDefault',
         // 设置为新房
@@ -340,12 +338,12 @@ const submitForm = async () => {
         // 默认传递空数组
         images: [],
         previousOwnersCitizenIDList: [],
-        contractID: realtyForm.contractID
+        relContractUUID: realtyForm.contractUUID || '',
       }
       
       await createRealty(requestData)
       ElMessage.success('房产创建成功')
-      router.push('/realty/list')
+      router.push('/realty')
     } catch (error) {
       console.error('Failed to create realty:', error)
       ElMessage.error('创建房产失败')

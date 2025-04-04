@@ -92,7 +92,10 @@
           </el-col>
           <el-col :span="8">
             <el-form-item label="是否为新房">
-              <el-switch v-model="searchForm.isNewHouse" />
+              <el-select v-model="searchForm.isNewHouse" placeholder="请选择是否为新房" clearable>
+                <el-option label="是" :value="true"></el-option>
+                <el-option label="否" :value="false"></el-option>
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -139,7 +142,8 @@
           <div class="realty-image">
             <img :src="getRandomImage(item.realtyCert)" alt="房产图片" />
             <div class="realty-status" :class="getStatusClass(item.status)">{{ getStatusText(item.status) }}</div>
-            <div class="realty-type-tag">{{ item.isNewHouse ? '新房' : '二手房' }}</div>
+            <div class="is-new-house" v-if="item.isNewHouse">{{'新房'}}</div>
+            <div class="is-not-new-house" v-if="!item.isNewHouse">{{'二手房'}}</div>
           </div>
           <div class="realty-info">
             <h3 class="realty-title">{{ generateTitle(item) }}</h3>
@@ -218,7 +222,7 @@ const searchForm = reactive({
   unit: '',
   floor: '',
   room: '',
-  isNewHouse: false,
+  isNewHouse: null,
   pageSize: 10,
   pageNumber: 1
 })
@@ -230,6 +234,8 @@ const resetSearch = () => {
       searchForm[key] = 10
     } else if (key === 'pageNumber') {
       searchForm[key] = 1
+    }else if (key === 'isNewHouse') {
+      searchForm[key] = null
     } else {
       searchForm[key] = key.startsWith('min') || key.startsWith('max') ? null : ''
     }
@@ -366,6 +372,7 @@ const fetchData = async () => {
       street: searchForm.street,
       community: searchForm.community,
       unit: searchForm.unit,
+      isNewHouse: searchForm.isNewHouse,
       floor: searchForm.floor,
       room: searchForm.room,
       pageSize: searchForm.pageSize,
@@ -510,11 +517,22 @@ onMounted(() => {
   font-size: 12px;
 }
 
-.realty-type-tag {
+.is-new-house {
   position: absolute;
   top: 10px;
   left: 10px;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 100, 0, 0.7);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.is-not-new-house {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: rgba(200, 100, 0, 0.7);
   color: white;
   padding: 2px 8px;
   border-radius: 4px;
