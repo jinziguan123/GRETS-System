@@ -76,7 +76,7 @@ func SetupRouter() *gin.Engine {
 		{
 			transactions.POST("/createTransaction", controller.CreateTransaction)
 			transactions.POST("/queryTransactionList", controller.QueryTransactionList)
-			transactions.GET("/:id", controller.GetTransactionByID)
+			transactions.GET("/:transactionUUID", controller.GetTransactionByUUID)
 			transactions.POST("/:id/complete", controller.CompleteTransaction)
 		}
 

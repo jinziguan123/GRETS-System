@@ -39,8 +39,8 @@ func (c *TransactionController) CreateTransaction(ctx *gin.Context) {
 	utils.ResponseSuccess(ctx, "交易创建成功", nil)
 }
 
-// GetTransactionByID 根据ID获取交易
-func (c *TransactionController) GetTransactionByID(ctx *gin.Context) {
+// GetTransactionByUUID 根据ID获取交易
+func (c *TransactionController) GetTransactionByUUID(ctx *gin.Context) {
 	// 获取交易ID
 	transactionUUID := ctx.Param("transactionUUID")
 	if transactionUUID == "" {
@@ -192,8 +192,8 @@ func CreateTransaction(c *gin.Context) {
 	GlobalTxController.CreateTransaction(c)
 }
 
-func GetTransactionByID(c *gin.Context) {
-	GlobalTxController.GetTransactionByID(c)
+func GetTransactionByUUID(c *gin.Context) {
+	GlobalTxController.GetTransactionByUUID(c)
 }
 
 func QueryTransactionList(c *gin.Context) {

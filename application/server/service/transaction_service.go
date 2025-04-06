@@ -122,7 +122,7 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 	return s.txDAO.CreateTransaction(tx)
 }
 
-// GetTransactionByTransactionUUID GetTransactionByID 根据ID获取交易信息
+// GetTransactionByTransactionUUID GetTransactionByUUID 根据ID获取交易信息
 func (s *transactionService) GetTransactionByTransactionUUID(transactionUUID string) (*models.Transaction, error) {
 	// 调用DAO层查询交易
 	return s.txDAO.GetTransactionByTransactionUUID(transactionUUID)
@@ -187,7 +187,7 @@ func (s *transactionService) QueryTransactionList(dto *transactionDto.QueryTrans
 // UpdateTransaction 更新交易信息
 // func (s *transactionService) UpdateTransaction(id string, req *transactionDto.UpdateTransactionDTO) error {
 // 	// 查询交易
-// 	tx, err := s.txDAO.GetTransactionByID(id)
+// 	tx, err := s.txDAO.GetTransactionByUUID(id)
 // 	if err != nil {
 // 		return err
 // 	}

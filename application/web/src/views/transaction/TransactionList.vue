@@ -89,7 +89,7 @@
         </el-table-column>
         <el-table-column label="操作" fixed="right" width="180">
           <template #default="scope">
-            <el-button type="primary" size="small" @click="viewDetail(scope.row)">查看详情</el-button>
+            <el-button type="primary" size="small" @click="viewDetail(scope.row)" :disabled="!isTransactionParty(scope.row)">查看详情</el-button>
             <el-button 
               v-if="canCheckTransaction(scope.row)"
               type="success" 
@@ -122,6 +122,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import {queryTransactionList} from "@/api/transaction.js";
+import CryptoJS from 'crypto-js'
 
 const router = useRouter()
 const loading = ref(false)
@@ -143,7 +144,7 @@ const searchForm = reactive({
 
 // 获取当前用户信息
 const userInfo = computed(() => {
-  const userJson = localStorage.getItem('user')
+  const userJson = localStorage.getItem('userInfo')
   if (!userJson) return null
   try {
     return JSON.parse(userJson)
@@ -219,12 +220,12 @@ const refreshData = () => {
 
 // 查看交易详情
 const viewDetail = (row) => {
-  router.push(`/transaction/detail/${row.transactionID}`)
+  router.push(`/transaction/${row.transactionUUID}`)
 }
 
 // 审核交易
 const checkTransaction = (row) => {
-  router.push(`/transaction/audit/${row.transactionID}`)
+  router.push(`/transaction/audit/${row.transactionUUID}`)
 }
 
 // 价格格式化
@@ -280,6 +281,23 @@ const canCheckTransaction = (transaction) => {
   }
   
   return false
+}
+
+// 判断当前用户是否为交易的买方或卖方
+const isTransactionParty = (transaction) => {
+  if (!userInfo.value || !userInfo.value.citizenID) return false
+  
+  // 获取用户身份证号的SHA256哈希值
+  const userCitizenIDHash = CryptoJS.SHA256(userInfo.value.citizenID).toString(CryptoJS.enc.Hex)
+  
+  // 检查用户是否为买方或卖方
+  const isBuyer = transaction.buyerCitizenIDHash === userCitizenIDHash
+  const isSeller = transaction.sellerCitizenIDHash === userCitizenIDHash
+  
+  // 政府和审计可以查看所有交易
+  const isAdmin = userInfo.value.role === 'GOVERNMENT' || userInfo.value.role === 'AUDIT'
+  
+  return isBuyer || isSeller || isAdmin
 }
 
 onMounted(() => {

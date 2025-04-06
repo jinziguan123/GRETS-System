@@ -33,7 +33,7 @@
       <div v-if="transactionInfo">
         <!-- 交易基本信息 -->
         <el-descriptions title="交易基本信息" :column="2" border>
-          <el-descriptions-item label="交易编号">{{ transactionInfo.transactionID }}</el-descriptions-item>
+          <el-descriptions-item label="交易编号">{{ transactionInfo.transactionUUID }}</el-descriptions-item>
           <el-descriptions-item label="交易状态">
             <el-tag :type="getStatusType(transactionInfo.status)">
               {{ getStatusText(transactionInfo.status) }}
@@ -142,7 +142,7 @@
                   class="upload-area"
                   action="/api/contract/upload"
                   :headers="uploadHeaders"
-                  :data="{ transactionID: transactionID, contractType: 'SALE' }"
+                  :data="{ transactionUUID: transactionUUID, contractType: 'SALE' }"
                   :on-success="handleUploadSuccess"
                   :on-error="handleUploadError"
                   :limit="1"
@@ -233,10 +233,11 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
+import {getTransactionDetail} from "@/api/transaction.js";
 
 const router = useRouter()
 const route = useRoute()
-const transactionID = ref(route.params.id)
+const transactionUUID = ref(route.params.id)
 const loading = ref(true)
 const transactionInfo = ref(null)
 const realtyInfo = ref(null)
@@ -329,7 +330,7 @@ const canCancelTransaction = computed(() => {
 const fetchTransactionDetail = async () => {
   loading.value = true
   try {
-    const response = await axios.get(`/api/transaction/${transactionID.value}`)
+    const response = await getTransactionDetail(transactionUUID.value)
     transactionInfo.value = response.data
     
     // 获取房产信息
@@ -366,7 +367,7 @@ const fetchRealtyDetail = async (realtyCert) => {
 // 获取审核记录
 const fetchAudits = async () => {
   try {
-    const response = await axios.get(`/api/audit/transaction/${transactionID.value}`)
+    const response = await axios.get(`/api/audit/transaction/${transactionUUID.value}`)
     audits.value = response.data || []
   } catch (error) {
     console.error('获取审核记录失败:', error)
@@ -376,7 +377,7 @@ const fetchAudits = async () => {
 // 获取支付记录
 const fetchPayments = async () => {
   try {
-    const response = await axios.get(`/api/payment/transaction/${transactionID.value}`)
+    const response = await axios.get(`/api/payment/transaction/${transactionUUID.value}`)
     payments.value = response.data || []
   } catch (error) {
     console.error('获取支付记录失败:', error)
@@ -386,7 +387,7 @@ const fetchPayments = async () => {
 // 获取合同信息
 const fetchContracts = async () => {
   try {
-    const response = await axios.get(`/api/contract/transaction/${transactionID.value}`)
+    const response = await axios.get(`/api/contract/transaction/${transactionUUID.value}`)
     contracts.value = response.data || []
   } catch (error) {
     console.error('获取合同信息失败:', error)
@@ -428,7 +429,7 @@ const submitPayment = async () => {
       
       try {
         const paymentData = {
-          transactionID: transactionID.value,
+          transactionUUID: transactionUUID.value,
           paymentType: paymentType.value,
           amount: paymentForm.amount,
           payerCitizenID: paymentForm.payerCitizenID,
@@ -472,7 +473,7 @@ const submitAudit = async () => {
       
       try {
         const auditData = {
-          transactionID: transactionID.value,
+          transactionUUID: transactionUUID.value,
           result: auditAction.value,
           opinion: auditForm.opinion
         }
@@ -506,7 +507,7 @@ const handleComplete = async () => {
     loading.value = true
     
     try {
-      const response = await axios.post(`/api/transaction/${transactionID.value}/complete`)
+      const response = await axios.post(`/api/transaction/${transactionUUID.value}/complete`)
       ElMessage.success('交易已完成')
       await fetchTransactionDetail()
     } catch (error) {
@@ -528,7 +529,7 @@ const handleCancel = async () => {
     loading.value = true
     
     try {
-      const response = await axios.post(`/api/transaction/${transactionID.value}/cancel`)
+      const response = await axios.post(`/api/transaction/${transactionUUID.value}/cancel`)
       ElMessage.success('交易已取消')
       await fetchTransactionDetail()
     } catch (error) {
