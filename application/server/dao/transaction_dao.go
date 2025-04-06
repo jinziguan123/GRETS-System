@@ -29,14 +29,16 @@ func (dao *TransactionDAO) QueryTransactionList(
 
 	for field, value := range conditions {
 		if v, ok := value.(string); ok && v != "" {
-			if field == "buyer_citizen_id" {
-				query = query.Where("buyer_citizen_id = ?", v)
-			} else if field == "seller_citizen_id" {
-				query = query.Where("seller_citizen_id = ?", v)
-			} else if field == "realty_cert" {
+			if field == "buyer_citizen_id_hash" {
+				query = query.Where("buyer_citizen_id_hash = ?", v)
+			} else if field == "seller_citizen_id_hash" {
+				query = query.Where("seller_citizen_id_hash = ?", v)
+			} else if field == "realty_cert_hash" {
 				query = query.Where("realty_cert_hash = ?", utils.GenerateHash(v))
 			} else if field == "status" {
 				query = query.Where("status = ?", v)
+			} else if field == "transaction_uuid" {
+				query = query.Where("transaction_uuid = ?", v)
 			}
 		}
 	}

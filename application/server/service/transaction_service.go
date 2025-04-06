@@ -6,6 +6,7 @@ import (
 	"grets_server/constants"
 	"grets_server/dao"
 	"grets_server/db/models"
+	realtyDto "grets_server/dto/realty_dto"
 	transactionDto "grets_server/dto/transaction_dto"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
@@ -59,12 +60,42 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 		utils.Log.Error(fmt.Sprintf("序列化支付ID列表失败: %v", err))
 		return fmt.Errorf("序列化支付ID列表失败: %v", err)
 	}
+
+	buyerCitizenIDHash := utils.GenerateHash(req.BuyerCitizenID)
+
+	// 查询房产信息
+	realty, err := GlobalRealtyService.GetRealtyByRealtyCert(req.RealtyCert)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取房产信息失败: %v", err))
+		return fmt.Errorf("获取房产信息失败: %v", err)
+	}
+
+	// 查询卖家信息
+	realtyBytes, err := contract.EvaluateTransaction(
+		"QueryRealty",
+		realty.RealtyCertHash,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询卖家信息失败: %v", err))
+		return fmt.Errorf("查询卖家信息失败: %v", err)
+	}
+
+	var chaincodeRealtyResult realtyDto.RealtyDTO
+	if err := json.Unmarshal(realtyBytes, &chaincodeRealtyResult); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析房产信息失败: %v", err))
+		return fmt.Errorf("解析房产信息失败: %v", err)
+	}
+
+	if buyerCitizenIDHash == chaincodeRealtyResult.CurrentOwnerCitizenIDHash {
+		return fmt.Errorf("买家和卖家不能为同一人")
+	}
+
 	_, err = contract.SubmitTransaction("CreateTransaction",
 		utils.GenerateHash(req.RealtyCert),
 		transactionUUID,
-		req.SellerCitizenIDHash,
-		req.BuyerCitizenIDHash,
-		req.ContractUUID,
+		chaincodeRealtyResult.CurrentOwnerCitizenIDHash,
+		buyerCitizenIDHash,
+		realty.RelContractUUID,
 		string(paymentUUIDListJSON),
 		fmt.Sprintf("%.2f", req.Tax),
 		fmt.Sprintf("%.2f", req.Price),
@@ -77,12 +108,12 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 	tx := &models.Transaction{
 		TransactionUUID:     transactionUUID,
 		RealtyCertHash:      utils.GenerateHash(req.RealtyCert),
-		SellerCitizenIDHash: req.SellerCitizenIDHash,
-		BuyerCitizenIDHash:  req.BuyerCitizenIDHash,
+		SellerCitizenIDHash: chaincodeRealtyResult.CurrentOwnerCitizenIDHash,
+		BuyerCitizenIDHash:  buyerCitizenIDHash,
 		Price:               req.Price,
 		Tax:                 req.Tax,
 		Status:              constants.TxStatusPending,
-		ContractUUID:        req.ContractUUID,
+		ContractUUID:        realty.RelContractUUID,
 		CreateTime:          time.Now(),
 		UpdateTime:          time.Now(),
 	}
@@ -91,7 +122,7 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 	return s.txDAO.CreateTransaction(tx)
 }
 
-// GetTransactionByID 根据ID获取交易信息
+// GetTransactionByTransactionUUID GetTransactionByID 根据ID获取交易信息
 func (s *transactionService) GetTransactionByTransactionUUID(transactionUUID string) (*models.Transaction, error) {
 	// 调用DAO层查询交易
 	return s.txDAO.GetTransactionByTransactionUUID(transactionUUID)
@@ -103,14 +134,17 @@ func (s *transactionService) QueryTransactionList(dto *transactionDto.QueryTrans
 	conditions := make(map[string]interface{})
 
 	// 添加查询条件
+	if dto.TransactionUUID != "" {
+		conditions["transaction_uuid"] = dto.TransactionUUID
+	}
 	if dto.BuyerCitizenID != "" {
-		conditions["buyer_citizen_id"] = dto.BuyerCitizenID
+		conditions["buyer_citizen_id_hash"] = utils.GenerateHash(dto.BuyerCitizenID)
 	}
 	if dto.SellerCitizenID != "" {
-		conditions["seller_citizen_id"] = dto.SellerCitizenID
+		conditions["seller_citizen_id_hash"] = utils.GenerateHash(dto.SellerCitizenID)
 	}
 	if dto.RealtyCert != "" {
-		conditions["realty_cert"] = dto.RealtyCert
+		conditions["realty_cert_hash"] = utils.GenerateHash(dto.RealtyCert)
 	}
 	if dto.Status != "" {
 		conditions["status"] = dto.Status
@@ -143,12 +177,11 @@ func (s *transactionService) QueryTransactionList(dto *transactionDto.QueryTrans
 			Status:              tx.Status,
 			CreateTime:          tx.CreateTime,
 			UpdateTime:          tx.UpdateTime,
-			CompletedTime:       tx.CompletedTime,
 		}
 		result = append(result, txDTO)
 	}
 
-	return result, int(total), nil
+	return result, total, nil
 }
 
 // UpdateTransaction 更新交易信息

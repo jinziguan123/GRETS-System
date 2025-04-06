@@ -20,7 +20,11 @@
         </el-form-item>
         
         <el-form-item label="买方身份证" prop="buyerCitizenID">
-          <el-input v-model="transactionForm.buyerCitizenID" placeholder="请输入买方身份证号"></el-input>
+          <el-input v-model="transactionForm.buyerCitizenID" placeholder="请输入买方身份证号" disabled></el-input>
+        </el-form-item>
+
+        <el-form-item label="税费" prop="tax">
+          <el-input-number v-model="transactionForm.tax" :min="0" :precision="2" :step="1000" style="width: 100%"></el-input-number>
         </el-form-item>
         
         <el-form-item label="交易价格" prop="price">
@@ -55,7 +59,10 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
+import {useUserStore} from "@/stores/user.js";
+import {createTransaction} from "@/api/transaction.js";
 
+const userStore = useUserStore()
 const router = useRouter()
 const route = useRoute()
 const transactionFormRef = ref(null)
@@ -67,7 +74,9 @@ const realtyId = ref(route.query.realtyId || '')
 // 表单数据
 const transactionForm = reactive({
   realtyCert: route.query.realtyCert,
-  buyerCitizenID: '',
+  buyerCitizenID: userStore.user?.citizenID,
+  paymentUUIDList: [],
+  tax: 0,
   price: 0
 })
 
@@ -141,24 +150,12 @@ const submitForm = async () => {
   
   await transactionFormRef.value.validate(async (valid, fields) => {
     if (valid) {
-      // 检查买卖方是否相同
-      if (transactionForm.sellerCitizenID === transactionForm.buyerCitizenID) {
-        ElMessage.error('买方和卖方不能是同一人')
-        return
-      }
-      
-      // 如果有房产信息，再次确认卖方是否为当前房产所有者
-      if (realtyInfo.value && realtyInfo.value.currentOwnerCitizenID !== transactionForm.sellerCitizenID) {
-        ElMessage.error('卖方必须是当前房产所有者')
-        return
-      }
-      
       submitLoading.value = true
       
       try {
-        const response = await axios.post('/api/transaction/create', transactionForm)
+        await createTransaction(transactionForm)
         ElMessage.success('交易申请提交成功')
-        router.push(`/transaction/detail/${response.data.transactionID}`)
+        router.push(`/transaction`)
       } catch (error) {
         console.error('创建交易失败:', error)
         ElMessage.error(error.response?.data?.message || '创建交易失败')
@@ -193,7 +190,7 @@ onMounted(async () => {
         try {
           const userInfo = JSON.parse(userJson)
           if (userInfo.role === 'INVESTOR' && userInfo.citizenId) {
-            transactionForm.buyerCitizenID = userInfo.citizenId
+            transactionForm.buyerCitizenID = userStore.user.value.citizenID
           }
         } catch (e) {
           console.error('解析用户信息失败', e)

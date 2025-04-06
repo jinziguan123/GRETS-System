@@ -15,6 +15,5 @@ type Transaction struct {
 	ContractUUID        string    `gorm:"size:64" json:"contractUUID"`                       // 关联合同ID
 	CreateTime          time.Time `gorm:"autoCreateTime" json:"createTime"`                  // 创建时间
 	UpdateTime          time.Time `gorm:"autoUpdateTime" json:"updateTime"`                  // 更新时间
-	CompletedTime       time.Time `json:"completedTime"`                                     // 完成时间
 	Remarks             string    `gorm:"type:text" json:"remarks"`                          // 备注
 }

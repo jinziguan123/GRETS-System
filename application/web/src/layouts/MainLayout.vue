@@ -64,16 +64,16 @@
           <el-menu-item index="/payment">支付列表</el-menu-item>
           <el-menu-item index="/payment/create" v-if="hasOrganization('investor')">创建支付</el-menu-item>
         </el-sub-menu>
-        
-        <!-- 税费管理 - 政府和投资者可见 -->
-        <el-sub-menu index="/tax" v-if="hasOrganization(['government', 'investor'])">
-          <template #title>
-            <el-icon><Wallet /></el-icon>
-            <span>税费管理</span>
-          </template>
-          <el-menu-item index="/tax">税费列表</el-menu-item>
-          <el-menu-item index="/tax/create" v-if="hasOrganization('government')">创建税费</el-menu-item>
-        </el-sub-menu>
+
+<!--        &lt;!&ndash; 税费管理 - 政府和投资者可见 &ndash;&gt;-->
+<!--        <el-sub-menu index="/tax" v-if="hasOrganization(['government', 'investor'])">-->
+<!--          <template #title>-->
+<!--            <el-icon><Wallet /></el-icon>-->
+<!--            <span>税费管理</span>-->
+<!--          </template>-->
+<!--          <el-menu-item index="/tax">税费列表</el-menu-item>-->
+<!--          <el-menu-item index="/tax/create" v-if="hasOrganization('government')">创建税费</el-menu-item>-->
+<!--        </el-sub-menu>-->
         
         <!-- 抵押贷款 - 投资者和银行可见 -->
         <el-sub-menu index="/mortgage" v-if="hasOrganization(['investor', 'bank'])">

@@ -1,6 +1,6 @@
 <template>
   <div class="transaction-list-container">
-    <el-card class="box-card">
+    <el-card >
       <template #header>
         <div class="card-header">
           <h3>交易列表</h3>
@@ -11,30 +11,55 @@
       </template>
       
       <!-- 搜索框 -->
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="交易状态">
-          <el-select v-model="searchForm.status" placeholder="选择交易状态" clearable>
-            <el-option label="待审核" value="PENDING"></el-option>
-            <el-option label="已审核" value="APPROVED"></el-option>
-            <el-option label="已拒绝" value="REJECTED"></el-option>
-            <el-option label="进行中" value="IN_PROGRESS"></el-option>
-            <el-option label="已完成" value="COMPLETED"></el-option>
-            <el-option label="已取消" value="CANCELLED"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="房产证号">
-          <el-input v-model="searchForm.realtyCert" placeholder="输入房产证号"></el-input>
-        </el-form-item>
-        <el-form-item label="卖方身份证">
-          <el-input v-model="searchForm.sellerCitizenID" placeholder="输入卖方身份证号"></el-input>
-        </el-form-item>
-        <el-form-item label="买方身份证">
-          <el-input v-model="searchForm.buyerCitizenID" placeholder="输入买方身份证号"></el-input>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
-        </el-form-item>
+      <el-form :model="searchForm" class="search-form">
+        <el-row>
+          <el-col>
+            <el-form-item label="交易编号">
+              <el-input v-model="searchForm.transactionUUID" placeholder="输入交易编号"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col>
+            <el-form-item label="房产证号">
+              <el-input v-model="searchForm.realtyCert" placeholder="输入房产证号"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col>
+            <el-form-item label="交易状态">
+              <el-select v-model="searchForm.status" placeholder="选择交易状态" clearable style="width: 150px">
+                <el-option label="待处理" value="PENDING"></el-option>
+                <el-option label="已批准" value="APPROVED"></el-option>
+                <el-option label="已拒绝" value="REJECTED"></el-option>
+                <el-option label="已完成" value="COMPLETED"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col>
+            <el-form-item label="卖方身份证">
+              <el-input v-model="searchForm.sellerCitizenID" placeholder="输入卖方身份证号"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col>
+            <el-form-item label="买方身份证">
+              <el-input v-model="searchForm.buyerCitizenID" placeholder="输入买方身份证号"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="24">
+            <el-form-item>
+              <el-button type="primary" @click="handleSearch">搜索</el-button>
+              <el-button @click="resetSearch">重置</el-button>
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form>
       
       <!-- 交易列表表格 -->
@@ -46,15 +71,10 @@
         stripe
         highlight-current-row
       >
-        <el-table-column prop="transactionID" label="交易编号" width="220"></el-table-column>
-        <el-table-column prop="realtyCert" label="房产证号" width="180"></el-table-column>
-        <el-table-column prop="sellerCitizenID" label="卖方身份证" width="180"></el-table-column>
-        <el-table-column prop="buyerCitizenID" label="买方身份证" width="180"></el-table-column>
-        <el-table-column prop="price" label="交易价格" width="120">
-          <template #default="scope">
-            {{ formatPrice(scope.row.price) }}
-          </template>
-        </el-table-column>
+        <el-table-column prop="transactionUUID" label="交易编号" width="220"></el-table-column>
+        <el-table-column prop="realtyCertHash" label="房产证号" width="180"></el-table-column>
+        <el-table-column prop="sellerCitizenIDHash" label="卖方身份证" width="180"></el-table-column>
+        <el-table-column prop="buyerCitizenIDHash" label="买方身份证" width="180"></el-table-column>
         <el-table-column prop="status" label="交易状态" width="100">
           <template #default="scope">
             <el-tag :type="getStatusType(scope.row.status)">
@@ -101,6 +121,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
+import {queryTransactionList} from "@/api/transaction.js";
 
 const router = useRouter()
 const loading = ref(false)
@@ -114,7 +135,10 @@ const searchForm = reactive({
   status: '',
   realtyCert: '',
   sellerCitizenID: '',
-  buyerCitizenID: ''
+  buyerCitizenID: '',
+  transactionUUID: '',
+  pageSize: pageSize.value,
+  pageNumber: currentPage.value
 })
 
 // 获取当前用户信息
@@ -126,6 +150,14 @@ const userInfo = computed(() => {
   } catch (e) {
     return null
   }
+})
+
+// 交易查询条件
+const transactionQuery = reactive({
+  realtyCert: '',
+  status: '',
+  pageSize: pageSize.value,
+  pageNumber: currentPage.value
 })
 
 // 处理搜索
@@ -159,21 +191,22 @@ const handleCurrentChange = (val) => {
 const fetchTransactionList = async () => {
   loading.value = true
   try {
-    // 构建查询参数
-    const params = {
-      page: currentPage.value,
-      limit: pageSize.value,
-      ...Object.fromEntries(
-        Object.entries(searchForm).filter(([_, v]) => v !== '')
-      )
-    }
-    
-    const response = await axios.get('/api/transaction/list', { params })
-    tableData.value = response.data.transactions || []
-    total.value = response.data.total || 0
+    // 只传递非空参数
+    const params = { ...searchForm }
+    Object.keys(params).forEach(key => {
+      if (params[key] === '') {
+        delete params[key]
+      }
+    })
+
+    const response = await queryTransactionList(params)
+    tableData.value = response.transactions || []
+    total.value = response.total || 0
   } catch (error) {
-    console.error('获取交易列表失败:', error)
-    ElMessage.error(error.response?.data?.message || '获取交易列表失败')
+    console.error('获取交易历史失败:', error)
+    ElMessage.error('获取交易历史失败')
+    tableData.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -219,11 +252,9 @@ const formatDate = (dateString) => {
 const getStatusType = (status) => {
   const statusMap = {
     'PENDING': 'info',
-    'APPROVED': 'success',
     'REJECTED': 'danger',
     'IN_PROGRESS': 'warning',
     'COMPLETED': 'success',
-    'CANCELLED': 'info'
   }
   return statusMap[status] || 'info'
 }
@@ -231,12 +262,10 @@ const getStatusType = (status) => {
 // 获取状态文本
 const getStatusText = (status) => {
   const statusMap = {
-    'PENDING': '待审核',
-    'APPROVED': '已审核',
+    'PENDING': '待处理',
     'REJECTED': '已拒绝',
     'IN_PROGRESS': '进行中',
     'COMPLETED': '已完成',
-    'CANCELLED': '已取消'
   }
   return statusMap[status] || status
 }

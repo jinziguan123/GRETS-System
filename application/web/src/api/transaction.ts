@@ -32,7 +32,7 @@ export function createTransaction(data: {
   expectedEndTime: string
 }) {
   return request({
-    url: '/transactions',
+    url: '/transactions/createTransaction',
     method: 'post',
     data
   })

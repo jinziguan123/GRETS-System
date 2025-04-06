@@ -30,6 +30,29 @@ type RealtyService interface {
 	GetRealtyByID(id string) (*realtyDto.RealtyDTO, error)
 	QueryRealtyList(queryRealtyListDTO *realtyDto.QueryRealtyListDTO) ([]*realtyDto.RealtyDTO, int, error)
 	UpdateRealty(req *realtyDto.UpdateRealtyDTO) error
+	GetRealtyByRealtyCert(realtyCert string) (*realtyDto.RealtyDTO, error)
+}
+
+func (r *realtyService) GetRealtyByRealtyCert(realtyCert string) (*realtyDto.RealtyDTO, error) {
+	realty, err := r.realtyDAO.GetRealtyByRealtyCert(realtyCert)
+	if err != nil {
+		return nil, fmt.Errorf("查询房产失败: %v", err)
+	}
+	return &realtyDto.RealtyDTO{
+		RealtyCert:      realty.RealtyCert,
+		RealtyCertHash:  realty.RealtyCertHash,
+		RealtyType:      realty.RealtyType,
+		Price:           realty.Price,
+		RelContractUUID: realty.RelContractUUID,
+		Area:            realty.Area,
+		Status:          realty.Status,
+		Description:     realty.Description,
+		Images:          realty.Images,
+		HouseType:       realty.HouseType,
+		Province:        realty.Province,
+		City:            realty.City,
+		District:        realty.District,
+	}, nil
 }
 
 // realtyService 房产服务实现
