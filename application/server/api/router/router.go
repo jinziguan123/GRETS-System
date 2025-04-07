@@ -97,10 +97,10 @@ func SetupRouter() *gin.Engine {
 		payments.Use(middleware.JWTAuth())
 		{
 			payments.POST("/createPayment", controller.CreatePayment)
-			payments.GET("/queryPaymentList", controller.QueryPaymentList)
-			payments.GET("/:id", controller.GetPaymentByID)
+			payments.POST("/queryPaymentList", controller.QueryPaymentList)
+			payments.POST("/payForTransaction", controller.PayForTransaction)
+			payments.GET("/:id", controller.GetPaymentByUUID)
 			payments.POST("/:id/verify", controller.VerifyPayment)
-			payments.POST("/:id/complete", controller.ConfirmPayment)
 		}
 
 		// 合同相关接口

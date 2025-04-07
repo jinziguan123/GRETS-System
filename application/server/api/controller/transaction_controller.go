@@ -48,13 +48,6 @@ func (c *TransactionController) GetTransactionByUUID(ctx *gin.Context) {
 		return
 	}
 
-	// 获取当前用户ID
-	userID := utils.GetUserIDFromContext(ctx)
-	if userID == "" {
-		utils.ResponseError(ctx, constants.AuthError, "未获取到用户信息")
-		return
-	}
-
 	// 调用服务层查询交易
 	tx, err := c.transactionService.GetTransactionByTransactionUUID(transactionUUID)
 	if err != nil {
@@ -62,7 +55,9 @@ func (c *TransactionController) GetTransactionByUUID(ctx *gin.Context) {
 		return
 	}
 
-	utils.ResponseSuccess(ctx, "查询交易成功", tx)
+	utils.ResponseSuccess(ctx, "查询交易成功", gin.H{
+		"transaction": tx,
+	})
 }
 
 // QueryTransactionList 获取交易列表

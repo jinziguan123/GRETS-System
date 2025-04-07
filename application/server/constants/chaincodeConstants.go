@@ -68,6 +68,7 @@ const (
 	PaymentTypeCash     = "CASH"     // 现金支付
 	PaymentTypeLoan     = "LOAN"     // 贷款支付
 	PaymentTypeTransfer = "TRANSFER" // 转账支付
+	PaymentTypeTax      = "TAX"      // 税费支付
 )
 
 // 合同状态枚举

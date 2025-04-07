@@ -9,6 +9,8 @@ type TransactionDTO struct {
 	SellerCitizenIDHash string    `json:"sellerCitizenIDHash"` // 卖方
 	BuyerCitizenIDHash  string    `json:"buyerCitizenIDHash"`  // 买方
 	Status              string    `json:"status"`              // 交易状态
+	Price               float64   `json:"price"`               // 成交价格
+	Tax                 float64   `json:"tax"`                 // 税费
 	CreateTime          time.Time `json:"createTime"`          // 创建时间
 	UpdateTime          time.Time `json:"updateTime"`          // 更新时间
 }
@@ -24,8 +26,8 @@ type CreateTransactionDTO struct {
 
 // CheckTransactionDTO 检查交易请求
 type CheckTransactionDTO struct {
-	TransactionUUID string `json:"transactionUUID" binding:"required"` // 交易ID
-	Status          string `json:"status" binding:"required"`          // 交易状态
+	TransactionUUID string `json:"transactionUUID"` // 交易ID
+	Status          string `json:"status"`          // 交易状态
 }
 
 // CompleteTransactionDTO 完成交易请求

@@ -1,22 +1,25 @@
 import request from '@/utils/request'
 
 // 获取支付列表
-export function getPaymentList(params: {
-  page?: number
+export function getPaymentList(data: {
+  pageNumber?: number
   pageSize?: number
   transactionUUID?: string
+  paymentType?: string
+  payerCitizenID?: string
+  receiverCitizenID?: string
 }) {
   return request({
-    url: '/api/v1/payments',
-    method: 'get',
-    params
+    url: '/payments/queryPaymentList',
+    method: 'post',
+    data
   })
 }
 
 // 获取支付详情
 export function getPaymentDetail(paymentUUID: string) {
   return request({
-    url: `/api/v1/payments/${paymentUUID}`,
+    url: `/payments/${paymentUUID}`,
     method: 'get'
   })
 }
@@ -29,7 +32,7 @@ export function createPayment(data: {
   paymentType: string
 }) {
   return request({
-    url: '/api/v1/payments',
+    url: '/payments',
     method: 'post',
     data
   })
@@ -39,12 +42,13 @@ export function createPayment(data: {
 export function payForTransaction(data: {
   transactionUUID: string
   amount: number
-  fromCitizenID: string
-  toCitizenID: string
+  payerCitizenID: string
+  receiverCitizenIDHash: string
   paymentType: string
+  remarks?: string
 }) {
   return request({
-    url: '/api/v1/payments/transaction',
+    url: '/payments/payForTransaction',
     method: 'post',
     data
   })

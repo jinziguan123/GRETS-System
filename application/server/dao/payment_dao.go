@@ -15,6 +15,14 @@ type PaymentDAO struct {
 	boltDB  *db.BoltDB
 }
 
+func (dao *PaymentDAO) GetPaymentByUUID(paymentUUID string) (*models.Payment, error) {
+	var payment models.Payment
+	if err := dao.mysqlDB.First(&payment, "payment_uuid = ?", paymentUUID).Error; err != nil {
+		return nil, fmt.Errorf("根据UUID查询支付记录失败: %v", err)
+	}
+	return &payment, nil
+}
+
 // 创建新的PaymentDAO实例
 func NewPaymentDAO() *PaymentDAO {
 	return &PaymentDAO{
@@ -53,33 +61,43 @@ func (dao *PaymentDAO) UpdatePayment(payment *models.Payment) error {
 }
 
 // QueryPayments 查询支付列表
-func (dao *PaymentDAO) QueryPayments(transactionID, payerID, receiverID, status, paymentType string) ([]*models.Payment, error) {
+func (dao *PaymentDAO) QueryPayments(
+	conditions map[string]interface{},
+	pageSize int,
+	pageNumber int,
+) ([]*models.Payment, int, error) {
 	var payments []*models.Payment
+	var total int64
+
 	query := dao.mysqlDB.Model(&models.Payment{})
 
 	// 添加查询条件
-	if transactionID != "" {
-		query = query.Where("transaction_id = ?", transactionID)
-	}
-	if payerID != "" {
-		query = query.Where("payer_citizen_id = ?", payerID)
-	}
-	if receiverID != "" {
-		query = query.Where("receiver_citizen_id = ?", receiverID)
-	}
-	if status != "" {
-		query = query.Where("status = ?", status)
-	}
-	if paymentType != "" {
-		query = query.Where("type = ?", paymentType)
+	for field, value := range conditions {
+		if v, ok := value.(string); ok && v != "" {
+			if field == "transaction_uuid" {
+				query = query.Where("transaction_uuid = ?", v)
+			} else if field == "payer_citizen_id_hash" {
+				query = query.Where("payer_citizen_id_hash = ?", v)
+			} else if field == "receiver_citizen_id_hash" {
+				query = query.Where("receiver_citizen_id_hash = ?", v)
+			} else if field == "payment_type" {
+				query = query.Where("payment_type = ?", v)
+			}
+		}
 	}
 
-	// 执行查询
-	if err := query.Find(&payments).Error; err != nil {
-		return nil, fmt.Errorf("查询支付列表失败: %v", err)
+	// 计算总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("计算支付总数失败: %v", err)
 	}
 
-	return payments, nil
+	// 分页查询
+	offset := (pageNumber - 1) * pageSize
+	if err := query.Offset(offset).Limit(pageSize).Find(&payments).Error; err != nil {
+		return nil, 0, fmt.Errorf("分页查询支付列表失败: %v", err)
+	}
+
+	return payments, int(total), nil
 }
 
 // CompletePayment 完成支付

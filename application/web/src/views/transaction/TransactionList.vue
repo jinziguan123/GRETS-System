@@ -71,11 +71,11 @@
         stripe
         highlight-current-row
       >
-        <el-table-column prop="transactionUUID" label="交易编号" width="220"></el-table-column>
-        <el-table-column prop="realtyCertHash" label="房产证号" width="180"></el-table-column>
-        <el-table-column prop="sellerCitizenIDHash" label="卖方身份证" width="180"></el-table-column>
-        <el-table-column prop="buyerCitizenIDHash" label="买方身份证" width="180"></el-table-column>
-        <el-table-column prop="status" label="交易状态" width="100">
+        <el-table-column prop="transactionUUID" label="交易编号" width="auto"></el-table-column>
+        <el-table-column prop="realtyCertHash" label="房产证号" width="auto"></el-table-column>
+        <el-table-column prop="sellerCitizenIDHash" label="卖方身份证" width="auto"></el-table-column>
+        <el-table-column prop="buyerCitizenIDHash" label="买方身份证" width="auto"></el-table-column>
+        <el-table-column prop="status" label="交易状态" width="auto">
           <template #default="scope">
             <el-tag :type="getStatusType(scope.row.status)">
               {{ getStatusText(scope.row.status) }}
@@ -87,7 +87,7 @@
             {{ formatDate(scope.row.createTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" fixed="right" width="180">
+        <el-table-column label="操作" fixed="right" width="auto">
           <template #default="scope">
             <el-button type="primary" size="small" @click="viewDetail(scope.row)" :disabled="!isTransactionParty(scope.row)">查看详情</el-button>
             <el-button 

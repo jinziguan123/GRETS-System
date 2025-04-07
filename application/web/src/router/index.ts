@@ -127,7 +127,7 @@ const routes: Array<RouteRecordRaw> = [
         path: 'transaction/:id',
         name: 'TransactionDetail',
         component: TransactionDetail,
-        meta: { title: '交易详情', organizations: ['investor', 'bank', 'government'] } as RouteMeta
+        meta: { title: '交易详情', organizations: ['investor', 'bank', 'government', 'audit'] } as RouteMeta
       },
       {
         path: 'transaction/chat',

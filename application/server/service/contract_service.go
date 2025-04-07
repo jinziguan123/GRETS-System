@@ -28,7 +28,7 @@ type ContractService interface {
 	QueryContractList(query *contractDto.QueryContractDTO) ([]*contractDto.ContractDTO, int, error)
 	SignContract(id string, req *contractDto.SignContractDTO) error
 	AuditContract(id string, req *contractDto.AuditContractDTO) error
-	UpdateContract(id string, req *contractDto.UpdateContractDTO) error
+	UpdateContract(req *contractDto.UpdateContractDTO) error
 	GetContractByUUID(contractUUID string) (*contractDto.ContractDTO, error)
 }
 
@@ -221,7 +221,7 @@ func (s *contractService) AuditContract(id string, req *contractDto.AuditContrac
 }
 
 // UpdateContract 更新合同
-func (s *contractService) UpdateContract(id string, dto *contractDto.UpdateContractDTO) error {
+func (s *contractService) UpdateContract(dto *contractDto.UpdateContractDTO) error {
 
 	// 先查询合同
 	contractModelList, count, err := s.contractDAO.QueryContractsWithPagination(
@@ -281,6 +281,9 @@ func (s *contractService) UpdateContract(id string, dto *contractDto.UpdateContr
 	if dto.ContractType != "" {
 		contractModel.ContractType = dto.ContractType
 	}
+	if dto.TransactionUUID != "" {
+		contractModel.TransactionUUID = dto.TransactionUUID
+	}
 
 	err = s.contractDAO.UpdateContract(contractModel)
 	if err != nil {
@@ -318,6 +321,7 @@ func (s *contractService) GetContractByUUID(contractUUID string) (*contractDto.C
 		Title:                contract.Title,
 		Content:              contract.Content,
 		DocHash:              contract.DocHash,
+		TransactionUUID:      contract.TransactionUUID,
 		Status:               contract.Status,
 		ContractType:         contract.ContractType,
 		CreatorCitizenIDHash: contract.CreatorCitizenIDHash,

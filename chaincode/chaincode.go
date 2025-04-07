@@ -98,7 +98,7 @@ const (
 	UserStatusDisabled = "DISABLED" // 禁用
 )
 
-// 用户信息结构
+// User 用户信息结构
 type User struct {
 	CitizenID      string    `json:"citizenID"`      // 公民身份证号
 	Name           string    `json:"name"`           // 用户名称
@@ -162,7 +162,7 @@ type RealtyPrivate struct {
 // Transaction 交易信息结构
 type Transaction struct {
 	TransactionUUID        string    `json:"transactionUUID"`        // 交易UUID
-	RealtyCert             string    `json:"realtyCert"`             // 房产ID
+	RealtyCertHash         string    `json:"realtyCertHash"`         // 房产ID
 	SellerCitizenIDHash    string    `json:"sellerCitizenIDHash"`    // 卖方
 	BuyerCitizenIDHash     string    `json:"buyerCitizenIDHash"`     // 买方
 	Price                  float64   `json:"price"`                  // 成交价格
@@ -1068,7 +1068,7 @@ func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInte
 // QueryTransaction 查询交易（投资者、政府可以调用）
 func (s *SmartContract) QueryTransaction(ctx contractapi.TransactionContextInterface,
 	transactionUUID string,
-) (*TransactionPublic, error) {
+) (*Transaction, error) {
 	// 检查调用者身份
 	clientMSPID, err := s.getClientIdentityMSPID(ctx)
 	if err != nil {
@@ -1094,16 +1094,47 @@ func (s *SmartContract) QueryTransaction(ctx contractapi.TransactionContextInter
 		return nil, fmt.Errorf("[QueryTransaction] 交易不存在: %s", transactionUUID)
 	}
 
-	var transactionPublic TransactionPublic
-	err = json.Unmarshal(transactionPublicBytes, &transactionPublic)
+	transactionPrivateBytes, err := ctx.GetStub().GetPrivateData(TransactionPrivateCollection, key)
 	if err != nil {
-		return nil, fmt.Errorf("[QueryTransaction] 解析交易信息失败: %v", err)
+		return nil, fmt.Errorf("[QueryTransaction] 查询交易私钥失败: %v", err)
+	}
+	if transactionPrivateBytes == nil {
+		return nil, fmt.Errorf("[QueryTransaction] 交易私钥不存在")
 	}
 
-	return &transactionPublic, nil
+	var transactionPublicMap, transactionPrivateMap map[string]interface{}
+	err = json.Unmarshal(transactionPublicBytes, &transactionPublicMap)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryTransaction] 解析交易公开信息失败: %v", err)
+	}
+
+	err = json.Unmarshal(transactionPrivateBytes, &transactionPrivateMap)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryTransaction] 解析交易私钥失败: %v", err)
+	}
+
+	mergedMap := make(map[string]interface{})
+	for k, v := range transactionPublicMap {
+		mergedMap[k] = v
+	}
+	for k, v := range transactionPrivateMap {
+		mergedMap[k] = v
+	}
+
+	mergedJSON, err := json.Marshal(mergedMap)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryTransaction] 序列化交易失败: %v", err)
+	}
+
+	var transaction Transaction
+	err = json.Unmarshal(mergedJSON, &transaction)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryTransaction] 序列化交易失败: %v", err)
+	}
+
+	return &transaction, nil
 }
 
-// QueryTransactionList
 func (s *SmartContract) QueryTransactionList(ctx contractapi.TransactionContextInterface,
 	pageSize int32,
 	bookmark string,
@@ -1421,8 +1452,13 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("[CreatePayment] 保存支付信息失败: %v", err)
 	}
 
+	fromUserKey, err := s.createCompositeKey(ctx, DocTypeUser, []string{fromCitizenIDHash, "investor"}...)
+	if err != nil {
+		return fmt.Errorf("[CreatePayment] 创建复合键失败: %v", err)
+	}
+
 	// 查询fromCitizenIDHash的余额
-	fromCitizenPrivateBytes, err := ctx.GetStub().GetPrivateData(UserDataCollection, fromCitizenIDHash)
+	fromCitizenPrivateBytes, err := ctx.GetStub().GetPrivateData(UserDataCollection, fromUserKey)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 查询用户余额失败: %v", err)
 	}
@@ -1450,13 +1486,13 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 	}
 
 	// 保存fromCitizenIDHash的余额
-	err = ctx.GetStub().PutPrivateData(UserDataCollection, fromCitizenIDHash, fromCitizenPrivateJSON)
+	err = ctx.GetStub().PutPrivateData(UserDataCollection, fromUserKey, fromCitizenPrivateJSON)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 保存用户余额失败: %v", err)
 	}
 
 	// 更新fromCitizenIDHash的
-	fromCitizenPublicBytes, err := ctx.GetStub().GetState(fromCitizenIDHash)
+	fromCitizenPublicBytes, err := ctx.GetStub().GetState(fromUserKey)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 查询用户信息失败: %v", err)
 	}
@@ -1476,13 +1512,18 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 	}
 
 	// 保存fromCitizenIDHash的
-	err = ctx.GetStub().PutState(fromCitizenIDHash, fromCitizenPublicJSON)
+	err = ctx.GetStub().PutState(fromUserKey, fromCitizenPublicJSON)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 保存用户信息失败: %v", err)
 	}
 
+	toUserKey, err := s.createCompositeKey(ctx, DocTypeUser, []string{toCitizenIDHash, "investor"}...)
+	if err != nil {
+		return fmt.Errorf("[CreatePayment] 创建复合键失败: %v", err)
+	}
+
 	// 查询toCitizenIDHash的余额
-	toCitizenBytes, err := ctx.GetStub().GetPrivateData(UserDataCollection, toCitizenIDHash)
+	toCitizenBytes, err := ctx.GetStub().GetPrivateData(UserDataCollection, toUserKey)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 查询用户余额失败: %v", err)
 	}
@@ -1506,13 +1547,13 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 	}
 
 	// 保存toCitizenIDHash的余额
-	err = ctx.GetStub().PutPrivateData(UserDataCollection, toCitizenIDHash, toCitizenPrivateJSON)
+	err = ctx.GetStub().PutPrivateData(UserDataCollection, toUserKey, toCitizenPrivateJSON)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 保存用户余额失败: %v", err)
 	}
 
 	// 更新toCitizenIDHash的
-	toCitizenPublicBytes, err := ctx.GetStub().GetState(toCitizenIDHash)
+	toCitizenPublicBytes, err := ctx.GetStub().GetState(toUserKey)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 查询用户信息失败: %v", err)
 	}
@@ -1532,7 +1573,7 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 	}
 
 	// 保存toCitizenIDHash的
-	err = ctx.GetStub().PutState(toCitizenIDHash, toCitizenPublicJSON)
+	err = ctx.GetStub().PutState(toUserKey, toCitizenPublicJSON)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 保存用户信息失败: %v", err)
 	}
@@ -1613,8 +1654,12 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[PayForTransaction] 保存支付信息失败: %v", err)
 	}
 
+	fromUserKey, err := s.createCompositeKey(ctx, DocTypeUser, []string{fromCitizenIDHash, "investor"}...)
+	if err != nil {
+		return fmt.Errorf("[PayForTransaction] 创建复合键失败: %v", err)
+	}
 	// 查询fromCitizenIDHash的余额
-	fromCitizenPrivateBytes, err := ctx.GetStub().GetPrivateData(UserDataCollection, fromCitizenIDHash)
+	fromCitizenPrivateBytes, err := ctx.GetStub().GetPrivateData(UserDataCollection, fromUserKey)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 查询用户余额失败: %v", err)
 	}
@@ -1642,13 +1687,13 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 保存fromCitizenIDHash的余额
-	err = ctx.GetStub().PutPrivateData(UserDataCollection, fromCitizenIDHash, fromCitizenPrivateJSON)
+	err = ctx.GetStub().PutPrivateData(UserDataCollection, fromUserKey, fromCitizenPrivateJSON)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 保存用户余额失败: %v", err)
 	}
 
 	// 更新fromCitizenIDHash的
-	fromCitizenPublicBytes, err := ctx.GetStub().GetState(fromCitizenIDHash)
+	fromCitizenPublicBytes, err := ctx.GetStub().GetState(fromUserKey)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 查询用户信息失败: %v", err)
 	}
@@ -1668,13 +1713,18 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 保存fromCitizenIDHash的
-	err = ctx.GetStub().PutState(fromCitizenIDHash, fromCitizenPublicJSON)
+	err = ctx.GetStub().PutState(fromUserKey, fromCitizenPublicJSON)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 保存用户信息失败: %v", err)
 	}
 
+	toUserKey, err := s.createCompositeKey(ctx, DocTypeUser, []string{toCitizenIDHash, "investor"}...)
+	if err != nil {
+		return fmt.Errorf("[PayForTransaction] 创建复合键失败: %v", err)
+	}
+
 	// 查询toCitizenIDHash的余额
-	toCitizenBytes, err := ctx.GetStub().GetPrivateData(UserDataCollection, toCitizenIDHash)
+	toCitizenBytes, err := ctx.GetStub().GetPrivateData(UserDataCollection, toUserKey)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 查询用户余额失败: %v", err)
 	}
@@ -1698,13 +1748,13 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 保存toCitizenIDHash的余额
-	err = ctx.GetStub().PutPrivateData(UserDataCollection, toCitizenIDHash, toCitizenPrivateJSON)
+	err = ctx.GetStub().PutPrivateData(UserDataCollection, toUserKey, toCitizenPrivateJSON)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 保存用户余额失败: %v", err)
 	}
 
-	// 更新toCitizenIDHash的
-	toCitizenPublicBytes, err := ctx.GetStub().GetState(toCitizenIDHash)
+	// 更新toCitizenIDHash
+	toCitizenPublicBytes, err := ctx.GetStub().GetState(toUserKey)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 查询用户信息失败: %v", err)
 	}
@@ -1717,14 +1767,14 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 
 	toCitizenPublic.LastUpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
-	// 序列化toCitizenIDHash的
+	// 序列化toCitizenIDHash
 	toCitizenPublicJSON, err := json.Marshal(toCitizenPublic)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 序列化用户信息失败: %v", err)
 	}
 
-	// 保存toCitizenIDHash的
-	err = ctx.GetStub().PutState(toCitizenIDHash, toCitizenPublicJSON)
+	// 保存toCitizenIDHash
+	err = ctx.GetStub().PutState(toUserKey, toCitizenPublicJSON)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 保存用户信息失败: %v", err)
 	}

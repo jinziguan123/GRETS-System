@@ -6,6 +6,7 @@ import (
 	"grets_server/constants"
 	"grets_server/dao"
 	"grets_server/db/models"
+	contractDto "grets_server/dto/contract_dto"
 	realtyDto "grets_server/dto/realty_dto"
 	transactionDto "grets_server/dto/transaction_dto"
 	"grets_server/pkg/blockchain"
@@ -18,7 +19,7 @@ import (
 // TransactionService 交易服务接口
 type TransactionService interface {
 	CreateTransaction(req *transactionDto.CreateTransactionDTO) error
-	GetTransactionByTransactionUUID(transactionUUID string) (*models.Transaction, error)
+	GetTransactionByTransactionUUID(transactionUUID string) (*transactionDto.TransactionDTO, error)
 	QueryTransactionList(query *transactionDto.QueryTransactionListDTO) ([]*transactionDto.TransactionDTO, int, error)
 	CompleteTransaction(completeTransactionDTO *transactionDto.CompleteTransactionDTO) error
 }
@@ -50,7 +51,7 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 	transactionUUID := uuid.New().String()
 
 	// 调用链码创建交易
-	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
+	contract, err := blockchain.GetContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
@@ -90,7 +91,8 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 		return fmt.Errorf("买家和卖家不能为同一人")
 	}
 
-	_, err = contract.SubmitTransaction("CreateTransaction",
+	_, err = contract.SubmitTransaction(
+		"CreateTransaction",
 		utils.GenerateHash(req.RealtyCert),
 		transactionUUID,
 		chaincodeRealtyResult.CurrentOwnerCitizenIDHash,
@@ -104,6 +106,18 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 		utils.Log.Error(fmt.Sprintf("创建交易失败: %v", err))
 		return fmt.Errorf("创建交易失败: %v", err)
 	}
+
+	// 修改数据库将合同绑定到交易
+	realtyContract, err := GlobalContractService.GetContractByUUID(realty.RelContractUUID)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合同失败: %v", err))
+		return fmt.Errorf("获取合同失败: %v", err)
+	}
+	realtyContract.TransactionUUID = transactionUUID
+	GlobalContractService.UpdateContract(&contractDto.UpdateContractDTO{
+		ContractUUID:    realtyContract.ContractUUID,
+		TransactionUUID: transactionUUID,
+	})
 
 	tx := &models.Transaction{
 		TransactionUUID:     transactionUUID,
@@ -123,9 +137,47 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 }
 
 // GetTransactionByTransactionUUID GetTransactionByUUID 根据ID获取交易信息
-func (s *transactionService) GetTransactionByTransactionUUID(transactionUUID string) (*models.Transaction, error) {
+func (s *transactionService) GetTransactionByTransactionUUID(transactionUUID string) (*transactionDto.TransactionDTO, error) {
 	// 调用DAO层查询交易
-	return s.txDAO.GetTransactionByTransactionUUID(transactionUUID)
+	tx, err := s.txDAO.GetTransactionByTransactionUUID(transactionUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 调用链码查询交易
+	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return nil, fmt.Errorf("获取合约失败: %v", err)
+	}
+	transactionBytes, err := contract.EvaluateTransaction(
+		"QueryTransaction",
+		transactionUUID,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询交易失败: %v", err))
+		return nil, fmt.Errorf("查询交易失败: %v", err)
+	}
+
+	var chaincodeTransactionResult transactionDto.TransactionDTO
+	if err := json.Unmarshal(transactionBytes, &chaincodeTransactionResult); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析交易失败: %v", err))
+		return nil, fmt.Errorf("解析交易失败: %v", err)
+	}
+
+	txDTO := &transactionDto.TransactionDTO{
+		TransactionUUID:     tx.TransactionUUID,
+		RealtyCertHash:      tx.RealtyCertHash,
+		SellerCitizenIDHash: tx.SellerCitizenIDHash,
+		BuyerCitizenIDHash:  tx.BuyerCitizenIDHash,
+		Status:              tx.Status,
+		CreateTime:          tx.CreateTime,
+		UpdateTime:          tx.UpdateTime,
+		Price:               chaincodeTransactionResult.Price,
+		Tax:                 chaincodeTransactionResult.Tax,
+	}
+
+	return txDTO, nil
 }
 
 // QueryTransactionList 查询交易列表

@@ -41,7 +41,7 @@
               <el-descriptions-item label="合同类型">{{ getContractTypeName(contract.contractType) }}</el-descriptions-item>
               <el-descriptions-item label="合同标题">{{ contract.title }}</el-descriptions-item>
               <el-descriptions-item label="创建日期">{{ formatDate(contract.createTime) }}</el-descriptions-item>
-              <el-descriptions-item label="关联交易">{{ contract.transactionId }}</el-descriptions-item>
+              <el-descriptions-item label="关联交易">{{ contract.transactionUUID }}</el-descriptions-item>
               <el-descriptions-item label="合同状态">
                 <el-tag :type="getStatusTag(contract.status)">
                   {{ getStatusName(contract.status) }}

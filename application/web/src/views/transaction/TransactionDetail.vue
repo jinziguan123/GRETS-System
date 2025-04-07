@@ -1,6 +1,14 @@
 <template>
   <div class="transaction-detail-container">
-    <el-card class="box-card" v-loading="loading">
+    <!-- 加载中状态 -->
+    <el-card v-if="loading" class="box-card">
+      <div class="loading-container">
+        <el-skeleton :rows="10" animated />
+      </div>
+    </el-card>
+    
+    <!-- 只有交易参与方、政府和审计可见的内容 -->
+    <el-card v-else-if="isAuthorized" class="box-card">
       <template #header>
         <div class="card-header">
           <h3>交易详情</h3>
@@ -31,6 +39,23 @@
       </template>
       
       <div v-if="transactionInfo">
+        <!-- 交易进度条 -->
+        <div class="progress-section">
+          <h4>支付进度</h4>
+          <div class="progress-info">
+            <div class="progress-text">
+              <span>已支付: {{ formatPrice(totalPaidAmount) }}</span>
+              <span>总金额: {{ formatPrice(transactionInfo.price) }}</span>
+            </div>
+            <el-progress 
+              :percentage="paymentPercentage" 
+              :format="percentFormat"
+              :status="paymentPercentage >= 100 ? 'success' : ''" 
+              :stroke-width="20"
+            ></el-progress>
+          </div>
+        </div>
+        
         <!-- 交易基本信息 -->
         <el-descriptions title="交易基本信息" :column="2" border>
           <el-descriptions-item label="交易编号">{{ transactionInfo.transactionUUID }}</el-descriptions-item>
@@ -39,12 +64,14 @@
               {{ getStatusText(transactionInfo.status) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="房产证号">{{ transactionInfo.realtyCert }}</el-descriptions-item>
+          <el-descriptions-item label="房产证号">{{ transactionInfo.realtyCertHash }}</el-descriptions-item>
           <el-descriptions-item label="交易价格">{{ formatPrice(transactionInfo.price) }}</el-descriptions-item>
-          <el-descriptions-item label="卖方身份证">{{ transactionInfo.sellerCitizenID }}</el-descriptions-item>
-          <el-descriptions-item label="买方身份证">{{ transactionInfo.buyerCitizenID }}</el-descriptions-item>
+          <el-descriptions-item label="卖方身份证">{{ transactionInfo.sellerCitizenIDHash }}</el-descriptions-item>
+          <el-descriptions-item label="买方身份证">{{ transactionInfo.buyerCitizenIDHash }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ formatDate(transactionInfo.createTime) }}</el-descriptions-item>
           <el-descriptions-item label="更新时间">{{ formatDate(transactionInfo.updateTime) }}</el-descriptions-item>
+          <el-descriptions-item label="预计完成时间">{{ formatDate(transactionInfo.completedTime) }}</el-descriptions-item>
+          <el-descriptions-item label="税费">{{ formatPrice(transactionInfo.tax) }}</el-descriptions-item>
         </el-descriptions>
         
         <!-- 房产信息 -->
@@ -60,6 +87,27 @@
             </template>
           </el-descriptions-item>
         </el-descriptions>
+        
+        <!-- 合同信息 -->
+        <div v-if="contractInfo" class="section-mt">
+          <h4>合同信息</h4>
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="合同编号">{{ contractInfo.contractUUID }}</el-descriptions-item>
+            <el-descriptions-item label="合同类型">{{ getContractTypeText(contractInfo.contractType) }}</el-descriptions-item>
+            <el-descriptions-item label="创建时间">{{ formatDate(contractInfo.createTime) }}</el-descriptions-item>
+            <el-descriptions-item label="创建人">{{ contractInfo.creatorCitizenID }}</el-descriptions-item>
+            <el-descriptions-item label="合同标题">{{ contractInfo.title }}</el-descriptions-item>
+            <el-descriptions-item label="合同状态">
+              <el-tag :type="getContractStatusType(contractInfo.status)">
+                {{ getContractStatusText(contractInfo.status) }}
+              </el-tag>
+            </el-descriptions-item>
+          </el-descriptions>
+          <div class="contract-content section-mt">
+            <h5>合同内容</h5>
+            <div class="content-box">{{ contractInfo.content }}</div>
+          </div>
+        </div>
         
         <!-- 审核记录 -->
         <div v-if="audits.length > 0" class="section-mt">
@@ -81,150 +129,62 @@
         </div>
         
         <!-- 支付记录 -->
-        <div v-if="payments.length > 0" class="section-mt">
+        <div class="section-mt">
           <h4>支付记录</h4>
-          <el-table :data="payments" border style="width: 100%">
-            <el-table-column prop="paymentID" label="支付编号" width="220"></el-table-column>
-            <el-table-column prop="paymentType" label="支付类型" width="120">
-              <template #default="scope">
-                {{ getPaymentTypeText(scope.row.paymentType) }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="amount" label="支付金额" width="150">
-              <template #default="scope">
-                {{ formatPrice(scope.row.amount) }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="payerCitizenID" label="付款方" width="180"></el-table-column>
-            <el-table-column prop="payeeCitizenID" label="收款方" width="180"></el-table-column>
-            <el-table-column prop="createTime" label="支付时间" width="180">
-              <template #default="scope">
-                {{ formatDate(scope.row.createTime) }}
-              </template>
-            </el-table-column>
-          </el-table>
+          <div v-if="payments.length > 0">
+            <el-table :data="payments" border style="width: 100%">
+              <el-table-column prop="paymentID" label="支付编号" width="220"></el-table-column>
+              <el-table-column prop="paymentType" label="支付类型" width="120">
+                <template #default="scope">
+                  {{ getPaymentTypeText(scope.row.paymentType) }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="amount" label="支付金额" width="150">
+                <template #default="scope">
+                  {{ formatPrice(scope.row.amount) }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="payerCitizenID" label="付款方" width="180"></el-table-column>
+              <el-table-column prop="payeeCitizenID" label="收款方" width="180"></el-table-column>
+              <el-table-column prop="createTime" label="支付时间" width="180">
+                <template #default="scope">
+                  {{ formatDate(scope.row.createTime) }}
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <el-empty v-else description="暂无支付记录"></el-empty>
         </div>
         
-        <!-- 合同信息 -->
-        <div v-if="contracts.length > 0" class="section-mt">
-          <h4>合同信息</h4>
-          <el-table :data="contracts" border style="width: 100%">
-            <el-table-column prop="contractID" label="合同编号" width="220"></el-table-column>
-            <el-table-column prop="contractType" label="合同类型" width="120">
-              <template #default="scope">
-                {{ getContractTypeText(scope.row.contractType) }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="filePath" label="合同文件" width="300">
-              <template #default="scope">
-                <el-button v-if="scope.row.filePath" type="primary" link @click="viewContract(scope.row)">
-                  查看合同
-                </el-button>
-                <span v-else>无文件</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="createTime" label="创建时间" width="180">
-              <template #default="scope">
-                {{ formatDate(scope.row.createTime) }}
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-        
-        <!-- 操作区域 -->
-        <div v-if="transactionInfo.status === 'APPROVED'" class="action-area section-mt">
-          <h4>交易操作</h4>
-          <el-row :gutter="20">
-            <el-col :span="8">
-              <el-card shadow="hover" class="action-card">
-                <h5>上传买卖合同</h5>
-                <el-upload
-                  class="upload-area"
-                  action="/api/contract/upload"
-                  :headers="uploadHeaders"
-                  :data="{ transactionUUID: transactionUUID, contractType: 'SALE' }"
-                  :on-success="handleUploadSuccess"
-                  :on-error="handleUploadError"
-                  :limit="1"
-                >
-                  <el-button type="primary">上传合同</el-button>
-                  <template #tip>
-                    <div class="el-upload__tip">请上传PDF格式文件</div>
-                  </template>
-                </el-upload>
-              </el-card>
-            </el-col>
-            <el-col :span="8">
-              <el-card shadow="hover" class="action-card">
-                <h5>缴纳交易税费</h5>
-                <el-button type="primary" @click="showPaymentDialog('TAX')">缴纳税费</el-button>
-              </el-card>
-            </el-col>
-            <el-col :span="8">
-              <el-card shadow="hover" class="action-card">
-                <h5>支付房款</h5>
-                <el-button type="primary" @click="showPaymentDialog('PAYMENT')">支付房款</el-button>
-              </el-card>
-            </el-col>
-          </el-row>
+        <!-- 买方发起支付按钮 -->
+        <div v-if="isBuyer && transactionInfo.status === 'IN_PROGRESS'" class="payment-action section-mt">
+          <el-button type="primary" size="large" @click="showPaymentDialog">发起支付</el-button>
         </div>
       </div>
       
       <el-empty v-else description="未找到交易信息"></el-empty>
     </el-card>
     
-    <!-- 支付对话框 -->
-    <el-dialog
-      v-model="paymentDialogVisible"
-      :title="paymentType === 'TAX' ? '缴纳税费' : '支付房款'"
-      width="500px"
-    >
-      <el-form :model="paymentForm" :rules="paymentRules" ref="paymentFormRef" label-width="100px">
-        <el-form-item label="支付金额" prop="amount">
-          <el-input-number v-model="paymentForm.amount" :min="0" :precision="2" :step="1000" style="width: 100%"></el-input-number>
-        </el-form-item>
-        <el-form-item label="付款方" prop="payerCitizenID">
-          <el-input v-model="paymentForm.payerCitizenID"></el-input>
-        </el-form-item>
-        <el-form-item label="收款方" prop="payeeCitizenID">
-          <el-input v-model="paymentForm.payeeCitizenID"></el-input>
-        </el-form-item>
-        <el-form-item label="备注" prop="description">
-          <el-input v-model="paymentForm.description" type="textarea" :rows="3"></el-input>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="paymentDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitPayment" :loading="submitLoading">确认支付</el-button>
-        </span>
-      </template>
-    </el-dialog>
+    <!-- 非授权用户提示 -->
+    <el-card v-else class="unauthorized-card">
+      <el-result
+        icon="error"
+        title="无权访问"
+        sub-title="您不是此交易的参与方，无权查看交易详情"
+      >
+        <template #extra>
+          <el-button type="primary" @click="goBack">返回上一页</el-button>
+        </template>
+      </el-result>
+    </el-card>
     
-    <!-- 审核对话框 -->
-    <el-dialog
-      v-model="auditDialogVisible"
-      :title="auditAction === 'APPROVED' ? '审核通过' : '审核拒绝'"
-      width="500px"
-    >
-      <el-form :model="auditForm" :rules="auditRules" ref="auditFormRef" label-width="100px">
-        <el-form-item label="审核意见" prop="opinion">
-          <el-input v-model="auditForm.opinion" type="textarea" :rows="4"></el-input>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="auditDialogVisible = false">取消</el-button>
-          <el-button 
-            :type="auditAction === 'APPROVED' ? 'success' : 'danger'" 
-            @click="submitAudit" 
-            :loading="submitLoading"
-          >
-            {{ auditAction === 'APPROVED' ? '通过' : '拒绝' }}
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
+    <!-- 支付组件对话框 -->
+    <payment-dialog
+      v-model:visible="paymentDialogVisible"
+      :transaction="transactionInfo"
+      :total-paid="totalPaidAmount"
+      @payment-success="handlePaymentSuccess"
+    />
   </div>
 </template>
 
@@ -234,6 +194,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import {getTransactionDetail} from "@/api/transaction.js";
+import PaymentDialog from '@/components/transaction/PaymentDialog.vue'
+import CryptoJS from 'crypto-js'
+import {getPaymentList} from "@/api/payment.js";
 
 const router = useRouter()
 const route = useRoute()
@@ -241,59 +204,32 @@ const transactionUUID = ref(route.params.id)
 const loading = ref(true)
 const transactionInfo = ref(null)
 const realtyInfo = ref(null)
+const contractInfo = ref(null)
 const audits = ref([])
 const payments = ref([])
-const contracts = ref([])
 const submitLoading = ref(false)
-
-// 支付对话框
 const paymentDialogVisible = ref(false)
-const paymentFormRef = ref(null)
-const paymentType = ref('')
-const paymentForm = reactive({
-  amount: 0,
-  payerCitizenID: '',
-  payeeCitizenID: '',
-  description: ''
-})
-const paymentRules = reactive({
-  amount: [
-    { required: true, message: '请输入支付金额', trigger: 'blur' },
-    { type: 'number', min: 1, message: '金额必须大于0', trigger: 'blur' }
-  ],
-  payerCitizenID: [
-    { required: true, message: '请输入付款方身份证号', trigger: 'blur' },
-    { pattern: /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/, message: '请输入正确的身份证号', trigger: 'blur' }
-  ],
-  payeeCitizenID: [
-    { required: true, message: '请输入收款方身份证号', trigger: 'blur' },
-    { pattern: /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/, message: '请输入正确的身份证号', trigger: 'blur' }
-  ]
+
+// 支付相关计算属性
+const totalPaidAmount = computed(() => {
+  if (!payments.value || payments.value.length === 0) return 0
+  return payments.value.reduce((total, payment) => total + payment.amount, 0)
 })
 
-// 审核对话框
-const auditDialogVisible = ref(false)
-const auditFormRef = ref(null)
-const auditAction = ref('')
-const auditForm = reactive({
-  opinion: ''
-})
-const auditRules = reactive({
-  opinion: [
-    { required: true, message: '请输入审核意见', trigger: 'blur' }
-  ]
+const paymentPercentage = computed(() => {
+  if (!transactionInfo.value || !transactionInfo.value.price || transactionInfo.value.price === 0) return 0
+  const percentage = (totalPaidAmount.value / transactionInfo.value.price) * 100
+  return Math.min(percentage, 100) // 最大不超过100%
 })
 
-// 上传文件的请求头
-const uploadHeaders = computed(() => {
-  return {
-    Authorization: localStorage.getItem('token') || ''
-  }
-})
+// 格式化百分比
+const percentFormat = (percentage) => {
+  return `${percentage.toFixed(2)}%`
+}
 
 // 获取用户信息
 const userInfo = computed(() => {
-  const userJson = localStorage.getItem('user')
+  const userJson = localStorage.getItem('userInfo')
   if (!userJson) return null
   try {
     return JSON.parse(userJson)
@@ -302,20 +238,53 @@ const userInfo = computed(() => {
   }
 })
 
+// 判断当前用户是否为交易的买方
+const isBuyer = computed(() => {
+  if (!userInfo.value || !userInfo.value.citizenID || !transactionInfo.value) return false
+  
+  // 获取用户身份证号的SHA256哈希值
+  const userCitizenIDHash = CryptoJS.SHA256(userInfo.value.citizenID).toString(CryptoJS.enc.Hex)
+  
+  return userCitizenIDHash === transactionInfo.value.buyerCitizenIDHash
+})
+
+// 判断当前用户是否为交易的卖方
+const isSeller = computed(() => {
+  if (!userInfo.value || !userInfo.value.citizenID || !transactionInfo.value) return false
+  
+  // 获取用户身份证号的SHA256哈希值
+  const userCitizenIDHash = CryptoJS.SHA256(userInfo.value.citizenID).toString(CryptoJS.enc.Hex)
+  
+  return userCitizenIDHash === transactionInfo.value.sellerCitizenIDHash
+})
+
+// 判断当前用户是否为政府或审计
+const isGovOrAudit = computed(() => {
+  if (!userInfo.value || !userInfo.value.organization) return false
+  return ['government', 'audit'].includes(userInfo.value.organization)
+})
+
+// 判断用户是否有权限查看此交易
+const isAuthorized = computed(() => {
+  return isBuyer.value || isSeller.value || isGovOrAudit.value;
+})
+
 // 判断是否可以审核交易
 const canCheckTransaction = computed(() => {
   if (!userInfo.value || !transactionInfo.value) return false
   
   // 政府组织且交易状态为待审核
-  return userInfo.value.role === 'GOVERNMENT' && transactionInfo.value.status === 'PENDING'
+  return userInfo.value.organization === 'government' && transactionInfo.value.status === 'PENDING'
 })
 
 // 判断是否可以完成交易
 const canCompleteTransaction = computed(() => {
   if (!userInfo.value || !transactionInfo.value) return false
   
-  // 政府组织且交易状态为已审核
-  return userInfo.value.role === 'GOVERNMENT' && transactionInfo.value.status === 'APPROVED'
+  // 政府组织且交易状态为已审核且已支付足够金额
+  return userInfo.value.organization === 'government' && 
+         transactionInfo.value.status === 'APPROVED' &&
+         totalPaidAmount.value >= transactionInfo.value.price
 })
 
 // 判断是否可以取消交易
@@ -323,7 +292,8 @@ const canCancelTransaction = computed(() => {
   if (!userInfo.value || !transactionInfo.value) return false
   
   // 任何角色在交易未完成前均可取消
-  return ['PENDING', 'APPROVED'].includes(transactionInfo.value.status)
+  return ['PENDING', 'APPROVED'].includes(transactionInfo.value.status) && 
+         (isBuyer.value || isSeller.value || userInfo.value.organization === 'government')
 })
 
 // 获取交易详情
@@ -331,11 +301,16 @@ const fetchTransactionDetail = async () => {
   loading.value = true
   try {
     const response = await getTransactionDetail(transactionUUID.value)
-    transactionInfo.value = response.data
+    transactionInfo.value = response.transaction
     
     // 获取房产信息
     if (transactionInfo.value.realtyCert) {
       await fetchRealtyDetail(transactionInfo.value.realtyCert)
+    }
+    
+    // 获取合同信息
+    if (transactionInfo.value.contractUUID) {
+      await fetchContractDetail(transactionInfo.value.contractUUID)
     }
     
     // 获取审核记录
@@ -343,9 +318,12 @@ const fetchTransactionDetail = async () => {
     
     // 获取支付记录
     await fetchPayments()
-    
-    // 获取合同信息
-    await fetchContracts()
+
+    // 检查登录状态和权限
+    if (!isAuthorized.value && userInfo.value) {
+      console.log("权限验证失败，但用户已登录")
+    }
+
   } catch (error) {
     console.error('获取交易详情失败:', error)
     ElMessage.error(error.response?.data?.message || '获取交易详情失败')
@@ -364,6 +342,18 @@ const fetchRealtyDetail = async (realtyCert) => {
   }
 }
 
+// 获取合同详情
+const fetchContractDetail = async (contractUUID) => {
+  try {
+    const response = await axios.get(`/api/contract/getContractByUUID/${contractUUID}`)
+    contractInfo.value = response.data
+  } catch (error) {
+    console.error('获取合同详情失败:', error)
+    // 使用mock数据
+    contractInfo.value = mockContractDetail(contractUUID)
+  }
+}
+
 // 获取审核记录
 const fetchAudits = async () => {
   try {
@@ -371,130 +361,67 @@ const fetchAudits = async () => {
     audits.value = response.data || []
   } catch (error) {
     console.error('获取审核记录失败:', error)
+    // 使用mock数据
+    audits.value = mockAudits(transactionUUID.value)
   }
 }
 
 // 获取支付记录
 const fetchPayments = async () => {
   try {
-    const response = await axios.get(`/api/payment/transaction/${transactionUUID.value}`)
-    payments.value = response.data || []
+    const response = getPaymentList({
+      transactionUUID: transactionUUID.value,
+    })
+    payments.value = response.paymentList || []
   } catch (error) {
     console.error('获取支付记录失败:', error)
+    // 使用mock数据
+    payments.value = mockPayments(transactionUUID.value)
   }
 }
 
-// 获取合同信息
-const fetchContracts = async () => {
-  try {
-    const response = await axios.get(`/api/contract/transaction/${transactionUUID.value}`)
-    contracts.value = response.data || []
-  } catch (error) {
-    console.error('获取合同信息失败:', error)
-  }
-}
-
-// 显示支付对话框
-const showPaymentDialog = (type) => {
-  paymentType.value = type
-  paymentForm.amount = type === 'TAX' ? calculateTax() : transactionInfo.value.price
-  
-  // 根据支付类型设置默认付款方和收款方
-  if (type === 'TAX') {
-    paymentForm.payerCitizenID = transactionInfo.value.buyerCitizenID
-    paymentForm.payeeCitizenID = 'GOVERNMENT'
-    paymentForm.description = '交易税费'
-  } else {
-    paymentForm.payerCitizenID = transactionInfo.value.buyerCitizenID
-    paymentForm.payeeCitizenID = transactionInfo.value.sellerCitizenID
-    paymentForm.description = '房产交易款'
-  }
-  
-  paymentDialogVisible.value = true
-}
-
-// 计算税费（示例：交易金额的3%）
-const calculateTax = () => {
-  if (!transactionInfo.value || !transactionInfo.value.price) return 0
-  return transactionInfo.value.price * 0.03
-}
-
-// 提交支付
-const submitPayment = async () => {
-  if (!paymentFormRef.value) return
-  
-  await paymentFormRef.value.validate(async (valid, fields) => {
-    if (valid) {
-      submitLoading.value = true
-      
-      try {
-        const paymentData = {
-          transactionUUID: transactionUUID.value,
-          paymentType: paymentType.value,
-          amount: paymentForm.amount,
-          payerCitizenID: paymentForm.payerCitizenID,
-          payeeCitizenID: paymentForm.payeeCitizenID,
-          description: paymentForm.description
-        }
-        
-        const response = await axios.post('/api/payment/create', paymentData)
-        ElMessage.success('支付成功')
-        paymentDialogVisible.value = false
-        
-        // 刷新支付记录
-        await fetchPayments()
-      } catch (error) {
-        console.error('支付失败:', error)
-        ElMessage.error(error.response?.data?.message || '支付失败')
-      } finally {
-        submitLoading.value = false
-      }
-    } else {
-      console.log('表单验证失败:', fields)
-      ElMessage.error('请完善表单信息')
-    }
-  })
+// 处理支付成功
+const handlePaymentSuccess = async () => {
+  ElMessage.success('支付成功')
+  await fetchPayments() // 刷新支付记录
 }
 
 // 处理审核
 const handleAudit = (action) => {
-  auditAction.value = action
-  auditForm.opinion = ''
-  auditDialogVisible.value = true
+  ElMessageBox.prompt('请输入审核意见', action === 'APPROVED' ? '审核通过' : '审核拒绝', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    inputPlaceholder: '请输入审核意见',
+    inputValidator: (value) => {
+      return value.trim() !== '' ? true : '审核意见不能为空'
+    }
+  }).then(({ value }) => {
+    submitAudit(action, value)
+  }).catch(() => {})
 }
 
 // 提交审核
-const submitAudit = async () => {
-  if (!auditFormRef.value) return
+const submitAudit = async (result, opinion) => {
+  submitLoading.value = true
   
-  await auditFormRef.value.validate(async (valid, fields) => {
-    if (valid) {
-      submitLoading.value = true
-      
-      try {
-        const auditData = {
-          transactionUUID: transactionUUID.value,
-          result: auditAction.value,
-          opinion: auditForm.opinion
-        }
-        
-        const response = await axios.post('/api/transaction/audit', auditData)
-        ElMessage.success(auditAction.value === 'APPROVED' ? '审核通过成功' : '审核拒绝成功')
-        auditDialogVisible.value = false
-        
-        // 刷新交易信息和审核记录
-        await fetchTransactionDetail()
-      } catch (error) {
-        console.error('审核失败:', error)
-        ElMessage.error(error.response?.data?.message || '审核失败')
-      } finally {
-        submitLoading.value = false
-      }
-    } else {
-      console.log('表单验证失败:', fields)
-      ElMessage.error('请完善表单信息')
+  try {
+    const auditData = {
+      transactionUUID: transactionUUID.value,
+      result: result,
+      opinion: opinion
     }
-  })
+    
+    const response = await axios.post('/api/transaction/audit', auditData)
+    ElMessage.success(result === 'APPROVED' ? '审核通过成功' : '审核拒绝成功')
+    
+    // 刷新交易信息和审核记录
+    await fetchTransactionDetail()
+  } catch (error) {
+    console.error('审核失败:', error)
+    ElMessage.error(error.response?.data?.message || '审核失败')
+  } finally {
+    submitLoading.value = false
+  }
 }
 
 // 完成交易
@@ -541,23 +468,6 @@ const handleCancel = async () => {
   }).catch(() => {})
 }
 
-// 上传合同成功处理
-const handleUploadSuccess = (response, file) => {
-  ElMessage.success('合同上传成功')
-  fetchContracts()
-}
-
-// 上传合同失败处理
-const handleUploadError = (error, file) => {
-  console.error('合同上传失败:', error)
-  ElMessage.error('合同上传失败')
-}
-
-// 查看合同
-const viewContract = (contract) => {
-  window.open(contract.filePath, '_blank')
-}
-
 // 查看房产详情
 const viewRealtyDetail = () => {
   if (realtyInfo.value) {
@@ -568,6 +478,64 @@ const viewRealtyDetail = () => {
 // 返回上一页
 const goBack = () => {
   router.back()
+}
+
+// 显示支付对话框
+const showPaymentDialog = () => {
+  paymentDialogVisible.value = true
+}
+
+// Mock函数：获取合同详情
+const mockContractDetail = (contractUUID) => {
+  return {
+    contractUUID: contractUUID,
+    title: '房产买卖合同',
+    content: '这是一份房产买卖合同的内容，包含买卖双方的权利和义务...',
+    contractType: 'PURCHASE',
+    status: 'SIGNED',
+    creatorCitizenID: '310110200312345678',
+    createTime: new Date().toISOString(),
+    updateTime: new Date().toISOString()
+  }
+}
+
+// Mock函数：获取审核记录
+const mockAudits = (transactionUUID) => {
+  return [
+    {
+      id: 1,
+      transactionUUID: transactionUUID,
+      auditorName: '张三',
+      auditorOrg: 'GOVERNMENT',
+      result: 'APPROVED',
+      opinion: '审核通过，符合交易要求',
+      createTime: new Date(Date.now() - 3600000).toISOString()
+    }
+  ]
+}
+
+// Mock函数：获取支付记录
+const mockPayments = (transactionUUID) => {
+  return [
+    {
+      paymentID: 'PAY001',
+      transactionUUID: transactionUUID,
+      paymentType: 'PAYMENT',
+      amount: 100000,
+      payerCitizenID: '310110200306241518',
+      payeeCitizenID: '310110200306241519',
+      createTime: new Date(Date.now() - 7200000).toISOString()
+    },
+    {
+      paymentID: 'PAY002',
+      transactionUUID: transactionUUID,
+      paymentType: 'TAX',
+      amount: 5000,
+      payerCitizenID: '310110200306241518',
+      payeeCitizenID: 'GOVERNMENT',
+      createTime: new Date(Date.now() - 3600000).toISOString()
+    }
+  ]
 }
 
 // 价格格式化
@@ -595,11 +563,9 @@ const formatDate = (dateString) => {
 const getStatusType = (status) => {
   const statusMap = {
     'PENDING': 'info',
-    'APPROVED': 'success',
     'REJECTED': 'danger',
     'IN_PROGRESS': 'warning',
     'COMPLETED': 'success',
-    'CANCELLED': 'info'
   }
   return statusMap[status] || 'info'
 }
@@ -608,11 +574,9 @@ const getStatusType = (status) => {
 const getStatusText = (status) => {
   const statusMap = {
     'PENDING': '待审核',
-    'APPROVED': '已审核',
     'REJECTED': '已拒绝',
     'IN_PROGRESS': '进行中',
     'COMPLETED': '已完成',
-    'CANCELLED': '已取消'
   }
   return statusMap[status] || status
 }
@@ -624,6 +588,28 @@ const getRealtyStatusText = (status) => {
     'IN_TRANSACTION': '交易中',
     'MORTGAGED': '已抵押',
     'FROZEN': '已冻结'
+  }
+  return statusMap[status] || status
+}
+
+// 获取合同状态标签类型
+const getContractStatusType = (status) => {
+  const statusMap = {
+    'PENDING': 'info',
+    'SIGNED': 'success',
+    'REJECTED': 'danger',
+    'EXPIRED': 'warning'
+  }
+  return statusMap[status] || 'info'
+}
+
+// 获取合同状态文本
+const getContractStatusText = (status) => {
+  const statusMap = {
+    'PENDING': '待签署',
+    'SIGNED': '已签署',
+    'REJECTED': '已拒绝',
+    'EXPIRED': '已过期'
   }
   return statusMap[status] || status
 }
@@ -656,9 +642,9 @@ const getPaymentTypeText = (type) => {
 // 获取合同类型文本
 const getContractTypeText = (type) => {
   const typeMap = {
-    'SALE': '买卖合同',
+    'PURCHASE': '购房合同',
     'MORTGAGE': '抵押合同',
-    'OTHER': '其他合同'
+    'LEASE': '租赁合同'
   }
   return typeMap[type] || type
 }
@@ -683,23 +669,48 @@ onMounted(() => {
   margin-top: 30px;
 }
 
-.action-area {
+.progress-section {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
   margin-bottom: 20px;
 }
 
-.action-card {
-  height: 150px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+.progress-info {
+  margin-top: 10px;
 }
 
-.upload-area {
+.progress-text {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 10px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.contract-content {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.content-box {
+  background-color: white;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  min-height: 150px;
+  white-space: pre-wrap;
+}
+
+.payment-action {
+  display: flex;
+  justify-content: center;
+  margin: 30px 0;
+}
+
+.unauthorized-card {
+  max-width: 800px;
+  margin: 100px auto;
 }
 
 .header-buttons {
