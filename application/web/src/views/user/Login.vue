@@ -9,6 +9,23 @@
       @submit.prevent="handleLogin"
       class="login-form"
     >
+
+      <!-- 组织选择 -->
+      <el-form-item prop="organization">
+        <el-select
+            v-model="loginForm.organization"
+            placeholder="请选择组织"
+            class="w-100"
+        >
+          <el-option
+              v-for="org in organizations"
+              :key="org.value"
+              :label="org.label"
+              :value="org.value"
+          />
+        </el-select>
+      </el-form-item>
+
       <!-- 用户名输入框 -->
       <el-form-item prop="citizenID">
         <el-input
@@ -29,22 +46,6 @@
           autocomplete="current-password"
           show-password
         />
-      </el-form-item>
-      
-      <!-- 组织选择 -->
-      <el-form-item prop="organization">
-        <el-select
-          v-model="loginForm.organization"
-          placeholder="请选择组织"
-          class="w-100"
-        >
-          <el-option
-            v-for="org in organizations"
-            :key="org.value"
-            :label="org.label"
-            :value="org.value"
-          />
-        </el-select>
       </el-form-item>
       
       <!-- 记住我选项 -->
@@ -128,7 +129,21 @@ const organizations: Organization[] = [
 const loginRules = reactive<FormRules>({
   citizenID: [
     { required: true, message: '请输入身份证号', trigger: 'blur' },
-    { min: 18, max: 18, message: '身份证号长度应为18个字符', trigger: 'blur' }
+    { 
+      validator: (rule, value, callback) => {
+        if (loginForm.organization === 'investor') {
+          if (value.length !== 18) {
+            callback(new Error('投资者身份证号长度应为18个字符'));
+          } else {
+            callback();
+          }
+        } else {
+          // 非投资者组织只验证非空
+          callback();
+        }
+      }, 
+      trigger: 'blur' 
+    }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' }

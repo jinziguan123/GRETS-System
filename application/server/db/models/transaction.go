@@ -8,7 +8,9 @@ type Transaction struct {
 	TransactionUUID     string    `gorm:"size:64;index;not null" json:"transactionUUID"`     // 交易哈希
 	RealtyCertHash      string    `gorm:"size:64;index;not null" json:"realtyCertHash"`      // 房产ID
 	SellerCitizenIDHash string    `gorm:"size:64;index;not null" json:"sellerCitizenIDHash"` // 卖方身份证号
+	SellerOrganization  string    `gorm:"size:64;index;not null" json:"sellerOrganization"`  // 卖方身份组织
 	BuyerCitizenIDHash  string    `gorm:"size:64;index;not null" json:"buyerCitizenIDHash"`  // 买方身份证号
+	BuyerOrganization   string    `gorm:"size:64;index;not null" json:"buyerOrganization"`   // 买方身份组织
 	Price               float64   `gorm:"not null" json:"price"`                             // 成交价格
 	Tax                 float64   `gorm:"default:0" json:"tax"`                              // 应缴税费
 	Status              string    `gorm:"size:30;not null" json:"status"`                    // 交易状态：initiated, deposit_paid, payment_completed, completed, cancelled

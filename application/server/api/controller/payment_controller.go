@@ -2,6 +2,7 @@ package controller
 
 import (
 	"grets_server/dao"
+	paymentDto "grets_server/dto/payment_dto"
 	"grets_server/pkg/utils"
 	"grets_server/service"
 	"strconv"
@@ -9,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// 支付控制器结构体
+// PaymentController 支付控制器结构体
 type PaymentController struct {
 	paymentService service.PaymentService
 }
@@ -22,125 +23,144 @@ func NewPaymentController() *PaymentController {
 }
 
 // CreatePayment 创建支付
-func (ctrl *PaymentController) CreatePayment(c *gin.Context) {
+func (c *PaymentController) CreatePayment(ctx *gin.Context) {
 	// 解析请求参数
-	var req service.CreatePaymentDTO
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ResponseBadRequest(c, "无效的请求参数")
+	var req paymentDto.CreatePaymentDTO
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.ResponseBadRequest(ctx, "无效的请求参数")
 		return
 	}
 
 	// 调用服务创建支付
-	if err := ctrl.paymentService.CreatePayment(&req); err != nil {
-		utils.ResponseInternalServerError(c, err.Error())
+	if err := c.paymentService.CreatePayment(&req); err != nil {
+		utils.ResponseInternalServerError(ctx, err.Error())
 		return
 	}
 
 	// 返回成功结果
-	utils.ResponseSuccess(c, "支付创建成功", nil)
+	utils.ResponseSuccess(ctx, "支付创建成功", nil)
+}
+
+// PayForTransaction 支付交易
+func (c *PaymentController) PayForTransaction(ctx *gin.Context) {
+	// 解析请求参数
+	var req paymentDto.PayForTransactionDTO
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.ResponseBadRequest(ctx, "无效的请求参数")
+		return
+	}
+
+	// 调用服务支付交易
+	if err := c.paymentService.PayForTransaction(&req); err != nil {
+		utils.ResponseInternalServerError(ctx, err.Error())
+		return
+	}
+
+	// 返回成功结果
+	utils.ResponseSuccess(ctx, "支付交易成功", nil)
 }
 
 // QueryPaymentList 查询支付列表
-func (ctrl *PaymentController) QueryPaymentList(c *gin.Context) {
+func (c *PaymentController) QueryPaymentList(ctx *gin.Context) {
 	// 解析查询参数
-	query := &service.QueryPaymentDTO{
-		TransactionID: c.Query("transactionId"),
-		Status:        c.Query("status"),
-		PayerID:       c.Query("payerId"),
-		PayeeID:       c.Query("payeeId"),
-		PageSize:      10,
-		PageNumber:    1,
+	query := &paymentDto.QueryPaymentDTO{
+		TransactionUUID:   ctx.Query("transactionUUID"),
+		PaymentType:       ctx.Query("paymentType"),
+		PayerCitizenID:    ctx.Query("payerCitizenID"),
+		ReceiverCitizenID: ctx.Query("receiverCitizenID"),
+		PageSize:          10,
+		PageNumber:        1,
 	}
 
 	// 解析数值类型参数
-	if pageSize, err := strconv.Atoi(c.Query("pageSize")); err == nil && pageSize > 0 {
+	if pageSize, err := strconv.Atoi(ctx.Query("pageSize")); err == nil && pageSize > 0 {
 		query.PageSize = pageSize
 	}
-	if pageNum, err := strconv.Atoi(c.Query("pageNumber")); err == nil && pageNum > 0 {
+	if pageNum, err := strconv.Atoi(ctx.Query("pageNumber")); err == nil && pageNum > 0 {
 		query.PageNumber = pageNum
 	}
 
 	// 调用服务查询支付列表
-	payments, total, err := ctrl.paymentService.QueryPaymentList(query)
+	payments, total, err := c.paymentService.QueryPaymentList(query)
 	if err != nil {
-		utils.ResponseInternalServerError(c, err.Error())
+		utils.ResponseInternalServerError(ctx, err.Error())
 		return
 	}
 
 	// 返回查询结果
-	utils.ResponseSuccess(c, "查询支付列表成功", gin.H{
-		"items": payments,
-		"total": total,
+	utils.ResponseSuccess(ctx, "查询支付列表成功", gin.H{
+		"paymentList": payments,
+		"total":       total,
 	})
 }
 
-// GetPaymentByID 根据ID获取支付信息
-func (ctrl *PaymentController) GetPaymentByID(c *gin.Context) {
+// GetPaymentByUUID 根据ID获取支付信息
+func (c *PaymentController) GetPaymentByUUID(ctx *gin.Context) {
 	// 获取路径参数
-	id := c.Param("id")
-	if id == "" {
-		utils.ResponseBadRequest(c, "支付ID不能为空")
+	paymentUUID := ctx.Param("id")
+	if paymentUUID == "" {
+		utils.ResponseBadRequest(ctx, "支付ID不能为空")
 		return
 	}
 
 	// 调用服务获取支付信息
-	payment, err := ctrl.paymentService.GetPaymentByID(id)
+	payment, err := c.paymentService.GetPaymentByUUID(paymentUUID)
 	if err != nil {
-		utils.ResponseInternalServerError(c, err.Error())
+		utils.ResponseInternalServerError(ctx, err.Error())
 		return
 	}
 
 	// 返回支付信息
-	utils.ResponseSuccess(c, "查询支付成功", payment)
+	utils.ResponseSuccess(ctx, "查询支付成功", payment)
 }
 
 // VerifyPayment 验证支付
-func (ctrl *PaymentController) VerifyPayment(c *gin.Context) {
+func (c *PaymentController) VerifyPayment(ctx *gin.Context) {
 	// 获取路径参数
-	id := c.Param("id")
+	id := ctx.Param("id")
 	if id == "" {
-		utils.ResponseBadRequest(c, "支付ID不能为空")
+		utils.ResponseBadRequest(ctx, "支付ID不能为空")
 		return
 	}
 
 	// 调用服务验证支付
-	if err := ctrl.paymentService.VerifyPayment(id); err != nil {
-		utils.ResponseInternalServerError(c, err.Error())
+	if err := c.paymentService.VerifyPayment(id); err != nil {
+		utils.ResponseInternalServerError(ctx, err.Error())
 		return
 	}
 
 	// 返回成功结果
-	utils.ResponseSuccess(c, "支付验证成功", nil)
+	utils.ResponseSuccess(ctx, "支付验证成功", nil)
 }
 
 // CompletePayment 完成支付
-func (ctrl *PaymentController) CompletePayment(c *gin.Context) {
+func (c *PaymentController) CompletePayment(ctx *gin.Context) {
 	// 获取路径参数
-	id := c.Param("id")
+	id := ctx.Param("id")
 	if id == "" {
-		utils.ResponseBadRequest(c, "支付ID不能为空")
+		utils.ResponseBadRequest(ctx, "支付ID不能为空")
 		return
 	}
 
 	// 调用服务完成支付
-	if err := ctrl.paymentService.CompletePayment(id); err != nil {
-		utils.ResponseInternalServerError(c, err.Error())
+	if err := c.paymentService.CompletePayment(id); err != nil {
+		utils.ResponseInternalServerError(ctx, err.Error())
 		return
 	}
 
 	// 返回成功结果
-	utils.ResponseSuccess(c, "支付完成成功", nil)
+	utils.ResponseSuccess(ctx, "支付完成成功", nil)
 }
 
-// 创建全局支付控制器实例
+// GlobalPaymentController 创建全局支付控制器实例
 var GlobalPaymentController *PaymentController
 
-// 初始化支付控制器
+// InitPaymentController 初始化支付控制器
 func InitPaymentController() {
 	GlobalPaymentController = NewPaymentController()
 }
 
-// 为兼容现有路由，提供这些函数
+// CreatePayment 为兼容现有路由，提供这些函数
 func CreatePayment(c *gin.Context) {
 	GlobalPaymentController.CreatePayment(c)
 }
@@ -149,8 +169,8 @@ func QueryPaymentList(c *gin.Context) {
 	GlobalPaymentController.QueryPaymentList(c)
 }
 
-func GetPaymentByID(c *gin.Context) {
-	GlobalPaymentController.GetPaymentByID(c)
+func GetPaymentByUUID(c *gin.Context) {
+	GlobalPaymentController.GetPaymentByUUID(c)
 }
 
 func VerifyPayment(c *gin.Context) {
@@ -159,4 +179,8 @@ func VerifyPayment(c *gin.Context) {
 
 func ConfirmPayment(c *gin.Context) {
 	GlobalPaymentController.CompletePayment(c)
+}
+
+func PayForTransaction(c *gin.Context) {
+	GlobalPaymentController.PayForTransaction(c)
 }

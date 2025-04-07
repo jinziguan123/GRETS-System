@@ -9,6 +9,23 @@
       @submit.prevent="handleRegister"
       class="register-form"
     >
+
+      <!-- 组织选择 -->
+      <el-form-item prop="organization">
+        <el-select
+            v-model="registerForm.organization"
+            placeholder="请选择组织"
+            class="w-100"
+        >
+          <el-option
+              v-for="org in organizations"
+              :key="org.value"
+              :label="org.label"
+              :value="org.value"
+          />
+        </el-select>
+      </el-form-item>
+
       <!-- 用户名 -->
       <el-form-item prop="name">
         <el-input
@@ -65,22 +82,6 @@
           placeholder="请输入手机号码"
           prefix-icon="Phone"
         />
-      </el-form-item>
-      
-      <!-- 组织选择 -->
-      <el-form-item prop="organization">
-        <el-select
-          v-model="registerForm.organization"
-          placeholder="请选择组织"
-          class="w-100"
-        >
-          <el-option
-            v-for="org in organizations"
-            :key="org.value"
-            :label="org.label"
-            :value="org.value"
-          />
-        </el-select>
       </el-form-item>
 
       <!-- 注册金额，仅当选择投资者/买家时显示 -->
@@ -252,6 +253,11 @@ const organizations = [
 watch(() => registerForm.organization, (newVal) => {
   if (newVal !== 'investor') {
     registerForm.balance = undefined
+    // 对非投资者组织，设置固定身份证号
+    if (newVal) {
+      const orgName = newVal.charAt(0).toUpperCase() + newVal.slice(1);
+      registerForm.citizenID = `${orgName}Default`;
+    }
   }
 })
 
@@ -317,7 +323,21 @@ const registerRules = reactive({
   ],
   citizenID: [
     { required: true, message: '请输入身份证号', trigger: 'blur' },
-    { min: 18, max: 18, message: '身份证号长度应为18个字符', trigger: 'blur' }
+    { 
+      validator: (rule, value, callback) => {
+        if (registerForm.organization === 'investor') {
+          if (value.length !== 18) {
+            callback(new Error('投资者身份证号长度应为18个字符'));
+          } else {
+            callback();
+          }
+        } else {
+          // 非投资者组织只验证非空
+          callback();
+        }
+      }, 
+      trigger: 'blur' 
+    }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },

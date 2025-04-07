@@ -7,7 +7,9 @@ type TransactionDTO struct {
 	TransactionUUID     string    `json:"transactionUUID"`     // 交易UUID
 	RealtyCertHash      string    `json:"realtyCertHash"`      // 房产ID
 	SellerCitizenIDHash string    `json:"sellerCitizenIDHash"` // 卖方
+	SellerOrganization  string    `json:"sellerOrganization"`  // 卖方组织机构代码
 	BuyerCitizenIDHash  string    `json:"buyerCitizenIDHash"`  // 买方
+	BuyerOrganization   string    `json:"buyerOrganization"`   // 买方组织机构代码
 	Status              string    `json:"status"`              // 交易状态
 	Price               float64   `json:"price"`               // 成交价格
 	Tax                 float64   `json:"tax"`                 // 税费
@@ -17,11 +19,12 @@ type TransactionDTO struct {
 
 // CreateTransactionDTO 创建交易请求
 type CreateTransactionDTO struct {
-	RealtyCert      string   `json:"realtyCert"`      // 不动产证号
-	BuyerCitizenID  string   `json:"buyerCitizenID"`  // 买方身份证号
-	PaymentUUIDList []string `json:"paymentUUIDList"` // 支付ID列表
-	Tax             float64  `json:"tax"`             // 税费
-	Price           float64  `json:"price"`           // 成交价格
+	RealtyCert        string   `json:"realtyCert"`        // 不动产证号
+	BuyerCitizenID    string   `json:"buyerCitizenID"`    // 买方身份证号
+	BuyerOrganization string   `json:"buyerOrganization"` // 买方组织机构代码
+	PaymentUUIDList   []string `json:"paymentUUIDList"`   // 支付ID列表
+	Tax               float64  `json:"tax"`               // 税费
+	Price             float64  `json:"price"`             // 成交价格
 }
 
 // CheckTransactionDTO 检查交易请求
@@ -42,11 +45,13 @@ type QueryTransactionDTO struct {
 
 // QueryTransactionListDTO 查询交易列表请求
 type QueryTransactionListDTO struct {
-	TransactionUUID string `json:"transactionUUID"` // 交易UUID
-	BuyerCitizenID  string `json:"buyerCitizenID"`  // 买方身份证号
-	SellerCitizenID string `json:"sellerCitizenID"` // 卖方身份证号
-	RealtyCert      string `json:"realtyCert"`      // 不动产证号
-	Status          string `json:"status"`          // 交易状态
-	PageSize        int    `json:"pageSize"`        // 每页条数
-	PageNumber      int    `json:"pageNumber"`      // 页码
+	TransactionUUID    string `json:"transactionUUID"`    // 交易UUID
+	BuyerCitizenID     string `json:"buyerCitizenID"`     // 买方身份证号
+	BuyerOrganization  string `json:"buyerOrganization"`  // 买方组织机构代码
+	SellerCitizenID    string `json:"sellerCitizenID"`    // 卖方身份证号
+	SellerOrganization string `json:"sellerOrganization"` // 卖方组织机构代码
+	RealtyCert         string `json:"realtyCert"`         // 不动产证号
+	Status             string `json:"status"`             // 交易状态
+	PageSize           int    `json:"pageSize"`           // 每页条数
+	PageNumber         int    `json:"pageNumber"`         // 页码
 }

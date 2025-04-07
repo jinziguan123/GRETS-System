@@ -75,6 +75,7 @@ const realtyId = ref(route.query.realtyId || '')
 const transactionForm = reactive({
   realtyCert: route.query.realtyCert,
   buyerCitizenID: userStore.user?.citizenID,
+  buyerOrganization: userStore.user?.organization,
   paymentUUIDList: [],
   tax: 0,
   price: 0

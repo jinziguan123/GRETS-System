@@ -98,6 +98,7 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 		req.RealtyCert,                     // realtyCert
 		req.RealtyType,                     // realtyType
 		utils.GenerateHash(req.CurrentOwnerCitizenID), // currentOwnerCitizenIDHash
+		req.CurrentOwnerOrganization,                  // currentOwnerOrganization
 		string(previousOwnersJSON),                    // previousOwnersCitizenIDHashListJSON
 	)
 
@@ -187,6 +188,7 @@ func (s *realtyService) GetRealtyByID(id string) (*realtyDto.RealtyDTO, error) {
 		CreateTime:                realty.CreateTime,
 		LastUpdateTime:            realty.UpdateTime,
 		CurrentOwnerCitizenIDHash: blockchainResult.CurrentOwnerCitizenIDHash,
+		CurrentOwnerOrganization:  blockchainResult.CurrentOwnerOrganization,
 		RelContractUUID:           realty.RelContractUUID,
 		IsNewHouse:                realty.IsNewHouse,
 	}, nil

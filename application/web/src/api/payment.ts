@@ -43,7 +43,9 @@ export function payForTransaction(data: {
   transactionUUID: string
   amount: number
   payerCitizenID: string
+  payerOrganization: string
   receiverCitizenIDHash: string
+  receiverOrganization: string
   paymentType: string
   remarks?: string
 }) {

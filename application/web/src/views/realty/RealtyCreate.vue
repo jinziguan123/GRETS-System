@@ -202,6 +202,7 @@ const realtyForm = reactive({
   price: 0,
   area: 0,
   currentOwnerCitizenID: 'GovernmentDefault', // 政府默认账户
+  currentOwnerOrganization: 'government', // 默认为政府
   status: 'NORMAL',
   province: '',
   city: '',
@@ -216,7 +217,8 @@ const realtyForm = reactive({
   address: '',
   images: [],
   previousOwnersCitizenIDList: [],
-  contractUUID: ''
+  contractUUID: '',
+  isNewHouse: true,
 })
 
 // 计算完整地址
@@ -331,13 +333,6 @@ const submitForm = async () => {
       // 准备提交数据
       const requestData = {
         ...realtyForm,
-        // 由于是新房，设置默认所有者为政府
-        currentOwnerCitizenID: 'GovernmentDefault',
-        // 设置为新房
-        isNewHouse: true,
-        // 默认传递空数组
-        images: [],
-        previousOwnersCitizenIDList: [],
         relContractUUID: realtyForm.contractUUID || '',
       }
       

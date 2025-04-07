@@ -68,7 +68,9 @@ func (s *paymentService) PayForTransaction(dto *paymentDto.PayForTransactionDTO)
 		dto.PaymentType,
 		fmt.Sprintf("%.2f", dto.Amount),
 		utils.GenerateHash(dto.PayerCitizenID),
+		dto.PayerOrganization,
 		dto.ReceiverCitizenIDHash,
+		dto.ReceiverOrganization,
 	)
 	if err != nil {
 		return fmt.Errorf("支付交易失败: %v", err)
@@ -81,7 +83,9 @@ func (s *paymentService) PayForTransaction(dto *paymentDto.PayForTransactionDTO)
 		PaymentType:           dto.PaymentType,
 		Amount:                dto.Amount,
 		PayerCitizenIDHash:    utils.GenerateHash(dto.PayerCitizenID),
+		PayerOrganization:     dto.PayerOrganization,
 		ReceiverCitizenIDHash: dto.ReceiverCitizenIDHash,
+		ReceiverOrganization:  dto.ReceiverOrganization,
 		CreateTime:            time.Now(),
 		Remarks:               dto.Remarks,
 	})
@@ -107,7 +111,9 @@ func (s *paymentService) CreatePayment(req *paymentDto.CreatePaymentDTO) error {
 		paymentUUID,
 		fmt.Sprintf("%.2f", req.Amount),
 		req.PayerCitizenID,
+		req.PayerOrganization,
 		req.ReceiverCitizenID,
+		req.ReceiverOrganization,
 		req.PaymentType,
 	)
 
@@ -123,7 +129,9 @@ func (s *paymentService) CreatePayment(req *paymentDto.CreatePaymentDTO) error {
 		PaymentType:           req.PaymentType,
 		Amount:                req.Amount,
 		PayerCitizenIDHash:    utils.GenerateHash(req.PayerCitizenID),
+		PayerOrganization:     req.PayerOrganization,
 		ReceiverCitizenIDHash: utils.GenerateHash(req.ReceiverCitizenID),
+		ReceiverOrganization:  req.ReceiverOrganization,
 		CreateTime:            time.Now(),
 		Remarks:               req.Remarks,
 	})
@@ -150,7 +158,9 @@ func (s *paymentService) GetPaymentByUUID(paymentUUID string) (*paymentDto.Payme
 		PaymentType:           payment.PaymentType,
 		Amount:                payment.Amount,
 		PayerCitizenIDHash:    payment.PayerCitizenIDHash,
+		PayerOrganization:     payment.PayerOrganization,
 		ReceiverCitizenIDHash: payment.ReceiverCitizenIDHash,
+		ReceiverOrganization:  payment.ReceiverOrganization,
 		CreateTime:            payment.CreateTime,
 		Remarks:               payment.Remarks,
 	}, nil
@@ -201,14 +211,16 @@ func (s *paymentService) QueryPaymentList(dto *paymentDto.QueryPaymentDTO) ([]*p
 			PaymentType:           payment.PaymentType,
 			Amount:                payment.Amount,
 			PayerCitizenIDHash:    payment.PayerCitizenIDHash,
+			PayerOrganization:     payment.PayerOrganization,
 			ReceiverCitizenIDHash: payment.ReceiverCitizenIDHash,
+			ReceiverOrganization:  payment.ReceiverOrganization,
 			CreateTime:            payment.CreateTime,
 			Remarks:               payment.Remarks,
 		}
 		result = append(result, paymentDTO)
 	}
 
-	return result, int(total), nil
+	return result, total, nil
 }
 
 // VerifyPayment 验证支付

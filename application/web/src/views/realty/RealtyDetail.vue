@@ -4,7 +4,7 @@
     <div class="page-header">
       <h3>房产详情</h3>
       <div class="header-actions">
-        <el-button type="success" @click="openEditDialog" v-if="canEdit">编辑</el-button>
+        <el-button type="warning" @click="openEditDialog" v-if="canEdit">编辑</el-button>
         <el-button @click="goBack">返回</el-button>
       </div>
     </div>
@@ -108,6 +108,11 @@
           <div class="other-info-item">
             <div class="other-info-label">当前所有者ID哈希</div>
             <div class="other-info-value">{{ realty.currentOwnerCitizenIDHash || '未知' }}</div>
+          </div>
+
+          <div class="other-info-item">
+            <div class="other-info-label">当前所有者组织</div>
+            <div class="other-info-value">{{ getCurrentOwnerOrganization(realty.currentOwnerOrganization) || '未知' }}</div>
           </div>
           
           <div class="other-info-item">
@@ -471,6 +476,18 @@ const getTransactionStatusText = (status) => {
     'COMPLETED': '已完成'
   }
   return statusMap[status] || status
+}
+
+// 获取房产所有者组织对应的文本
+const getCurrentOwnerOrganization = (organization) => {
+  const organizationMap = {
+    'government': '政府监管部门',
+    'investor': '投资者/买家',
+    'bank': '银行机构',
+    'thirdparty': '第三方机构',
+    'audit': '审计机构'
+  }
+  return organizationMap[organization] || organization
 }
 
 // 格式化价格

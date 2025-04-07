@@ -22,6 +22,7 @@ type RealtyDTO struct {
 	IsNewHouse                      bool      `json:"isNewHouse"`                      // 是否为新房
 	Images                          []string  `json:"images"`                          // 图片链接JSON数组
 	CurrentOwnerCitizenIDHash       string    `json:"currentOwnerCitizenIDHash"`       // 当前所有者
+	CurrentOwnerOrganization        string    `json:"currentOwnerOrganization"`        // 当前持有者组织
 	PreviousOwnersCitizenIDHashList []string  `json:"previousOwnersCitizenIDHashList"` // 历史所有者
 	RelContractUUID                 string    `json:"relContractUUID"`                 // 关联合同UUID
 	CreateTime                      time.Time `json:"createTime"`                      // 创建时间
@@ -32,26 +33,27 @@ type RealtyDTO struct {
 
 // CreateRealtyDTO 创建房产请求
 type CreateRealtyDTO struct {
-	RealtyCert                  string   `json:"realtyCert" binding:"required"`            // 不动产证号
-	Address                     string   `json:"address" binding:"required"`               // 地址
-	RealtyType                  string   `json:"realtyType" binding:"required"`            // 类型
-	CurrentOwnerCitizenID       string   `json:"currentOwnerCitizenID" binding:"required"` // 当前所有者
-	PreviousOwnersCitizenIDList []string `json:"previousOwnersCitizenIDList,omitempty"`    // 历史所有者
-	Status                      string   `json:"status" binding:"required"`                // 状态
-	Price                       float64  `json:"price" binding:"required"`                 // 价格
-	Area                        float64  `json:"area" binding:"required"`                  // 面积
-	Description                 string   `json:"description,omitempty"`                    // 描述
-	Images                      []string `json:"images,omitempty"`                         // 图片链接JSON数组
-	HouseType                   string   `json:"houseType,omitempty"`                      // 户型
-	Province                    string   `json:"province,omitempty"`                       // 省
-	City                        string   `json:"city,omitempty"`                           // 市
-	District                    string   `json:"district,omitempty"`                       // 区
-	Street                      string   `json:"street,omitempty"`                         // 街道
-	Community                   string   `json:"community,omitempty"`                      // 小区
-	Unit                        string   `json:"unit,omitempty"`                           // 单元
-	Floor                       string   `json:"floor,omitempty"`                          // 楼层
-	Room                        string   `json:"room,omitempty"`                           // 房号
-	RelContractUUID             string   `json:"relContractUUID,omitempty"`                // 关联合同UUID
+	RealtyCert                  string   `json:"realtyCert" binding:"required"`               // 不动产证号
+	Address                     string   `json:"address" binding:"required"`                  // 地址
+	RealtyType                  string   `json:"realtyType" binding:"required"`               // 类型
+	CurrentOwnerCitizenID       string   `json:"currentOwnerCitizenID" binding:"required"`    // 当前所有者
+	CurrentOwnerOrganization    string   `json:"currentOwnerOrganization" binding:"required"` // 当前所有者组织机构代码
+	PreviousOwnersCitizenIDList []string `json:"previousOwnersCitizenIDList,omitempty"`       // 历史所有者
+	Status                      string   `json:"status" binding:"required"`                   // 状态
+	Price                       float64  `json:"price" binding:"required"`                    // 价格
+	Area                        float64  `json:"area" binding:"required"`                     // 面积
+	Description                 string   `json:"description,omitempty"`                       // 描述
+	Images                      []string `json:"images,omitempty"`                            // 图片链接JSON数组
+	HouseType                   string   `json:"houseType,omitempty"`                         // 户型
+	Province                    string   `json:"province,omitempty"`                          // 省
+	City                        string   `json:"city,omitempty"`                              // 市
+	District                    string   `json:"district,omitempty"`                          // 区
+	Street                      string   `json:"street,omitempty"`                            // 街道
+	Community                   string   `json:"community,omitempty"`                         // 小区
+	Unit                        string   `json:"unit,omitempty"`                              // 单元
+	Floor                       string   `json:"floor,omitempty"`                             // 楼层
+	Room                        string   `json:"room,omitempty"`                              // 房号
+	RelContractUUID             string   `json:"relContractUUID,omitempty"`                   // 关联合同UUID
 }
 
 // UpdateRealtyDTO 更新房产请求
