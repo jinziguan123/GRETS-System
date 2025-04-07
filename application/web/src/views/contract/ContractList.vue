@@ -10,7 +10,7 @@
     
     <!-- 筛选器 -->
     <el-card class="filter-card">
-      <el-form :model="filterForm" class="contract-filter" size="small">
+      <el-form :model="filterForm" class="contract-filter">
         <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item label="合同编号">

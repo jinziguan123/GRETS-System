@@ -23,8 +23,9 @@
       <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
         <el-form-item label="支付类型" prop="paymentType">
           <el-select v-model="form.paymentType" placeholder="请选择支付类型" style="width: 100%">
-            <el-option label="交易支付" value="TRANSFER"></el-option>
+            <el-option label="房款支付" value="TRANSFER"></el-option>
             <el-option label="税费支付" value="TAX"></el-option>
+            <el-option label="手续费支付" value="FEE"></el-option>
           </el-select>
         </el-form-item>
         
@@ -157,7 +158,6 @@ const cancelPayment = () => {
 }
 
 const userStore = useUserStore()
-console.log('props.transaction', props.transaction)
 // 提交支付
 const submitPayment = async () => {
   if (!formRef.value) return

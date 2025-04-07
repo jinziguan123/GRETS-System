@@ -42,10 +42,10 @@ const (
 
 // 交易状态枚举
 const (
-	TxStatusPending   = "PENDING"   // 待处理
-	TxStatusApproved  = "APPROVED"  // 已批准
-	TxStatusRejected  = "REJECTED"  // 已拒绝
-	TxStatusCompleted = "COMPLETED" // 已完成
+	TxStatusPending    = "PENDING"     // 待处理
+	TxStatusInProgress = "IN_PROGRESS" // 已批准
+	TxStatusRejected   = "REJECTED"    // 已拒绝
+	TxStatusCompleted  = "COMPLETED"   // 已完成
 )
 
 // 组织MSP ID
@@ -218,7 +218,9 @@ type Payment struct {
 	Amount                float64   `json:"amount"`                // 金额
 	PaymentType           string    `json:"paymentType"`           // 支付类型（现金/贷款/转账）
 	PayerCitizenIDHash    string    `json:"payerCitizenIDHash"`    // 付款人ID
+	PayerOrganization     string    `json:"payerOrganization"`     // 付款人组织机构代码
 	ReceiverCitizenIDHash string    `json:"receiverCitizenIDHash"` // 收款人ID
+	ReceiverOrganization  string    `json:"receiverOrganization"`  // 收款人组织机构代码
 	CreateTime            time.Time `json:"createTime"`            // 创建时间
 }
 
@@ -1275,6 +1277,71 @@ func (s *SmartContract) CheckTransaction(ctx contractapi.TransactionContextInter
 	return nil
 }
 
+// UpdateTransaction 更新交易（投资者、政府可以调用）
+func (s *SmartContract) UpdateTransaction(ctx contractapi.TransactionContextInterface,
+	transactionUUID string,
+	status string,
+) error {
+
+	// 检查调用者身份
+	clientMSPID, err := s.getClientIdentityMSPID(ctx)
+	if err != nil {
+		return err
+	}
+
+	if clientMSPID != InvestorMSP && clientMSPID != GovernmentMSP {
+		return fmt.Errorf("[UpdateTransaction] 只有投资者、政府可以更新交易")
+	}
+
+	// 查询交易信息
+	key, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID}...)
+	if err != nil {
+		return err
+	}
+
+	transactionPublicBytes, err := ctx.GetStub().GetState(key)
+	if err != nil {
+		return fmt.Errorf("[UpdateTransaction] 查询交易信息失败: %v", err)
+	}
+
+	if transactionPublicBytes == nil {
+		return fmt.Errorf("[UpdateTransaction] 交易不存在: %s", transactionUUID)
+	}
+
+	var transactionPublic TransactionPublic
+	err = json.Unmarshal(transactionPublicBytes, &transactionPublic)
+	if err != nil {
+		return fmt.Errorf("[UpdateTransaction] 解析交易信息失败: %v", err)
+	}
+
+	if transactionPublic.Status != TxStatusPending && transactionPublic.Status != TxStatusInProgress {
+		return fmt.Errorf("[UpdateTransaction] 交易状态不允许更新: %s", transactionPublic.Status)
+	}
+
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[UpdateTransaction] 获取交易时间戳失败: %v", err)
+	}
+
+	// 更新交易状态
+	transactionPublic.Status = status
+	transactionPublic.UpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
+
+	// 序列化交易信息
+	transactionPublicJSON, err := json.Marshal(transactionPublic)
+	if err != nil {
+		return fmt.Errorf("[UpdateTransaction] 序列化交易信息失败: %v", err)
+	}
+
+	// 保存交易信息
+	err = ctx.GetStub().PutState(key, transactionPublicJSON)
+	if err != nil {
+		return fmt.Errorf("[UpdateTransaction] 保存交易信息失败: %v", err)
+	}
+
+	return nil
+}
+
 // CompleteTransaction 完成交易（投资者、政府可以调用）
 func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextInterface,
 	transactionUUID string,
@@ -1309,7 +1376,7 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 		return fmt.Errorf("[CompleteTransaction] 解析交易信息失败: %v", err)
 	}
 
-	if transactionPublic.Status != TxStatusApproved {
+	if transactionPublic.Status != TxStatusInProgress {
 		return fmt.Errorf("[CompleteTransaction] 交易状态不允许完成: %s", transactionPublic.Status)
 	}
 
@@ -1600,6 +1667,31 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 	return nil
 }
 
+// QueryPayment 查询支付信息
+func (s *SmartContract) QueryPayment(ctx contractapi.TransactionContextInterface,
+	paymentUUID string,
+) (*Payment, error) {
+	paymentKey, err := s.createCompositeKey(ctx, DocTypePayment, []string{paymentUUID}...)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryPayment] 创建复合键失败: %v", err)
+	}
+	paymentBytes, err := ctx.GetStub().GetState(paymentKey)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryPayment] 查询支付信息失败: %v", err)
+	}
+	if paymentBytes == nil {
+		return nil, fmt.Errorf("[QueryPayment] 支付信息不存在: %s", paymentUUID)
+	}
+
+	var payment Payment
+	err = json.Unmarshal(paymentBytes, &payment)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryPayment] 解析支付信息失败: %v", err)
+	}
+
+	return &payment, nil
+}
+
 // PayForTransaction 支付房产交易（仅银行和投资者可调用）
 func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInterface,
 	transactionUUID string,
@@ -1659,7 +1751,9 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		Amount:                amount,
 		PaymentType:           paymentType,
 		PayerCitizenIDHash:    fromCitizenIDHash,
+		PayerOrganization:     fromOrganization,
 		ReceiverCitizenIDHash: toCitizenIDHash,
+		ReceiverOrganization:  toOrganization,
 		CreateTime:            time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 	}
 
@@ -1801,7 +1895,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 将该笔支付纳入交易
-	transactionPrivateBytes, err := ctx.GetStub().GetPrivateData(TransactionPrivateCollection, transactionUUID)
+	transactionPrivateBytes, err := ctx.GetStub().GetPrivateData(TransactionPrivateCollection, transactionKey)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 查询交易信息失败: %v", err)
 	}
@@ -1813,49 +1907,6 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	transactionPrivate.PaymentUUIDList = append(transactionPrivate.PaymentUUIDList, paymentUUID)
-
-	// 计算总支付金额
-	totalAmount := 0.0
-	for _, paymentUUID := range transactionPrivate.PaymentUUIDList {
-		paymentKey, err := s.createCompositeKey(ctx, DocTypePayment, []string{paymentUUID}...)
-		if err != nil {
-			return fmt.Errorf("[PayForTransaction] 创建复合键失败: %v", err)
-		}
-		paymentBytes, err := ctx.GetStub().GetState(paymentKey)
-		if err != nil {
-			return fmt.Errorf("[PayForTransaction] 查询支付信息失败: %v", err)
-		}
-		if paymentBytes == nil {
-			return fmt.Errorf("[PayForTransaction] 支付信息不存在: %s", paymentUUID)
-		}
-
-		var payment Payment
-		err = json.Unmarshal(paymentBytes, &payment)
-		if err != nil {
-			return fmt.Errorf("[PayForTransaction] 解析支付信息失败: %v", err)
-		}
-
-		totalAmount += payment.Amount
-	}
-
-	// 如果总支付金额大于等于交易价格，则完成交易
-	if totalAmount >= transactionPrivate.Price {
-		s.CompleteTransaction(ctx, transactionUUID)
-
-		// 将多余的金额退还给来源用户
-		//rechargeAmount := totalAmount - transactionPrivate.Price
-		//err = s.CreatePayment(
-		//	ctx,
-		//	transactionUUID,
-		//	rechargeAmount,
-		//	toCitizenIDHash,
-		//	fromCitizenIDHash,
-		//	PaymentTypeTransfer,
-		//)
-		//if err != nil {
-		//	return fmt.Errorf("[PayForTransaction] 创建退款支付失败: %v", err)
-		//}
-	}
 
 	// 序列化交易
 	transactionPrivateJSON, err := json.Marshal(transactionPrivate)

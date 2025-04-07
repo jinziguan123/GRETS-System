@@ -23,7 +23,7 @@ type Realty struct {
 	IsNewHouse      bool      `gorm:"not null" json:"isNewHouse"`                      // 是否为新房
 	Description     string    `gorm:"type:text" json:"description"`                    // 描述
 	Images          []string  `gorm:"type:json" json:"images"`                         // 图片链接JSON数组
-	RelContractUUID string    `gorm:"size:255;not null" json:"relContractUUID"`        // 关联合同UUID
+	RelContractUUID string    `gorm:"size:100;not null" json:"relContractUUID"`        // 关联合同UUID
 	CreateTime      time.Time `gorm:"autoCreateTime" json:"createTime"`                // 创建时间
 	UpdateTime      time.Time `gorm:"autoUpdateTime" json:"updateTime"`                // 更新时间
 }

@@ -14,6 +14,14 @@ type RealEstateDAO struct {
 	boltDB  *db.BoltDB
 }
 
+func (dao *RealEstateDAO) GetRealtyByRealtyCertHash(realtyCertHash string) (*models.Realty, error) {
+	var re models.Realty
+	if err := dao.mysqlDB.First(&re, "realty_cert_hash = ?", realtyCertHash).Error; err != nil {
+		return nil, fmt.Errorf("根据房产ID查询房产失败: %v", err)
+	}
+	return &re, nil
+}
+
 func (dao *RealEstateDAO) GetRealtyByID(id string) (*models.Realty, error) {
 	var re models.Realty
 	if err := dao.mysqlDB.First(&re, "id = ?", id).Error; err != nil {

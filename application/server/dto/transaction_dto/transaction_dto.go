@@ -55,3 +55,9 @@ type QueryTransactionListDTO struct {
 	PageSize           int    `json:"pageSize"`           // 每页条数
 	PageNumber         int    `json:"pageNumber"`         // 页码
 }
+
+// UpdateTransactionDTO 更新交易请求
+type UpdateTransactionDTO struct {
+	TransactionUUID string `json:"transactionUUID"` // 交易ID
+	Status          string `json:"status"`          // 交易状态
+}

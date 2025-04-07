@@ -48,10 +48,13 @@ export function checkTransaction(transactionUUID: string, status: string) {
 }
 
 // 完成交易
-export function completeTransaction(transactionUUID: string) {
+export function completeTransaction(data: {
+  transactionUUID: string
+}) {
   return request({
-    url: `/transactions/${transactionUUID}/complete`,
-    method: 'post'
+    url: `/transactions/completeTransaction`,
+    method: 'post',
+    data
   })
 }
 

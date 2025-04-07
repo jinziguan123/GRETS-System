@@ -22,6 +22,7 @@ type TransactionService interface {
 	GetTransactionByTransactionUUID(transactionUUID string) (*transactionDto.TransactionDTO, error)
 	QueryTransactionList(query *transactionDto.QueryTransactionListDTO) ([]*transactionDto.TransactionDTO, int, error)
 	CompleteTransaction(completeTransactionDTO *transactionDto.CompleteTransactionDTO) error
+	UpdateTransaction(dto *transactionDto.UpdateTransactionDTO) error
 }
 
 // transactionService 交易服务实现
@@ -128,8 +129,6 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 		SellerOrganization:  chaincodeRealtyResult.CurrentOwnerOrganization,
 		BuyerCitizenIDHash:  buyerCitizenIDHash,
 		BuyerOrganization:   req.BuyerOrganization,
-		Price:               req.Price,
-		Tax:                 req.Tax,
 		Status:              constants.TxStatusPending,
 		ContractUUID:        realty.RelContractUUID,
 		CreateTime:          time.Now(),
@@ -245,19 +244,34 @@ func (s *transactionService) QueryTransactionList(dto *transactionDto.QueryTrans
 }
 
 // UpdateTransaction 更新交易信息
-// func (s *transactionService) UpdateTransaction(id string, req *transactionDto.UpdateTransactionDTO) error {
-// 	// 查询交易
-// 	tx, err := s.txDAO.GetTransactionByUUID(id)
-// 	if err != nil {
-// 		return err
-// 	}
+func (s *transactionService) UpdateTransaction(req *transactionDto.UpdateTransactionDTO) error {
+	// 查询交易
+	transaction, err := s.txDAO.GetTransactionByTransactionUUID(req.TransactionUUID)
+	if err != nil {
+		return fmt.Errorf("查询交易失败: %v", err)
+	}
 
-// 	// 更新交易
-// 	tx.Status = req.Status
+	// 调用链码更新交易
+	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
 
-// 	// 调用DAO层更新交易
-// 	return s.txDAO.UpdateTransaction(tx)
-// }
+	_, err = contract.SubmitTransaction(
+		"UpdateTransaction",
+		req.TransactionUUID,
+		req.Status,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("更新交易失败: %v", err))
+		return fmt.Errorf("更新交易失败: %v", err)
+	}
+
+	// 调用DAO层更新交易
+	transaction.Status = req.Status
+	return s.txDAO.UpdateTransaction(transaction)
+}
 
 // AuditTransaction 审计交易
 // func (s *transactionService) AuditTransaction(userID, id string, auditResult string, comments string) error {
@@ -267,8 +281,15 @@ func (s *transactionService) QueryTransactionList(dto *transactionDto.QueryTrans
 
 // CompleteTransaction 完成交易
 func (s *transactionService) CompleteTransaction(completeTransactionDTO *transactionDto.CompleteTransactionDTO) error {
+
+	// 查询交易
+	transaction, err := s.txDAO.GetTransactionByTransactionUUID(completeTransactionDTO.TransactionUUID)
+	if err != nil {
+		return fmt.Errorf("查询交易失败: %v", err)
+	}
+
 	// 调用链码完成交易
-	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
+	contract, err := blockchain.GetContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
@@ -283,5 +304,19 @@ func (s *transactionService) CompleteTransaction(completeTransactionDTO *transac
 	}
 
 	// 调用DAO层完成交易
-	return s.txDAO.CompleteTransaction(completeTransactionDTO.TransactionUUID)
+	err = s.txDAO.CompleteTransaction(completeTransactionDTO.TransactionUUID)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("完成交易失败: %v", err))
+		return fmt.Errorf("完成交易失败: %v", err)
+	}
+
+	// 修改房产信息
+	realtyModel, err := dao.NewRealEstateDAO().GetRealtyByRealtyCertHash(transaction.RealtyCertHash)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取房产信息失败: %v", err))
+		return fmt.Errorf("获取房产信息失败: %v", err)
+	}
+	realtyModel.IsNewHouse = false
+	realtyModel.Status = constants.RealtyStatusNormal
+	return dao.NewRealEstateDAO().UpdateRealEstate(realtyModel)
 }

@@ -95,7 +95,7 @@
           <!-- 相关操作 -->
           <div class="actions" v-if="realty.status === 'NORMAL' && hasTransactionPermission">
             <el-divider />
-            <el-button type="primary" @click="createTransaction">发起交易</el-button>
+            <el-button type="primary" @click="createTransaction" :disabled="isOwner">发起交易</el-button>
           </div>
         </el-card>
       </el-col>
@@ -117,12 +117,12 @@
           
           <div class="other-info-item">
             <div class="other-info-label">登记日期</div>
-            <div class="other-info-value">{{ formatDate(realty.registrationDate) }}</div>
+            <div class="other-info-value">{{ formatDate(realty.createTime) }}</div>
           </div>
           
           <div class="other-info-item">
             <div class="other-info-label">最后更新时间</div>
-            <div class="other-info-value">{{ formatDate(realty.lastUpdateDate) }}</div>
+            <div class="other-info-value">{{ formatDate(realty.lastUpdateTime) }}</div>
           </div>
         </el-card>
         
@@ -150,7 +150,7 @@
         <el-form-item label="交易状态">
           <el-select v-model="transactionQuery.status" placeholder="选择交易状态" clearable style="width: 100%">
             <el-option label="待处理" value="PENDING"></el-option>
-            <el-option label="已批准" value="APPROVED"></el-option>
+            <el-option label="进行中" value="IN_PROGRESS"></el-option>
             <el-option label="已拒绝" value="REJECTED"></el-option>
             <el-option label="已完成" value="COMPLETED"></el-option>
           </el-select>
@@ -193,9 +193,9 @@
               {{ formatDate(scope.row.createTime) }}
             </template>
           </el-table-column>
-          <el-table-column prop="completedTime" label="完成时间" width="180">
+          <el-table-column prop="updateTime" label="更新时间" width="180">
             <template #default="scope">
-              {{ scope.row.completedTime ? formatDate(scope.row.completedTime) : '-' }}
+              {{ scope.row.updateTime ? formatDate(scope.row.updateTime) : '-' }}
             </template>
           </el-table-column>
           <el-table-column fixed="right" label="操作" width="120">
@@ -391,7 +391,7 @@ const isGovernment = computed(() => {
 const isOwner = computed(() => {
   // 这里需要根据实际情况判断当前用户是否为房产拥有者
   // 假设通过比较当前用户ID和房产所有者ID
-  return CryptoJS.SHA256(userStore.citizenID).toString() === realty.currentOwnerCitizenIDHash
+  return CryptoJS.SHA256(userStore.user.citizenID).toString() === realty.currentOwnerCitizenIDHash
 })
 
 // 计算属性：是否有编辑权限

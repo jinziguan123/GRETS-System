@@ -83,36 +83,22 @@ func (c *TransactionController) QueryTransactionList(ctx *gin.Context) {
 }
 
 // UpdateTransaction 更新交易
-// func (c *TransactionController) UpdateTransaction(ctx *gin.Context) {
-// 	// 获取交易ID
-// 	id := ctx.Param("id")
-// 	if id == "" {
-// 		utils.ResponseError(ctx, constants.ParamError, "交易ID不能为空")
-// 		return
-// 	}
+func (c *TransactionController) UpdateTransaction(ctx *gin.Context) {
+	// 绑定请求参数
+	var req transactionDto.UpdateTransactionDTO
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
+		return
+	}
 
-// 	// 绑定请求参数
-// 	var req service.UpdateTransactionDTO
-// 	if err := ctx.ShouldBindJSON(&req); err != nil {
-// 		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
-// 		return
-// 	}
+	// 调用服务层更新交易
+	if err := c.transactionService.UpdateTransaction(&req); err != nil {
+		utils.ResponseError(ctx, constants.ServiceError, err.Error())
+		return
+	}
 
-// 	// 获取当前用户ID
-// 	userID := utils.GetUserIDFromContext(ctx)
-// 	if userID == "" {
-// 		utils.ResponseError(ctx, constants.AuthError, "未获取到用户信息")
-// 		return
-// 	}
-
-// 	// 调用服务层更新交易
-// 	if err := c.transactionService.UpdateTransaction(userID, id, &req); err != nil {
-// 		utils.ResponseError(ctx, constants.ServiceError, err.Error())
-// 		return
-// 	}
-
-// 	utils.ResponseSuccess(ctx, nil)
-// }
+	utils.ResponseSuccess(ctx, "交易更新成功", nil)
+}
 
 // AuditTransaction 审计交易
 // func (c *TransactionController) AuditTransaction(ctx *gin.Context) {
@@ -158,13 +144,6 @@ func (c *TransactionController) CompleteTransaction(ctx *gin.Context) {
 		return
 	}
 
-	// 获取当前用户ID
-	userID := utils.GetUserIDFromContext(ctx)
-	if userID == "" {
-		utils.ResponseError(ctx, constants.AuthError, "未获取到用户信息")
-		return
-	}
-
 	// 调用服务层完成交易
 	if err := c.transactionService.CompleteTransaction(&req); err != nil {
 		utils.ResponseError(ctx, constants.ServiceError, err.Error())
@@ -195,9 +174,9 @@ func QueryTransactionList(c *gin.Context) {
 	GlobalTxController.QueryTransactionList(c)
 }
 
-// func UpdateTransaction(c *gin.Context) {
-// 	GlobalTxController.UpdateTransaction(c)
-// }
+func UpdateTransaction(c *gin.Context) {
+	GlobalTxController.UpdateTransaction(c)
+}
 
 // func AuditTransaction(c *gin.Context) {
 // 	GlobalTxController.AuditTransaction(c)

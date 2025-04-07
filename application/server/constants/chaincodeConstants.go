@@ -63,12 +63,12 @@ const (
 	RoleAuditor    = "AUDITOR"     // 审计人员
 )
 
-// 支付类型枚举（现金/贷款/转账）
+// 支付类型枚举（税费、房产费、手续费）
 const (
-	PaymentTypeCash     = "CASH"     // 现金支付
-	PaymentTypeLoan     = "LOAN"     // 贷款支付
-	PaymentTypeTransfer = "TRANSFER" // 转账支付
-	PaymentTypeTax      = "TAX"      // 税费支付
+	PaymentTypeTransfer = "TRANSFER" // 房款
+	PaymentTypeTax      = "TAX"      // 税费
+	PaymentTypeFee      = "FEE"      // 手续费
+
 )
 
 // 合同状态枚举

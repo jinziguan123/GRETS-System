@@ -3,10 +3,10 @@
     <!-- 加载中状态 -->
     <el-card v-if="loading" class="box-card">
       <div class="loading-container">
-        <el-skeleton :rows="10" animated />
+        <el-skeleton :rows="10" animated/>
       </div>
     </el-card>
-    
+
     <!-- 只有交易参与方、政府和审计可见的内容 -->
     <el-card v-else-if="isAuthorized" class="box-card">
       <template #header>
@@ -14,30 +14,34 @@
           <h3>交易详情</h3>
           <div class="header-buttons">
             <el-button @click="goBack">返回</el-button>
-            <el-button 
-              v-if="canCheckTransaction" 
-              type="success" 
-              @click="handleAudit('APPROVED')"
-            >审核通过</el-button>
-            <el-button 
-              v-if="canCheckTransaction" 
-              type="danger" 
-              @click="handleAudit('REJECTED')"
-            >审核拒绝</el-button>
-            <el-button 
-              v-if="canCompleteTransaction" 
-              type="primary" 
-              @click="handleComplete"
-            >完成交易</el-button>
-            <el-button 
-              v-if="canCancelTransaction" 
-              type="warning" 
-              @click="handleCancel"
-            >取消交易</el-button>
+            <el-button
+                v-if="canCheckTransaction"
+                type="success"
+                @click="handleAudit('APPROVED')"
+            >审核通过
+            </el-button>
+            <el-button
+                v-if="canCheckTransaction"
+                type="danger"
+                @click="handleAudit('REJECTED')"
+            >审核拒绝
+            </el-button>
+            <el-button
+                v-if="canCompleteTransaction"
+                type="primary"
+                @click="handleComplete"
+            >完成交易
+            </el-button>
+            <el-button
+                v-if="canCancelTransaction"
+                type="warning"
+                @click="handleCancel"
+            >取消交易
+            </el-button>
           </div>
         </div>
       </template>
-      
+
       <div v-if="transactionInfo">
         <!-- 交易进度条 -->
         <div class="progress-section">
@@ -47,15 +51,15 @@
               <span>已支付: {{ formatPrice(totalPaidAmount) }}</span>
               <span>总金额: {{ formatPrice(transactionInfo.price) }}</span>
             </div>
-            <el-progress 
-              :percentage="paymentPercentage" 
-              :format="percentFormat"
-              :status="paymentPercentage >= 100 ? 'success' : ''" 
-              :stroke-width="20"
+            <el-progress
+                :percentage="paymentPercentage"
+                :format="percentFormat"
+                :status="paymentPercentage >= 100 ? 'success' : ''"
+                :stroke-width="20"
             ></el-progress>
           </div>
         </div>
-        
+
         <!-- 交易基本信息 -->
         <el-descriptions title="交易基本信息" :column="2" border>
           <el-descriptions-item label="交易编号">{{ transactionInfo.transactionUUID }}</el-descriptions-item>
@@ -70,10 +74,13 @@
           <el-descriptions-item label="买方身份证">{{ transactionInfo.buyerCitizenIDHash }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ formatDate(transactionInfo.createTime) }}</el-descriptions-item>
           <el-descriptions-item label="更新时间">{{ formatDate(transactionInfo.updateTime) }}</el-descriptions-item>
-          <el-descriptions-item label="预计完成时间">{{ formatDate(transactionInfo.completedTime) }}</el-descriptions-item>
+          <el-descriptions-item label="预计完成时间">{{
+              formatDate(transactionInfo.completedTime)
+            }}
+          </el-descriptions-item>
           <el-descriptions-item label="税费">{{ formatPrice(transactionInfo.tax) }}</el-descriptions-item>
         </el-descriptions>
-        
+
         <!-- 房产信息 -->
         <el-descriptions v-if="realtyInfo" title="房产信息" :column="3" border class="section-mt">
           <el-descriptions-item label="房产地址">{{ realtyInfo.address }}</el-descriptions-item>
@@ -87,13 +94,16 @@
             </template>
           </el-descriptions-item>
         </el-descriptions>
-        
+
         <!-- 合同信息 -->
         <div v-if="contractInfo" class="section-mt">
           <h4>合同信息</h4>
           <el-descriptions :column="2" border>
             <el-descriptions-item label="合同编号">{{ contractInfo.contractUUID }}</el-descriptions-item>
-            <el-descriptions-item label="合同类型">{{ getContractTypeText(contractInfo.contractType) }}</el-descriptions-item>
+            <el-descriptions-item label="合同类型">{{
+                getContractTypeText(contractInfo.contractType)
+              }}
+            </el-descriptions-item>
             <el-descriptions-item label="创建时间">{{ formatDate(contractInfo.createTime) }}</el-descriptions-item>
             <el-descriptions-item label="创建人">{{ contractInfo.creatorCitizenID }}</el-descriptions-item>
             <el-descriptions-item label="合同标题">{{ contractInfo.title }}</el-descriptions-item>
@@ -108,17 +118,17 @@
             <div class="content-box">{{ contractInfo.content }}</div>
           </div>
         </div>
-        
+
         <!-- 审核记录 -->
         <div v-if="audits.length > 0" class="section-mt">
           <h4>审核记录</h4>
           <el-timeline>
             <el-timeline-item
-              v-for="(audit, index) in audits"
-              :key="index"
-              :timestamp="formatDate(audit.createTime)"
-              :type="getAuditTypeIcon(audit.result)"
-              :color="getAuditTypeColor(audit.result)"
+                v-for="(audit, index) in audits"
+                :key="index"
+                :timestamp="formatDate(audit.createTime)"
+                :type="getAuditTypeIcon(audit.result)"
+                :color="getAuditTypeColor(audit.result)"
             >
               <h5>{{ getAuditResultText(audit.result) }}</h5>
               <p>审核人: {{ audit.auditorName }}</p>
@@ -127,26 +137,36 @@
             </el-timeline-item>
           </el-timeline>
         </div>
-        
+
         <!-- 支付记录 -->
         <div class="section-mt">
           <h4>支付记录</h4>
           <div v-if="payments.length > 0">
             <el-table :data="payments" border style="width: 100%">
-              <el-table-column prop="paymentID" label="支付编号" width="220"></el-table-column>
-              <el-table-column prop="paymentType" label="支付类型" width="120">
+              <el-table-column prop="paymentUUID" label="支付编号" width="auto"></el-table-column>
+              <el-table-column prop="paymentType" label="支付类型" width="auto">
                 <template #default="scope">
                   {{ getPaymentTypeText(scope.row.paymentType) }}
                 </template>
               </el-table-column>
-              <el-table-column prop="amount" label="支付金额" width="150">
+              <el-table-column prop="amount" label="支付金额" width="auto">
                 <template #default="scope">
                   {{ formatPrice(scope.row.amount) }}
                 </template>
               </el-table-column>
-              <el-table-column prop="payerCitizenID" label="付款方" width="180"></el-table-column>
-              <el-table-column prop="payeeCitizenID" label="收款方" width="180"></el-table-column>
-              <el-table-column prop="createTime" label="支付时间" width="180">
+              <el-table-column prop="payerCitizenIDHash" label="付款方" width="auto"></el-table-column>
+              <el-table-column prop="payerOrganization" label="付款方组织" width="auto">
+                <template #default="scope">
+                  {{ getCurrentOwnerOrganization(scope.row.payerOrganization) }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="receiverCitizenIDHash" label="收款方" width="auto"></el-table-column>
+              <el-table-column prop="receiverOrganization" label="收款方组织" width="auto">
+                <template #default="scope">
+                  {{ getCurrentOwnerOrganization(scope.row.receiverOrganization) }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="createTime" label="支付时间" width="auto">
                 <template #default="scope">
                   {{ formatDate(scope.row.createTime) }}
                 </template>
@@ -155,45 +175,58 @@
           </div>
           <el-empty v-else description="暂无支付记录"></el-empty>
         </div>
-        
-        <!-- 买方发起支付按钮 -->
+
+        <!-- 买方发起支付按钮或完成交易按钮 -->
         <div v-if="isBuyer && transactionInfo.status === 'IN_PROGRESS'" class="payment-action section-mt">
-          <el-button type="primary" size="large" @click="showPaymentDialog">发起支付</el-button>
+          <el-button
+              v-if="paymentPercentage >= 100"
+              type="success"
+              size="large"
+              @click="handleBuyerComplete"
+          >完成交易
+          </el-button>
+          <el-button
+              v-else
+              type="primary"
+              size="large"
+              @click="showPaymentDialog"
+          >发起支付
+          </el-button>
         </div>
       </div>
-      
+
       <el-empty v-else description="未找到交易信息"></el-empty>
     </el-card>
-    
+
     <!-- 非授权用户提示 -->
     <el-card v-else class="unauthorized-card">
       <el-result
-        icon="error"
-        title="无权访问"
-        sub-title="您不是此交易的参与方，无权查看交易详情"
+          icon="error"
+          title="无权访问"
+          sub-title="您不是此交易的参与方，无权查看交易详情"
       >
         <template #extra>
           <el-button type="primary" @click="goBack">返回上一页</el-button>
         </template>
       </el-result>
     </el-card>
-    
+
     <!-- 支付组件对话框 -->
     <payment-dialog
-      v-model:visible="paymentDialogVisible"
-      :transaction="transactionInfo"
-      :total-paid="totalPaidAmount"
-      @payment-success="handlePaymentSuccess"
+        v-model:visible="paymentDialogVisible"
+        :transaction="transactionInfo"
+        :total-paid="totalPaidAmount"
+        @payment-success="handlePaymentSuccess"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import {ref, reactive, computed, onMounted} from 'vue'
+import {useRouter, useRoute} from 'vue-router'
+import {ElMessage, ElMessageBox} from 'element-plus'
 import axios from 'axios'
-import {getTransactionDetail} from "@/api/transaction.js";
+import {completeTransaction, getTransactionDetail} from "@/api/transaction.js";
 import PaymentDialog from '@/components/transaction/PaymentDialog.vue'
 import CryptoJS from 'crypto-js'
 import {getPaymentList} from "@/api/payment.js";
@@ -215,6 +248,17 @@ const totalPaidAmount = computed(() => {
   if (!payments.value || payments.value.length === 0) return 0
   return payments.value.reduce((total, payment) => total + payment.amount, 0)
 })
+
+const getCurrentOwnerOrganization = (organization) => {
+  const organizationMap = {
+    'government': '政府监管部门',
+    'investor': '投资者/买家',
+    'bank': '银行机构',
+    'thirdparty': '第三方机构',
+    'audit': '审计机构'
+  }
+  return organizationMap[organization] || organization
+}
 
 const paymentPercentage = computed(() => {
   if (!transactionInfo.value || !transactionInfo.value.price || transactionInfo.value.price === 0) return 0
@@ -241,20 +285,20 @@ const userInfo = computed(() => {
 // 判断当前用户是否为交易的买方
 const isBuyer = computed(() => {
   if (!userInfo.value || !userInfo.value.citizenID || !transactionInfo.value) return false
-  
+
   // 获取用户身份证号的SHA256哈希值
   const userCitizenIDHash = CryptoJS.SHA256(userInfo.value.citizenID).toString(CryptoJS.enc.Hex)
-  
+
   return userCitizenIDHash === transactionInfo.value.buyerCitizenIDHash
 })
 
 // 判断当前用户是否为交易的卖方
 const isSeller = computed(() => {
   if (!userInfo.value || !userInfo.value.citizenID || !transactionInfo.value) return false
-  
+
   // 获取用户身份证号的SHA256哈希值
   const userCitizenIDHash = CryptoJS.SHA256(userInfo.value.citizenID).toString(CryptoJS.enc.Hex)
-  
+
   return userCitizenIDHash === transactionInfo.value.sellerCitizenIDHash
 })
 
@@ -272,7 +316,7 @@ const isAuthorized = computed(() => {
 // 判断是否可以审核交易
 const canCheckTransaction = computed(() => {
   if (!userInfo.value || !transactionInfo.value) return false
-  
+
   // 政府组织且交易状态为待审核
   return userInfo.value.organization === 'government' && transactionInfo.value.status === 'PENDING'
 })
@@ -280,20 +324,20 @@ const canCheckTransaction = computed(() => {
 // 判断是否可以完成交易
 const canCompleteTransaction = computed(() => {
   if (!userInfo.value || !transactionInfo.value) return false
-  
+
   // 政府组织且交易状态为已审核且已支付足够金额
-  return userInfo.value.organization === 'government' && 
-         transactionInfo.value.status === 'APPROVED' &&
-         totalPaidAmount.value >= transactionInfo.value.price
+  return userInfo.value.organization === 'government' &&
+      transactionInfo.value.status === 'APPROVED' &&
+      totalPaidAmount.value >= transactionInfo.value.price
 })
 
 // 判断是否可以取消交易
 const canCancelTransaction = computed(() => {
   if (!userInfo.value || !transactionInfo.value) return false
-  
+
   // 任何角色在交易未完成前均可取消
-  return ['PENDING', 'APPROVED'].includes(transactionInfo.value.status) && 
-         (isBuyer.value || isSeller.value || userInfo.value.organization === 'government')
+  return ['PENDING', 'APPROVED'].includes(transactionInfo.value.status) &&
+      (isBuyer.value || isSeller.value || userInfo.value.organization === 'government')
 })
 
 // 获取交易详情
@@ -302,20 +346,20 @@ const fetchTransactionDetail = async () => {
   try {
     const response = await getTransactionDetail(transactionUUID.value)
     transactionInfo.value = response.transaction
-    
+
     // 获取房产信息
     if (transactionInfo.value.realtyCert) {
       await fetchRealtyDetail(transactionInfo.value.realtyCert)
     }
-    
+
     // 获取合同信息
     if (transactionInfo.value.contractUUID) {
       await fetchContractDetail(transactionInfo.value.contractUUID)
     }
-    
+
     // 获取审核记录
     await fetchAudits()
-    
+
     // 获取支付记录
     await fetchPayments()
 
@@ -369,8 +413,10 @@ const fetchAudits = async () => {
 // 获取支付记录
 const fetchPayments = async () => {
   try {
-    const response = getPaymentList({
+    const response = await getPaymentList({
       transactionUUID: transactionUUID.value,
+      pageNumber: 1,
+      pageSize: 100
     })
     payments.value = response.paymentList || []
   } catch (error) {
@@ -395,25 +441,26 @@ const handleAudit = (action) => {
     inputValidator: (value) => {
       return value.trim() !== '' ? true : '审核意见不能为空'
     }
-  }).then(({ value }) => {
+  }).then(({value}) => {
     submitAudit(action, value)
-  }).catch(() => {})
+  }).catch(() => {
+  })
 }
 
 // 提交审核
 const submitAudit = async (result, opinion) => {
   submitLoading.value = true
-  
+
   try {
     const auditData = {
       transactionUUID: transactionUUID.value,
       result: result,
       opinion: opinion
     }
-    
+
     const response = await axios.post('/api/transaction/audit', auditData)
     ElMessage.success(result === 'APPROVED' ? '审核通过成功' : '审核拒绝成功')
-    
+
     // 刷新交易信息和审核记录
     await fetchTransactionDetail()
   } catch (error) {
@@ -432,9 +479,9 @@ const handleComplete = async () => {
     type: 'warning'
   }).then(async () => {
     loading.value = true
-    
+
     try {
-      const response = await axios.post(`/api/transaction/${transactionUUID.value}/complete`)
+      await completeTransaction({transactionUUID: transactionUUID.value})
       ElMessage.success('交易已完成')
       await fetchTransactionDetail()
     } catch (error) {
@@ -443,7 +490,8 @@ const handleComplete = async () => {
     } finally {
       loading.value = false
     }
-  }).catch(() => {})
+  }).catch(() => {
+  })
 }
 
 // 取消交易
@@ -454,7 +502,7 @@ const handleCancel = async () => {
     type: 'warning'
   }).then(async () => {
     loading.value = true
-    
+
     try {
       const response = await axios.post(`/api/transaction/${transactionUUID.value}/cancel`)
       ElMessage.success('交易已取消')
@@ -465,7 +513,8 @@ const handleCancel = async () => {
     } finally {
       loading.value = false
     }
-  }).catch(() => {})
+  }).catch(() => {
+  })
 }
 
 // 查看房产详情
@@ -632,7 +681,7 @@ const getAuditResultText = (result) => {
 // 获取支付类型文本
 const getPaymentTypeText = (type) => {
   const typeMap = {
-    'PAYMENT': '房款',
+    'TRANSFER': '房款',
     'TAX': '税费',
     'FEE': '手续费'
   }
@@ -647,6 +696,29 @@ const getContractTypeText = (type) => {
     'LEASE': '租赁合同'
   }
   return typeMap[type] || type
+}
+
+// 买方完成交易
+const handleBuyerComplete = async () => {
+  ElMessageBox.confirm('交易金额已支付完成，确定要完成此次交易吗？完成后将不可撤销', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'success'
+  }).then(async () => {
+    loading.value = true
+
+    try {
+      await completeTransaction({transactionUUID: transactionUUID.value});
+      ElMessage.success('交易已完成');
+      await fetchTransactionDetail();
+    } catch (error) {
+      console.error('完成交易失败:', error);
+      ElMessage.error(error.response?.data?.message || '完成交易失败');
+    } finally {
+      loading.value = false;
+    }
+  }).catch(() => {
+  });
 }
 
 onMounted(() => {
