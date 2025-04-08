@@ -73,3 +73,14 @@ export function queryTransactionList(data: {
     data
   })
 }
+
+export function updateTransaction(data: {
+  transactionUUID: string,
+  status: string
+}){
+  return request({
+    url: '/transactions/updateTransaction',
+    method: 'post',
+    data
+  })
+}

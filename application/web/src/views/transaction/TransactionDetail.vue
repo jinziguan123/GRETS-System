@@ -13,7 +13,6 @@
         <div class="card-header">
           <h3>交易详情</h3>
           <div class="header-buttons">
-            <el-button @click="goBack">返回</el-button>
             <el-button
                 v-if="canCheckTransaction"
                 type="success"
@@ -38,6 +37,7 @@
                 @click="handleCancel"
             >取消交易
             </el-button>
+            <el-button @click="goBack">返回</el-button>
           </div>
         </div>
       </template>
@@ -62,8 +62,8 @@
 
         <!-- 交易基本信息 -->
         <el-descriptions title="交易基本信息" :column="2" border>
-          <el-descriptions-item label="交易编号">{{ transactionInfo.transactionUUID }}</el-descriptions-item>
-          <el-descriptions-item label="交易状态">
+          <el-descriptions-item label-width="100px" label="交易编号">{{ transactionInfo.transactionUUID }}</el-descriptions-item>
+          <el-descriptions-item label-width="100px" label="交易状态">
             <el-tag :type="getStatusType(transactionInfo.status)">
               {{ getStatusText(transactionInfo.status) }}
             </el-tag>
@@ -226,7 +226,7 @@ import {ref, reactive, computed, onMounted} from 'vue'
 import {useRouter, useRoute} from 'vue-router'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import axios from 'axios'
-import {completeTransaction, getTransactionDetail} from "@/api/transaction.js";
+import {completeTransaction, getTransactionDetail, updateTransaction} from "@/api/transaction.js";
 import PaymentDialog from '@/components/transaction/PaymentDialog.vue'
 import CryptoJS from 'crypto-js'
 import {getPaymentList} from "@/api/payment.js";
@@ -504,7 +504,10 @@ const handleCancel = async () => {
     loading.value = true
 
     try {
-      const response = await axios.post(`/api/transaction/${transactionUUID.value}/cancel`)
+      const response = await updateTransaction({
+        transactionUUID: transactionUUID.value,
+        status: 'REJECTED',
+      })
       ElMessage.success('交易已取消')
       await fetchTransactionDetail()
     } catch (error) {
