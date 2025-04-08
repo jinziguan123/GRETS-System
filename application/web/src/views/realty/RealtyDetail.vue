@@ -243,10 +243,10 @@
         
         <el-form-item label="状态" prop="status" v-if="canEditStatus">
           <el-select v-model="editForm.status" placeholder="请选择状态" style="width: 100%">
-            <el-option label="正常" value="NORMAL"></el-option>
-            <el-option label="交易中" value="IN_TRANSACTION"></el-option>
-            <el-option label="已抵押" value="MORTGAGED"></el-option>
-            <el-option label="已冻结" value="FROZEN"></el-option>
+            <el-option label="正常" value="NORMAL" v-if="isOwner || isGovernment"></el-option>
+            <el-option label="交易中" value="IN_TRANSACTION" v-if="isOwner"></el-option>
+            <el-option label="已抵押" value="MORTGAGED" v-if="isGovernment"></el-option>
+            <el-option label="已冻结" value="FROZEN" v-if="isGovernment"></el-option>
           </el-select>
         </el-form-item>
         
