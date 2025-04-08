@@ -392,7 +392,7 @@ func (s *realtyService) UpdateRealty(req *realtyDto.UpdateRealtyDTO) error {
 				[]byte(req.RealtyType),
 				[]byte(req.Status),
 				[]byte(result.CurrentOwnerCitizenIDHash),
-				[]byte(string(previousOwnersCitizenIDListJSON)),
+				previousOwnersCitizenIDListJSON,
 			),
 			options,
 		)

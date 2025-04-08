@@ -24,8 +24,8 @@ type UserService interface {
 	GetUserList(query *userDto.QueryUserDTO) ([]*userDto.UserDTO, int, error)
 	// GetUserByID 根据ID获取用户
 	GetUserByID(id string) (*userDto.UserDTO, error)
-	// GetUserByCitizenID 根据身份证号和组织获取用户
-	GetUserByCitizenID(citizenID, organization string) (*userDto.UserDTO, error)
+	// GetUserByCitizenIDAndOrganization 根据身份证号和组织获取用户
+	GetUserByCitizenIDAndOrganization(citizenID, organization string) (*userDto.UserDTO, error)
 	// UpdateUser 更新用户信息
 	UpdateUser(user *userDto.UpdateUserDTO) error
 	// GetUserRealty 获取用户房产
@@ -150,84 +150,35 @@ func (s *userService) Register(req *userDto.RegisterDTO) error {
 
 // GetUserList 获取用户列表
 func (s *userService) GetUserList(query *userDto.QueryUserDTO) ([]*userDto.UserDTO, int, error) {
-	// 准备查询参数
-	// organization := query.Organization
-	// if organization == "" {
-	// 	return nil, 0, fmt.Errorf("必须提供组织参数")
-	// }
-
-	// // 从本地数据库查询用户
-	// users, err := s.userDAO.QueryUsers(organization, query.Role, query.CitizenID)
-	// if err != nil {
-	// 	log.Printf("Failed to query user list: %v", err)
-	// 	return nil, 0, fmt.Errorf("查询用户列表失败: %v", err)
-	// }
-
-	// // 转换为DTO
-	// var userDTOs []*userDto.UserDTO
-	// for _, user := range users {
-	// 	userDTOs = append(userDTOs, &userDto.UserDTO{
-	// 		ID:           user.ID,
-	// 		Name:         user.Name,
-	// 		Role:         user.Role,
-	// 		CitizenID:    user.CitizenID,
-	// 		Phone:        user.Phone,
-	// 		Email:        user.Email,
-	// 		Organization: user.Organization,
-	// 		CreateTime:   user.CreateTime,
-	// 		UpdateTime:   user.UpdateTime,
-	// 		Status:       user.Status,
-	// 	})
-	// }
-
-	// // 计算分页
-	// total := len(userDTOs)
-	// startIndex := (query.PageNumber - 1) * query.PageSize
-	// endIndex := startIndex + query.PageSize
-	// if startIndex >= total {
-	// 	return []*userDto.UserDTO{}, total, nil
-	// }
-	// if endIndex > total {
-	// 	endIndex = total
-	// }
-
-	// return userDTOs[startIndex:endIndex], total, nil
 	return nil, 0, nil
 }
 
 // GetUserByID 根据ID获取用户
 func (s *userService) GetUserByID(id string) (*userDto.UserDTO, error) {
-	// 从本地数据库查询用户
-	// user, err := s.userDAO.GetUserByID(id)
-	// if err != nil {
-	// 	log.Printf("Failed to query user by ID: %v", err)
-	// 	return nil, fmt.Errorf("查询用户失败: %v", err)
-	// }
-
-	// // 转换为DTO
-	// userDTO := &userDto.UserDTO{
-	// 	ID:           strconv.FormatInt(user.ID, 10),
-	// 	Name:         user.Name,
-	// 	Role:         user.Role,
-	// 	CitizenID:    user.CitizenID,
-	// 	Phone:        user.Phone,
-	// 	Email:        user.Email,
-	// 	Organization: user.Organization,
-	// 	CreateTime:   user.CreateTime,
-	// 	UpdateTime:   user.UpdateTime,
-	// 	Status:       user.Status,
-	// }
-
 	return nil, nil
 }
 
-// GetUserByCitizenID 根据身份证号和组织获取用户
-func (s *userService) GetUserByCitizenID(citizenID, organization string) (*userDto.UserDTO, error) {
+// GetUserByCitizenIDAndOrganization 根据身份证号和组织获取用户
+func (s *userService) GetUserByCitizenIDAndOrganization(citizenID, organization string) (*userDto.UserDTO, error) {
 	// 从本地数据库查询用户
 	user, err := s.userDAO.GetUserByCitizenID(citizenID, organization)
 	if err != nil {
 		log.Printf("Failed to query user by citizenID: %v", err)
 		return nil, fmt.Errorf("查询用户失败: %v", err)
+	}
+
+	// 调用链码查询余额
+	contract, err := blockchain.GetContract(organization)
+	if err != nil {
+		return nil, fmt.Errorf("获取合约失败: %v", err)
+	}
+
+	_, err = contract.EvaluateTransaction(
+		"GetBalance",
+		utils.GenerateHash(citizenID),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("查询余额失败: %v", err)
 	}
 
 	// 转换为DTO

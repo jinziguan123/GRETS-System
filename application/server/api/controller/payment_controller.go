@@ -1,13 +1,11 @@
 package controller
 
 import (
+	"github.com/gin-gonic/gin"
 	"grets_server/dao"
 	paymentDto "grets_server/dto/payment_dto"
 	"grets_server/pkg/utils"
 	"grets_server/service"
-	"strconv"
-
-	"github.com/gin-gonic/gin"
 )
 
 // PaymentController 支付控制器结构体
@@ -62,26 +60,15 @@ func (c *PaymentController) PayForTransaction(ctx *gin.Context) {
 
 // QueryPaymentList 查询支付列表
 func (c *PaymentController) QueryPaymentList(ctx *gin.Context) {
-	// 解析查询参数
-	query := &paymentDto.QueryPaymentDTO{
-		TransactionUUID:   ctx.Query("transactionUUID"),
-		PaymentType:       ctx.Query("paymentType"),
-		PayerCitizenID:    ctx.Query("payerCitizenID"),
-		ReceiverCitizenID: ctx.Query("receiverCitizenID"),
-		PageSize:          10,
-		PageNumber:        1,
-	}
-
-	// 解析数值类型参数
-	if pageSize, err := strconv.Atoi(ctx.Query("pageSize")); err == nil && pageSize > 0 {
-		query.PageSize = pageSize
-	}
-	if pageNum, err := strconv.Atoi(ctx.Query("pageNumber")); err == nil && pageNum > 0 {
-		query.PageNumber = pageNum
+	// 绑定查询参数
+	var query paymentDto.QueryPaymentDTO
+	if err := ctx.ShouldBindJSON(&query); err != nil {
+		utils.ResponseBadRequest(ctx, "无效的请求参数")
+		return
 	}
 
 	// 调用服务查询支付列表
-	payments, total, err := c.paymentService.QueryPaymentList(query)
+	payments, total, err := c.paymentService.QueryPaymentList(&query)
 	if err != nil {
 		utils.ResponseInternalServerError(ctx, err.Error())
 		return

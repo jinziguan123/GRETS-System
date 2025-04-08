@@ -126,8 +126,8 @@ func (c *UserController) GetUserByID(ctx *gin.Context) {
 	utils.ResponseSuccess(ctx, "查询用户成功", user)
 }
 
-// GetUserByCitizenID 根据身份证号获取用户
-func (c *UserController) GetUserByCitizenID(ctx *gin.Context) {
+// GetUserByCitizenIDAndOrganization 根据身份证号获取用户
+func (c *UserController) GetUserByCitizenIDAndOrganization(ctx *gin.Context) {
 	// 获取请求参数
 	citizenID := ctx.Query("citizenID")
 	organization := ctx.Query("organization")
@@ -138,7 +138,7 @@ func (c *UserController) GetUserByCitizenID(ctx *gin.Context) {
 	}
 
 	// 调用服务层查询用户
-	user, err := c.userService.GetUserByCitizenID(citizenID, organization)
+	user, err := c.userService.GetUserByCitizenIDAndOrganization(citizenID, organization)
 	if err != nil {
 		utils.ResponseError(ctx, constants.ServiceError, err.Error())
 		return
@@ -203,7 +203,7 @@ func UpdateUser(c *gin.Context) {
 }
 
 func GetUserByCitizenID(c *gin.Context) {
-	GlobalUserController.GetUserByCitizenID(c)
+	GlobalUserController.GetUserByCitizenIDAndOrganization(c)
 }
 
 func GetUserRealty(c *gin.Context) {
