@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
+	"github.com/gogo/protobuf/proto"
 	"github.com/hyperledger/fabric-gateway/pkg/client"
 	"github.com/hyperledger/fabric-protos-go-apiv2/common"
 )
@@ -25,6 +26,13 @@ const (
 	_RetryInterval = 3 * time.Second
 )
 
+// BlockHeader 区块头
+type BlockHeader struct {
+	Number       *big.Int
+	PreviousHash []byte
+	DataHash     []byte
+}
+
 // BlockData 区块数据
 type BlockData struct {
 	BlockNumber uint64    `json:"blockNumber"`
@@ -33,6 +41,7 @@ type BlockData struct {
 	PrevHash    string    `json:"prevHash"`
 	TxCount     int       `json:"txCount"`
 	SaveTime    time.Time `json:"saveTime"`
+	Data        [][]byte  `json:"data"`
 }
 
 // LatestBlock 最新区块信息
@@ -227,11 +236,7 @@ func (l *blockListener) saveBlock(orgName string, block *common.Block) {
 	blockNum := block.GetHeader().GetNumber()
 
 	// 计算区块哈希
-	blockHeader := struct {
-		Number       *big.Int
-		PreviousHash []byte
-		DataHash     []byte
-	}{
+	blockHeader := BlockHeader{
 		Number:       new(big.Int).SetUint64(blockNum),
 		PreviousHash: block.GetHeader().GetPreviousHash(),
 		DataHash:     block.GetHeader().GetDataHash(),
@@ -252,6 +257,7 @@ func (l *blockListener) saveBlock(orgName string, block *common.Block) {
 		PrevHash:    fmt.Sprintf("%x", block.GetHeader().GetPreviousHash()),
 		TxCount:     len(block.GetData().GetData()),
 		SaveTime:    time.Now(),
+		Data:        block.GetData().GetData(),
 	}
 
 	// 事务保存区块链
@@ -393,4 +399,12 @@ func (l *blockListener) GetBlocksByOrg(orgName string, pageNum int, pageSize int
 	}
 
 	return &result, nil
+}
+
+func (l *blockListener) GetEnvelopeFromBlock(block *common.Block) (*common.Envelope, error) {
+	env := &common.Envelope{}
+	if err := proto.Unmarshal(block.Data.Data[0], env); err != nil {
+		return nil, fmt.Errorf("解码Envelope失败: %v", err)
+	}
+	return env, nil
 }
