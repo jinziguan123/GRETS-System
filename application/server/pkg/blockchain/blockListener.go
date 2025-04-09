@@ -29,16 +29,16 @@ const (
 type BlockData struct {
 	BlockNumber uint64    `json:"blockNumber"`
 	BlockHash   string    `json:"blockHash"`
-	DataHash    string    `json:"data_hash"`
-	PrevHash    string    `json:"prev_hash"`
-	TxCount     int       `json:"tx_count"`
-	SaveTime    time.Time `json:"save_time"`
+	DataHash    string    `json:"dataHash"`
+	PrevHash    string    `json:"prevHash"`
+	TxCount     int       `json:"txCount"`
+	SaveTime    time.Time `json:"saveTime"`
 }
 
 // LatestBlock 最新区块信息
 type LatestBlock struct {
-	BlockNum uint64    `json:"block_num"`
-	SaveTime time.Time `json:"save_time"`
+	BlockNum uint64    `json:"blockNum"`
+	SaveTime time.Time `json:"saveTime"`
 }
 
 // BlockListener 区块监听器

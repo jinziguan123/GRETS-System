@@ -62,8 +62,8 @@
 
         <!-- 交易基本信息 -->
         <el-descriptions title="交易基本信息" :column="2" border>
-          <el-descriptions-item label-width="100px" label="交易编号">{{ transactionInfo.transactionUUID }}</el-descriptions-item>
-          <el-descriptions-item label-width="100px" label="交易状态">
+          <el-descriptions-item label-width="auto" label="交易编号">{{ transactionInfo.transactionUUID }}</el-descriptions-item>
+          <el-descriptions-item label-width="auto" label="交易状态">
             <el-tag :type="getStatusType(transactionInfo.status)">
               {{ getStatusText(transactionInfo.status) }}
             </el-tag>
@@ -74,9 +74,8 @@
           <el-descriptions-item label="买方身份证">{{ transactionInfo.buyerCitizenIDHash }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ formatDate(transactionInfo.createTime) }}</el-descriptions-item>
           <el-descriptions-item label="更新时间">{{ formatDate(transactionInfo.updateTime) }}</el-descriptions-item>
-          <el-descriptions-item label="预计完成时间">{{
-              formatDate(transactionInfo.completedTime)
-            }}
+          <el-descriptions-item label="预计完成时间">
+            {{ formatDate(transactionInfo.completedTime) }}
           </el-descriptions-item>
           <el-descriptions-item label="税费">{{ formatPrice(transactionInfo.tax) }}</el-descriptions-item>
         </el-descriptions>

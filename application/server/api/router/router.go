@@ -25,6 +25,7 @@ func InitServices() error {
 	service.InitRealtyService(realEstateDAO)
 	service.InitContractService(contractDAO)
 	service.InitPaymentService(paymentDAO)
+	service.InitBlockService()
 
 	// 初始化控制器
 	controller.InitUserController()
@@ -32,7 +33,7 @@ func InitServices() error {
 	controller.InitRealtyController()
 	controller.InitContractController()
 	controller.InitPaymentController()
-
+	controller.InitBlockController()
 	return nil
 }
 
@@ -114,6 +115,13 @@ func SetupRouter() *gin.Engine {
 			contracts.GET("/getContractByUUID/:contractUUID", controller.GetContractByUUID)
 			contracts.POST("/:id/sign", controller.SignContract)
 			contracts.POST("/:id/audit", controller.AuditContract)
+		}
+
+		// 区块相关接口
+		blocks := api.Group("/blocks")
+		blocks.Use(middleware.JWTAuth())
+		{
+			blocks.POST("/queryBlockList", controller.QueryBlockList)
 		}
 	}
 

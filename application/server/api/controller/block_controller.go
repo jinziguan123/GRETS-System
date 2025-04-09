@@ -8,6 +8,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GlobalBlockController 全局区块控制器实例
+var GlobalBlockController *BlockController
+
+// InitBlockController 初始化区块控制器
+func InitBlockController() {
+	GlobalBlockController = NewBlockController()
+}
+
 type BlockController struct {
 	blockService service.BlockService
 }
@@ -32,4 +40,9 @@ func (c *BlockController) QueryBlockList(ctx *gin.Context) {
 		return
 	}
 	utils.ResponseSuccess(ctx, "获取区块成功", block)
+}
+
+// QueryBlockList 查询区块列表
+func QueryBlockList(ctx *gin.Context) {
+	GlobalBlockController.QueryBlockList(ctx)
 }
