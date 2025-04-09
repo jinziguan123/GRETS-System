@@ -107,6 +107,9 @@
         </el-sub-menu>
       </el-menu>
     </el-aside>
+
+    <!-- 区块链信息查询 -->
+    <BlockDrawer />
     
     <!-- 主要内容区域 -->
     <el-container class="main-container">
@@ -152,17 +155,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+// import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import MainContent from '@/components/MainContent.vue'
+import BlockDrawer from '@/components/BlockDrawer.vue'
 import {
   Menu, 
   House, 
   Document, 
   Sell, 
-  Money, 
-  Wallet, 
+  Money,
   CreditCard, 
   Setting, 
   Monitor,
@@ -189,10 +192,6 @@ const organizationName = computed(() => {
     'audit': '审计监管部门'
   }
   return orgMap[userOrganization.value] || '未知组织'
-})
-
-const organizationClass = computed(() => {
-  return `org-${userOrganization.value}`
 })
 
 // 侧边栏折叠状态

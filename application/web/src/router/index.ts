@@ -88,160 +88,208 @@ const routes: Array<RouteRecordRaw> = [
       // 房产管理路由
       {
         path: 'realty',
-        name: 'RealtyList',
-        component: RealtyList,
-        meta: { title: '房产列表' } as RouteMeta
-      },
-      {
-        path: 'realty/create',
-        name: 'RealtyCreate',
-        component: RealtyCreate,
-        meta: { title: '创建房产', organizations: ['government'] } as RouteMeta
-      },
-      {
-        path: 'realty/:id',
-        name: 'RealtyDetail',
-        component: RealtyDetail,
-        meta: { title: '房产详情' } as RouteMeta
-      },
-      {
-        path: 'realty/:id/edit',
-        name: 'RealtyEdit',
-        component: RealtyEdit,
-        meta: { title: '编辑房产', organizations: ['government'] } as RouteMeta
+        meta: { title: '房产管理' } as RouteMeta,
+        children: [
+          {
+            path: '',
+            name: 'RealtyList',
+            component: RealtyList,
+            meta: { title: '房产列表' } as RouteMeta
+          },
+          {
+            path: 'create',
+            name: 'RealtyCreate',
+            component: RealtyCreate,
+            meta: { title: '创建房产', organizations: ['government'] } as RouteMeta
+          },
+          {
+            path: ':id',
+            name: 'RealtyDetail',
+            component: RealtyDetail,
+            meta: { title: '房产详情' } as RouteMeta
+          },
+          {
+            path: ':id/edit',
+            name: 'RealtyEdit',
+            component: RealtyEdit,
+            meta: { title: '编辑房产', organizations: ['government'] } as RouteMeta
+          }
+        ]
       },
       // 交易管理路由
       {
         path: 'transaction',
-        name: 'TransactionList',
-        component: TransactionList,
-        meta: { title: '交易列表', organizations: ['investor', 'bank', 'government'] } as RouteMeta
-      },
-      {
-        path: 'transaction/create',
-        name: 'TransactionCreate',
-        component: TransactionCreate,
-        meta: { title: '创建交易', organizations: ['investor'] } as RouteMeta
-      },
-      {
-        path: 'transaction/:id',
-        name: 'TransactionDetail',
-        component: TransactionDetail,
-        meta: { title: '交易详情', organizations: ['investor', 'bank', 'government', 'audit'] } as RouteMeta
-      },
-      {
-        path: 'transaction/chat',
-        name: 'TransactionChat',
-        component: TransactionChat,
-        meta: { title: '交易聊天室', organizations: ['investor'] } as RouteMeta
+        meta: { title: '交易管理' } as RouteMeta,
+        children: [
+          {
+            path: '',
+            name: 'TransactionList',
+            component: TransactionList,
+            meta: { title: '交易列表', organizations: ['investor', 'bank', 'government'] } as RouteMeta
+          },
+          {
+            path: 'create',
+            name: 'TransactionCreate',
+            component: TransactionCreate,
+            meta: { title: '创建交易', organizations: ['investor'] } as RouteMeta
+          },
+          {
+            path: ':id',
+            name: 'TransactionDetail',
+            component: TransactionDetail,
+            meta: { title: '交易详情', organizations: ['investor', 'bank', 'government', 'audit'] } as RouteMeta
+          },
+          {
+            path: 'chat',
+            name: 'TransactionChat',
+            component: TransactionChat,
+            meta: { title: '交易聊天室', organizations: ['investor'] } as RouteMeta
+          }
+        ]
       },
       // 合同管理路由
       {
         path: 'contract',
-        name: 'ContractList',
-        component: ContractList,
-        meta: { title: '合同列表', organizations: ['investor', 'bank', 'government', 'audit'] } as RouteMeta
+        meta: { title: '合同管理' } as RouteMeta,
+        children: [
+          {
+            path: '',
+            name: 'ContractList',
+            component: ContractList,
+            meta: { title: '合同列表', organizations: ['investor', 'bank', 'government', 'audit'] } as RouteMeta
+          },
+          {
+            path: 'create',
+            name: 'ContractCreate',
+            component: ContractCreate,
+            meta: { title: '创建合同', organizations: ['investor', 'government'] } as RouteMeta
+          },
+          {
+            path: ':id',
+            name: 'ContractDetail',
+            component: ContractDetail,
+            meta: { title: '合同详情', organizations: ['investor', 'bank', 'government', 'audit'] } as RouteMeta
+          },
+          {
+            path: 'audit',
+            name: 'ContractAudit',
+            component: ContractAudit,
+            meta: { title: '合同审核', organizations: ['audit'] } as RouteMeta
+          }
+        ]
       },
-      {
-        path: 'contract/create',
-        name: 'ContractCreate',
-        component: ContractCreate,
-        meta: { title: '创建合同', organizations: ['investor', 'government'] } as RouteMeta
-      },
-      {
-        path: 'contract/:id',
-        name: 'ContractDetail',
-        component: ContractDetail,
-        meta: { title: '合同详情', organizations: ['investor', 'bank', 'government', 'audit'] } as RouteMeta
-      },
-      {
-        path: 'contract/audit',
-        name: 'ContractAudit',
-        component: ContractAudit,
-        meta: { title: '合同审核', organizations: ['audit'] } as RouteMeta
-      },
-      // 支付管理路由
+      // A支付管理路由
       {
         path: 'payment',
-        name: 'PaymentList',
-        component: PaymentList,
-        meta: { title: '支付列表', organizations: ['investor', 'bank'] } as RouteMeta
-      },
-      {
-        path: 'payment/create',
-        name: 'PaymentCreate',
-        component: PaymentCreate,
-        meta: { title: '创建支付', organizations: ['investor'] } as RouteMeta
-      },
-      {
-        path: 'payment/:id',
-        name: 'PaymentDetail',
-        component: PaymentDetail,
-        meta: { title: '支付详情', organizations: ['investor', 'bank'] } as RouteMeta
+        meta: { title: '支付管理' } as RouteMeta,
+        children: [
+          {
+            path: '',
+            name: 'PaymentList',
+            component: PaymentList,
+            meta: { title: '支付列表', organizations: ['investor', 'bank'] } as RouteMeta
+          },
+          {
+            path: 'create',
+            name: 'PaymentCreate',
+            component: PaymentCreate,
+            meta: { title: '创建支付', organizations: ['investor'] } as RouteMeta
+          },
+          {
+            path: ':id',
+            name: 'PaymentDetail',
+            component: PaymentDetail,
+            meta: { title: '支付详情', organizations: ['investor', 'bank'] } as RouteMeta
+          }
+        ]
       },
       // 税费管理路由
       {
         path: 'tax',
-        name: 'TaxList',
-        component: TaxList,
-        meta: { title: '税费列表', organizations: ['government', 'investor'] } as RouteMeta
-      },
-      {
-        path: 'tax/create',
-        name: 'TaxCreate',
-        component: TaxCreate,
-        meta: { title: '创建税费', organizations: ['government'] } as RouteMeta
-      },
-      {
-        path: 'tax/:id',
-        name: 'TaxDetail',
-        component: TaxDetail,
-        meta: { title: '税费详情', organizations: ['government', 'investor'] } as RouteMeta
+        meta: { title: '税费管理' } as RouteMeta,
+        children: [
+          {
+            path: '',
+            name: 'TaxList',
+            component: TaxList,
+            meta: { title: '税费列表', organizations: ['government', 'investor'] } as RouteMeta
+          },
+          {
+            path: 'create',
+            name: 'TaxCreate',
+            component: TaxCreate,
+            meta: { title: '创建税费', organizations: ['government'] } as RouteMeta
+          },
+          {
+            path: ':id',
+            name: 'TaxDetail',
+            component: TaxDetail,
+            meta: { title: '税费详情', organizations: ['government', 'investor'] } as RouteMeta
+          }
+        ]
       },
       // 抵押贷款管理路由
       {
         path: 'mortgage',
-        name: 'MortgageList',
-        component: MortgageList,
-        meta: { title: '抵押贷款列表', organizations: ['investor', 'bank'] } as RouteMeta
-      },
-      {
-        path: 'mortgage/create',
-        name: 'MortgageCreate',
-        component: MortgageCreate,
-        meta: { title: '创建抵押贷款', organizations: ['investor'] } as RouteMeta
-      },
-      {
-        path: 'mortgage/:id',
-        name: 'MortgageDetail',
-        component: MortgageDetail,
-        meta: { title: '抵押贷款详情', organizations: ['investor', 'bank'] } as RouteMeta
+        meta: { title: '抵押贷款管理' } as RouteMeta,
+        children: [
+          {
+            path: '',
+            name: 'MortgageList',
+            component: MortgageList,
+            meta: { title: '抵押贷款列表', organizations: ['investor', 'bank'] } as RouteMeta
+          },
+          {
+            path: 'create',
+            name: 'MortgageCreate',
+            component: MortgageCreate,
+            meta: { title: '创建抵押贷款', organizations: ['investor'] } as RouteMeta
+          },
+          {
+            path: ':id',
+            name: 'MortgageDetail',
+            component: MortgageDetail,
+            meta: { title: '抵押贷款详情', organizations: ['investor', 'bank'] } as RouteMeta
+          }
+        ]
       },
       // 统计分析路由
       {
-        path: 'statistics/transaction',
-        name: 'TransactionStatistics',
-        component: TransactionStatistics,
-        meta: { title: '交易统计', organizations: ['government'] } as RouteMeta
-      },
-      {
-        path: 'statistics/loan',
-        name: 'LoanStatistics',
-        component: LoanStatistics,
-        meta: { title: '贷款统计', organizations: ['bank'] } as RouteMeta
+        path: 'statistics',
+        meta: { title: '统计分析' } as RouteMeta,
+        children: [
+          {
+            path: 'transaction',
+            name: 'TransactionStatistics',
+            component: TransactionStatistics,
+            meta: { title: '交易统计', organizations: ['government'] } as RouteMeta
+          },
+          {
+            path: 'loan',
+            name: 'LoanStatistics',
+            component: LoanStatistics,
+            meta: { title: '贷款统计', organizations: ['bank'] } as RouteMeta
+          }
+        ]
       },
       // 用户管理路由
       {
-        path: 'profile',
-        name: 'UserProfile',
-        component: UserProfile,
-        meta: { title: '个人资料' } as RouteMeta
-      },
-      {
-        path: 'change-password',
-        name: 'ChangePassword',
-        component: ChangePassword,
-        meta: { title: '修改密码' } as RouteMeta
+        path: 'user',
+        meta: { title: '用户管理' } as RouteMeta,
+        children: [
+          {
+            path: 'profile',
+            name: 'UserProfile',
+            component: UserProfile,
+            meta: { title: '个人资料' } as RouteMeta
+          },
+          {
+            path: 'change-password',
+            name: 'ChangePassword',
+            component: ChangePassword,
+            meta: { title: '修改密码' } as RouteMeta
+          }
+        ]
       }
     ]
   },
