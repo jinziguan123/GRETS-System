@@ -8,6 +8,7 @@ import (
 	contractDto "grets_server/dto/contract_dto"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -169,6 +170,11 @@ func (s *contractService) QueryContractList(dto *contractDto.QueryContractDTO) (
 		}
 		result = append(result, dto)
 	}
+
+	// 按创建时间降序排序
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].CreateTime.After(result[j].CreateTime)
+	})
 
 	return result, int(total), nil
 }

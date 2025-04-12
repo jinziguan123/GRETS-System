@@ -10,6 +10,7 @@ import (
 	realtyDto "grets_server/dto/realty_dto"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
+	"sort"
 	"time"
 
 	"github.com/hyperledger/fabric-gateway/pkg/client"
@@ -336,6 +337,11 @@ func (s *realtyService) QueryRealtyList(dto *realtyDto.QueryRealtyListDTO) ([]*r
 		}
 		result = append(result, dto)
 	}
+
+	// 按创建时间降序排序
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].CreateTime.After(result[j].CreateTime)
+	})
 
 	return result, int(total), nil
 }

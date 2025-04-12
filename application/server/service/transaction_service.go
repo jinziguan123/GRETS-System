@@ -11,6 +11,7 @@ import (
 	transactionDto "grets_server/dto/transaction_dto"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -239,6 +240,11 @@ func (s *transactionService) QueryTransactionList(dto *transactionDto.QueryTrans
 		}
 		result = append(result, txDTO)
 	}
+
+	// 按创建时间降序排序
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].CreateTime.After(result[j].CreateTime)
+	})
 
 	return result, total, nil
 }

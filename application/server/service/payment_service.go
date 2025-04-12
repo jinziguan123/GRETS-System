@@ -8,6 +8,7 @@ import (
 	paymentDto "grets_server/dto/payment_dto"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -219,6 +220,11 @@ func (s *paymentService) QueryPaymentList(dto *paymentDto.QueryPaymentDTO) ([]*p
 		}
 		result = append(result, paymentDTO)
 	}
+
+	// 按创建时间降序排序
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].CreateTime.After(result[j].CreateTime)
+	})
 
 	return result, total, nil
 }

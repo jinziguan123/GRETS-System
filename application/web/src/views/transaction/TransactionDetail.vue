@@ -118,25 +118,6 @@
           </div>
         </div>
 
-        <!-- 审核记录 -->
-        <div v-if="audits.length > 0" class="section-mt">
-          <h4>审核记录</h4>
-          <el-timeline>
-            <el-timeline-item
-                v-for="(audit, index) in audits"
-                :key="index"
-                :timestamp="formatDate(audit.createTime)"
-                :type="getAuditTypeIcon(audit.result)"
-                :color="getAuditTypeColor(audit.result)"
-            >
-              <h5>{{ getAuditResultText(audit.result) }}</h5>
-              <p>审核人: {{ audit.auditorName }}</p>
-              <p>组织: {{ audit.auditorOrg }}</p>
-              <p>意见: {{ audit.opinion || '无' }}</p>
-            </el-timeline-item>
-          </el-timeline>
-        </div>
-
         <!-- 支付记录 -->
         <div class="section-mt">
           <h4>支付记录</h4>
@@ -357,7 +338,7 @@ const fetchTransactionDetail = async () => {
     }
 
     // 获取审核记录
-    await fetchAudits()
+    // await fetchAudits()
 
     // 获取支付记录
     await fetchPayments()
