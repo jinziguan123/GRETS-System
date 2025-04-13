@@ -14,16 +14,10 @@
           <h3>交易详情</h3>
           <div class="header-buttons">
             <el-button
-                v-if="canCheckTransaction"
+                v-if="canAcceptTransaction"
                 type="success"
-                @click="handleAudit('APPROVED')"
-            >审核通过
-            </el-button>
-            <el-button
-                v-if="canCheckTransaction"
-                type="danger"
-                @click="handleAudit('REJECTED')"
-            >审核拒绝
+                @click="handleAccept"
+            >同意交易
             </el-button>
             <el-button
                 v-if="canCompleteTransaction"
@@ -82,7 +76,7 @@
 
         <!-- 房产信息 -->
         <el-descriptions v-if="realtyInfo" title="房产信息" :column="3" border class="section-mt">
-          <el-descriptions-item label="房产地址">{{ realtyInfo.address }}</el-descriptions-item>
+          <el-descriptions-item label="房产地址">{{ generateAddress(realtyInfo) }}</el-descriptions-item>
           <el-descriptions-item label="房产类型">{{ realtyInfo.realtyType }}</el-descriptions-item>
           <el-descriptions-item label="建筑面积">{{ realtyInfo.area }} 平方米</el-descriptions-item>
           <el-descriptions-item label="房产状态">{{ getRealtyStatusText(realtyInfo.status) }}</el-descriptions-item>
@@ -210,6 +204,7 @@ import {completeTransaction, getTransactionDetail, updateTransaction} from "@/ap
 import PaymentDialog from '@/components/transaction/PaymentDialog.vue'
 import CryptoJS from 'crypto-js'
 import {getPaymentList} from "@/api/payment.js";
+import {getRealtyDetail} from "@/api/realty.js";
 
 const router = useRouter()
 const route = useRoute()
@@ -307,7 +302,7 @@ const canCompleteTransaction = computed(() => {
 
   // 政府组织且交易状态为已审核且已支付足够金额
   return userInfo.value.organization === 'government' &&
-      transactionInfo.value.status === 'APPROVED' &&
+      transactionInfo.value.status === 'IN_PROGRESS' &&
       totalPaidAmount.value >= transactionInfo.value.price
 })
 
@@ -316,8 +311,16 @@ const canCancelTransaction = computed(() => {
   if (!userInfo.value || !transactionInfo.value) return false
 
   // 任何角色在交易未完成前均可取消
-  return ['PENDING', 'APPROVED'].includes(transactionInfo.value.status) &&
+  return ['PENDING', 'IN_PROGRESS'].includes(transactionInfo.value.status) &&
       (isBuyer.value || isSeller.value || userInfo.value.organization === 'government')
+})
+
+// 判断是否可以同意交易
+const canAcceptTransaction = computed(() => {
+  if (!userInfo.value || !transactionInfo.value) return false
+
+  // 卖方且交易状态为待审核或进行中
+  return isSeller.value && ['PENDING', 'IN_PROGRESS'].includes(transactionInfo.value.status)
 })
 
 // 获取交易详情
@@ -328,8 +331,8 @@ const fetchTransactionDetail = async () => {
     transactionInfo.value = response.transaction
 
     // 获取房产信息
-    if (transactionInfo.value.realtyCert) {
-      await fetchRealtyDetail(transactionInfo.value.realtyCert)
+    if (transactionInfo.value.realtyCertHash) {
+      await fetchRealtyDetail(transactionInfo.value.realtyCertHash)
     }
 
     // 获取合同信息
@@ -357,13 +360,18 @@ const fetchTransactionDetail = async () => {
 }
 
 // 获取房产详情
-const fetchRealtyDetail = async (realtyCert) => {
+const fetchRealtyDetail = async (realtyCertHash) => {
   try {
-    const response = await axios.get(`/api/realty/cert/${realtyCert}`)
-    realtyInfo.value = response.data
+    const response = await getRealtyDetail(realtyCertHash)
+    realtyInfo.value = response
   } catch (error) {
     console.error('获取房产详情失败:', error)
   }
+}
+
+// 生成地址信息
+const generateAddress = (item) => {
+  return `${item.province || ''}${item.province ? '省' : ''}${item.city || ''}${item.city ? '市' : ''}${item.district || ''}${item.district ? '区' : ''}${item.street || ''}${item.community || ''}${item.unit || ''}${item.unit ? '单元' : ''}${item.floor || ''}${item.floor ? '楼' : ''}${item.room || ''}${item.room ? '号' : ''}`
 }
 
 // 获取合同详情
@@ -412,43 +420,34 @@ const handlePaymentSuccess = async () => {
   await fetchPayments() // 刷新支付记录
 }
 
-// 处理审核
-const handleAudit = (action) => {
-  ElMessageBox.prompt('请输入审核意见', action === 'APPROVED' ? '审核通过' : '审核拒绝', {
+// 同意交易
+const handleAccept = async () => {
+  ElMessageBox.confirm('确定要同意此次交易吗？', '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
-    inputPlaceholder: '请输入审核意见',
-    inputValidator: (value) => {
-      return value.trim() !== '' ? true : '审核意见不能为空'
+    type: 'success'
+  }).then(async () => {
+    loading.value = true
+
+    try {
+      await updateTransaction({
+        transactionUUID: transactionUUID.value,
+        status: 'IN_PROGRESS',
+      })
+      ElMessage.success('已同意交易')
+      await fetchTransactionDetail()
+    } catch (error) {
+      console.error('同意交易失败:', error)
+      ElMessage.error(error.response?.data?.message || '同意交易失败')
+    } finally {
+      loading.value = false
     }
-  }).then(({value}) => {
-    submitAudit(action, value)
   }).catch(() => {
   })
 }
 
-// 提交审核
-const submitAudit = async (result, opinion) => {
-  submitLoading.value = true
-
-  try {
-    const auditData = {
-      transactionUUID: transactionUUID.value,
-      result: result,
-      opinion: opinion
-    }
-
-    const response = await axios.post('/api/transaction/audit', auditData)
-    ElMessage.success(result === 'APPROVED' ? '审核通过成功' : '审核拒绝成功')
-
-    // 刷新交易信息和审核记录
-    await fetchTransactionDetail()
-  } catch (error) {
-    console.error('审核失败:', error)
-    ElMessage.error(error.response?.data?.message || '审核失败')
-  } finally {
-    submitLoading.value = false
-  }
+function refresh(){
+  location.reload()
 }
 
 // 完成交易
@@ -484,7 +483,7 @@ const handleCancel = async () => {
     loading.value = true
 
     try {
-      const response = await updateTransaction({
+      await updateTransaction({
         transactionUUID: transactionUUID.value,
         status: 'REJECTED',
       })
@@ -503,7 +502,7 @@ const handleCancel = async () => {
 // 查看房产详情
 const viewRealtyDetail = () => {
   if (realtyInfo.value) {
-    router.push(`/realty/detail/${realtyInfo.value.id}`)
+    router.push(`/realty/${realtyInfo.value.realtyCertHash}`)
   }
 }
 
@@ -644,21 +643,6 @@ const getContractStatusText = (status) => {
     'EXPIRED': '已过期'
   }
   return statusMap[status] || status
-}
-
-// 获取审核结果图标
-const getAuditTypeIcon = (result) => {
-  return result === 'APPROVED' ? 'success' : 'danger'
-}
-
-// 获取审核结果颜色
-const getAuditTypeColor = (result) => {
-  return result === 'APPROVED' ? '#67C23A' : '#F56C6C'
-}
-
-// 获取审核结果文本
-const getAuditResultText = (result) => {
-  return result === 'APPROVED' ? '审核通过' : '审核拒绝'
 }
 
 // 获取支付类型文本

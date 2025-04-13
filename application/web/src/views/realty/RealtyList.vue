@@ -416,7 +416,7 @@ const handleCurrentChange = (page) => {
 
 // 查看详情
 const viewDetails = (item) => {
-  router.push(`/realty/${item.id}`)
+  router.push(`/realty/${item.realtyCertHash}`)
 }
 
 // 开始交易

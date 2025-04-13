@@ -107,6 +107,26 @@ func (ctrl *RealtyController) UpdateRealty(c *gin.Context) {
 	utils.ResponseSuccess(c, "房产更新成功", nil)
 }
 
+// GetRealtyByRealtyCertHash 根据不动产证哈希获取房产信息
+func (ctrl *RealtyController) GetRealtyByRealtyCertHash(c *gin.Context) {
+	// 获取路径参数
+	realtyCertHash := c.Param("realtyCertHash")
+	if realtyCertHash == "" {
+		utils.ResponseBadRequest(c, "不动产证哈希不能为空")
+		return
+	}
+
+	// 调用服务获取房产信息
+	realty, err := ctrl.realtyService.GetRealtyByRealtyCertHash(realtyCertHash)
+	if err != nil {
+		utils.ResponseInternalServerError(c, err.Error())
+		return
+	}
+
+	// 返回房产信息
+	utils.ResponseSuccess(c, "查询房产成功", realty)
+}
+
 // GlobalRealtyController 创建全局房产控制器实例
 var GlobalRealtyController *RealtyController
 
@@ -130,4 +150,8 @@ func GetRealtyByID(c *gin.Context) {
 
 func UpdateRealty(c *gin.Context) {
 	GlobalRealtyController.UpdateRealty(c)
+}
+
+func GetRealtyByRealtyCertHash(c *gin.Context) {
+	GlobalRealtyController.GetRealtyByRealtyCertHash(c)
 }

@@ -88,8 +88,8 @@ func SetupRouter() *gin.Engine {
 		{
 			realEstates.POST("/createRealty", controller.CreateRealty)
 			realEstates.POST("/queryRealtyList", controller.QueryRealtyList)
-			realEstates.GET("/:id", controller.GetRealtyByID)
 			realEstates.PUT("/:id", controller.UpdateRealty)
+			realEstates.GET("/:realtyCertHash", controller.GetRealtyByRealtyCertHash)
 			// 暂时注释审核接口，等待实现
 			// realEstates.POST("/:id/audit", controller.AuditRealEstate)
 		}

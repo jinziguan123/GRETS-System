@@ -45,7 +45,6 @@ func (r *realtyService) GetRealtyByRealtyCert(realtyCert string) (*realtyDto.Rea
 		RealtyCertHash:  realty.RealtyCertHash,
 		RealtyType:      realty.RealtyType,
 		Price:           realty.Price,
-		RelContractUUID: realty.RelContractUUID,
 		Area:            realty.Area,
 		Status:          realty.Status,
 		Description:     realty.Description,
@@ -54,6 +53,15 @@ func (r *realtyService) GetRealtyByRealtyCert(realtyCert string) (*realtyDto.Rea
 		Province:        realty.Province,
 		City:            realty.City,
 		District:        realty.District,
+		Street:          realty.Street,
+		Community:       realty.Community,
+		Unit:            realty.Unit,
+		Floor:           realty.Floor,
+		Room:            realty.Room,
+		IsNewHouse:      realty.IsNewHouse,
+		CreateTime:      realty.CreateTime,
+		LastUpdateTime:  realty.UpdateTime,
+		RelContractUUID: realty.RelContractUUID,
 	}, nil
 }
 
@@ -72,28 +80,54 @@ func (s *realtyService) GetRealtyByRealtyCertHash(realtyCertHash string) (*realt
 	if err != nil {
 		return nil, fmt.Errorf("查询房产失败: %v", err)
 	}
+
+	// 调用链码查询房产信息
+	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return nil, fmt.Errorf("获取合约失败: %v", err)
+	}
+
+	resultBytes, err := contract.EvaluateTransaction(
+		"QueryRealty",
+		realty.RealtyCertHash,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询房产信息失败: %v", err))
+		return nil, fmt.Errorf("查询房产信息失败: %v", err)
+	}
+
+	var blockchainResult realtyDto.RealtyDTO
+	if err := json.Unmarshal(resultBytes, &blockchainResult); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析房产信息失败: %v", err))
+		return nil, fmt.Errorf("解析房产信息失败: %v", err)
+	}
+
 	return &realtyDto.RealtyDTO{
-		RealtyCert:      realty.RealtyCert,
-		RealtyCertHash:  realty.RealtyCertHash,
-		RealtyType:      realty.RealtyType,
-		Price:           realty.Price,
-		Area:            realty.Area,
-		Status:          realty.Status,
-		Description:     realty.Description,
-		Images:          realty.Images,
-		HouseType:       realty.HouseType,
-		Province:        realty.Province,
-		City:            realty.City,
-		District:        realty.District,
-		Street:          realty.Street,
-		Community:       realty.Community,
-		Unit:            realty.Unit,
-		Floor:           realty.Floor,
-		Room:            realty.Room,
-		IsNewHouse:      realty.IsNewHouse,
-		CreateTime:      realty.CreateTime,
-		LastUpdateTime:  realty.UpdateTime,
-		RelContractUUID: realty.RelContractUUID,
+		RealtyCert:                      realty.RealtyCert,
+		RealtyCertHash:                  realty.RealtyCertHash,
+		RealtyType:                      realty.RealtyType,
+		Price:                           realty.Price,
+		Area:                            realty.Area,
+		CurrentOwnerCitizenIDHash:       blockchainResult.CurrentOwnerCitizenIDHash,
+		CurrentOwnerOrganization:        blockchainResult.CurrentOwnerOrganization,
+		PreviousOwnersCitizenIDHashList: blockchainResult.PreviousOwnersCitizenIDHashList,
+		Status:                          realty.Status,
+		Description:                     realty.Description,
+		Images:                          realty.Images,
+		HouseType:                       realty.HouseType,
+		Province:                        realty.Province,
+		City:                            realty.City,
+		District:                        realty.District,
+		Street:                          realty.Street,
+		Community:                       realty.Community,
+		Unit:                            realty.Unit,
+		Floor:                           realty.Floor,
+		Room:                            realty.Room,
+		IsNewHouse:                      realty.IsNewHouse,
+		CreateTime:                      realty.CreateTime,
+		LastUpdateTime:                  realty.UpdateTime,
+		RelContractUUID:                 realty.RelContractUUID,
 	}, nil
 }
 
@@ -316,6 +350,8 @@ func (s *realtyService) QueryRealtyList(dto *realtyDto.QueryRealtyListDTO) ([]*r
 	for _, realty := range realtyList {
 		dto := &realtyDto.RealtyDTO{
 			ID:              realty.ID,
+			RealtyCert:      realty.RealtyCert,
+			RealtyCertHash:  realty.RealtyCertHash,
 			RealtyType:      realty.RealtyType,
 			Price:           realty.Price,
 			Area:            realty.Area,
@@ -424,7 +460,7 @@ func (s *realtyService) UpdateRealty(req *realtyDto.UpdateRealtyDTO) error {
 		realty.RealtyType = req.RealtyType
 	}
 	if req.Images != nil {
-		realty.Images = req.Images
+		realty.Images = utils.StringSlice(req.Images)
 	}
 	if req.Price != 0 {
 		realty.Price = req.Price

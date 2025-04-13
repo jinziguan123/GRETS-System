@@ -198,11 +198,11 @@
               {{ scope.row.updateTime ? formatDate(scope.row.updateTime) : '-' }}
             </template>
           </el-table-column>
-          <el-table-column fixed="right" label="操作" width="120">
-            <template #default="scope">
-              <el-button type="primary" link @click="viewTransaction(scope.row.transactionUUID)">查看</el-button>
-            </template>
-          </el-table-column>
+<!--          <el-table-column fixed="right" label="操作" width="120">-->
+<!--            <template #default="scope">-->
+<!--              <el-button type="primary" link @click="viewTransaction(scope.row.transactionUUID)">查看</el-button>-->
+<!--            </template>-->
+<!--          </el-table-column>-->
         </el-table>
         
         <!-- 分页 -->
@@ -617,31 +617,11 @@ const submitEditForm = async () => {
     if (valid) {
       submitLoading.value = true
       try {
-        // 构建更新请求数据
-        const updateData = {
-          realtyCert: editForm.realtyCert
-        }
-        
-        // 根据权限添加不同字段
-        if (isGovernment.value) {
-          updateData.realtyType = editForm.realtyType
-          updateData.status = editForm.status
-        } else if (isOwner.value && realty.status === 'NORMAL') {
-          updateData.price = editForm.price
-          updateData.houseType = editForm.houseType
-          updateData.description = editForm.description
-          updateData.images = editForm.images
-          
-          // 如果拥有者可以修改状态
-          if (canEditStatus.value) {
-            updateData.status = editForm.status
-          }
-        }
-        
-        await updateRealty(realty.id, updateData)
+        await updateRealty(realty.id, editForm)
         ElMessage.success('更新房产信息成功')
         await fetchRealtyDetail()
         editDialogVisible.value = false
+        refresh()
       } catch (error) {
         ElMessage.error(error.response?.data?.message || '更新房产信息失败')
       } finally {
@@ -663,6 +643,10 @@ const handlePictureCardPreview = (file) => {
 const handleRemove = (file, fileList) => {
   // 更新编辑表单中的图片列表
   editForm.images = fileList.map(file => file.url)
+}
+
+function refresh() {
+  location.reload()
 }
 
 // 上传成功回调
