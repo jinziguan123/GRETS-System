@@ -9,6 +9,7 @@ import (
 	"grets_server/db/models"
 	realtyDto "grets_server/dto/realty_dto"
 	"grets_server/pkg/blockchain"
+	"grets_server/pkg/cache"
 	"grets_server/pkg/utils"
 	"sort"
 	"time"
@@ -23,6 +24,7 @@ var GlobalRealtyService RealtyService
 // InitRealtyService 初始化房产服务
 func InitRealtyService(realtyDAO *dao.RealEstateDAO) {
 	GlobalRealtyService = NewRealtyService(realtyDAO)
+	utils.Log.Info("房产服务初始化完成")
 }
 
 // RealtyService 房产服务接口
@@ -36,11 +38,24 @@ type RealtyService interface {
 }
 
 func (r *realtyService) GetRealtyByRealtyCert(realtyCert string) (*realtyDto.RealtyDTO, error) {
+	// 构造缓存键
+	cacheKey := cache.RealtyPrefix + "cert:" + realtyCert
+
+	// 尝试从缓存获取
+	var result realtyDto.RealtyDTO
+	if r.cacheService.Get(cacheKey, &result) {
+		utils.Log.Info(fmt.Sprintf("从缓存获取房产证号[%s]信息成功", realtyCert))
+		return &result, nil
+	}
+
+	// 缓存未命中，从数据库获取
 	realty, err := r.realtyDAO.GetRealtyByRealtyCert(realtyCert)
 	if err != nil {
 		return nil, fmt.Errorf("查询房产失败: %v", err)
 	}
-	return &realtyDto.RealtyDTO{
+
+	// 构造房产信息
+	realtyDTO := &realtyDto.RealtyDTO{
 		RealtyCert:      realty.RealtyCert,
 		RealtyCertHash:  realty.RealtyCertHash,
 		RealtyType:      realty.RealtyType,
@@ -62,20 +77,40 @@ func (r *realtyService) GetRealtyByRealtyCert(realtyCert string) (*realtyDto.Rea
 		CreateTime:      realty.CreateTime,
 		LastUpdateTime:  realty.UpdateTime,
 		RelContractUUID: realty.RelContractUUID,
-	}, nil
+	}
+
+	// 将结果存入缓存，设置5分钟过期时间
+	r.cacheService.Set(cacheKey, realtyDTO, 0, 5*time.Minute)
+
+	return realtyDTO, nil
 }
 
 // realtyService 房产服务实现
 type realtyService struct {
-	realtyDAO *dao.RealEstateDAO
+	realtyDAO    *dao.RealEstateDAO
+	cacheService cache.CacheService
 }
 
 // NewRealtyService 创建房产服务实例
 func NewRealtyService(realtyDAO *dao.RealEstateDAO) RealtyService {
-	return &realtyService{realtyDAO: realtyDAO}
+	return &realtyService{
+		realtyDAO:    realtyDAO,
+		cacheService: cache.GetCacheService(),
+	}
 }
 
 func (s *realtyService) GetRealtyByRealtyCertHash(realtyCertHash string) (*realtyDto.RealtyDTO, error) {
+	// 构造缓存键
+	cacheKey := cache.RealtyPrefix + "hash:" + realtyCertHash
+
+	// 尝试从缓存获取
+	var result realtyDto.RealtyDTO
+	if s.cacheService.Get(cacheKey, &result) {
+		utils.Log.Info(fmt.Sprintf("从缓存获取房产证Hash[%s]信息成功", realtyCertHash))
+		return &result, nil
+	}
+
+	// 缓存未命中，从数据库获取
 	realty, err := s.realtyDAO.GetRealtyByRealtyCertHash(realtyCertHash)
 	if err != nil {
 		return nil, fmt.Errorf("查询房产失败: %v", err)
@@ -103,7 +138,8 @@ func (s *realtyService) GetRealtyByRealtyCertHash(realtyCertHash string) (*realt
 		return nil, fmt.Errorf("解析房产信息失败: %v", err)
 	}
 
-	return &realtyDto.RealtyDTO{
+	// 构造完整的房产信息
+	realtyDTO := &realtyDto.RealtyDTO{
 		RealtyCert:                      realty.RealtyCert,
 		RealtyCertHash:                  realty.RealtyCertHash,
 		RealtyType:                      realty.RealtyType,
@@ -128,7 +164,12 @@ func (s *realtyService) GetRealtyByRealtyCertHash(realtyCertHash string) (*realt
 		CreateTime:                      realty.CreateTime,
 		LastUpdateTime:                  realty.UpdateTime,
 		RelContractUUID:                 realty.RelContractUUID,
-	}, nil
+	}
+
+	// 将结果存入缓存，设置5分钟过期时间
+	s.cacheService.Set(cacheKey, realtyDTO, 0, 5*time.Minute)
+
+	return realtyDTO, nil
 }
 
 // CreateRealty 创建房产
@@ -142,6 +183,10 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 	if realty != nil {
 		return fmt.Errorf("房产已存在")
 	}
+
+	// 预先清理可能存在的缓存
+	s.cacheService.Remove(cache.RealtyPrefix + "cert:" + req.RealtyCert)
+	s.cacheService.Remove(cache.RealtyPrefix + "hash:" + utils.GenerateHash(req.RealtyCert))
 
 	// 调用链码创建房产
 	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
@@ -205,6 +250,17 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 
 // GetRealtyByID 根据ID获取房产信息
 func (s *realtyService) GetRealtyByID(id string) (*realtyDto.RealtyDTO, error) {
+	// 构造缓存键
+	cacheKey := cache.RealtyPrefix + "id:" + id
+
+	// 尝试从缓存获取
+	var result realtyDto.RealtyDTO
+	if s.cacheService.Get(cacheKey, &result) {
+		utils.Log.Info(fmt.Sprintf("从缓存获取房产ID[%s]信息成功", id))
+		return &result, nil
+	}
+
+	// 缓存未命中，从数据库获取
 	realty, err := s.realtyDAO.GetRealtyByID(id)
 	if err != nil {
 		return nil, fmt.Errorf("查询房产失败: %v", err)
@@ -232,7 +288,8 @@ func (s *realtyService) GetRealtyByID(id string) (*realtyDto.RealtyDTO, error) {
 		return nil, fmt.Errorf("解析房产信息失败: %v", err)
 	}
 
-	return &realtyDto.RealtyDTO{
+	// 构造完整的房产信息
+	realtyDTO := &realtyDto.RealtyDTO{
 		ID:                        realty.ID,
 		RealtyCertHash:            realty.RealtyCertHash,
 		RealtyCert:                realty.RealtyCert,
@@ -257,7 +314,12 @@ func (s *realtyService) GetRealtyByID(id string) (*realtyDto.RealtyDTO, error) {
 		CurrentOwnerOrganization:  blockchainResult.CurrentOwnerOrganization,
 		RelContractUUID:           realty.RelContractUUID,
 		IsNewHouse:                realty.IsNewHouse,
-	}, nil
+	}
+
+	// 将结果存入缓存，设置5分钟过期时间
+	s.cacheService.Set(cacheKey, realtyDTO, 0, 5*time.Minute)
+
+	return realtyDTO, nil
 }
 
 // QueryRealtyList 分页条件查询房产列表
@@ -392,6 +454,13 @@ func (s *realtyService) UpdateRealty(req *realtyDto.UpdateRealtyDTO) error {
 	}
 	if realty == nil {
 		return fmt.Errorf("房产不存在")
+	}
+
+	// 根据房产证号、证书哈希和ID删除相关缓存
+	s.cacheService.Remove(cache.RealtyPrefix + "cert:" + req.RealtyCert)
+	s.cacheService.Remove(cache.RealtyPrefix + "hash:" + utils.GenerateHash(req.RealtyCert))
+	if realty.ID > 0 {
+		s.cacheService.Remove(cache.RealtyPrefix + "id:" + fmt.Sprintf("%d", realty.ID))
 	}
 
 	// 如果房产的类型、状态发生变化，则需要调用链码更新

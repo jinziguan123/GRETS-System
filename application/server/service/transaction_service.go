@@ -10,6 +10,7 @@ import (
 	realtyDto "grets_server/dto/realty_dto"
 	transactionDto "grets_server/dto/transaction_dto"
 	"grets_server/pkg/blockchain"
+	"grets_server/pkg/cache"
 	"grets_server/pkg/utils"
 	"sort"
 	"time"
@@ -28,7 +29,8 @@ type TransactionService interface {
 
 // transactionService 交易服务实现
 type transactionService struct {
-	txDAO *dao.TransactionDAO
+	txDAO        *dao.TransactionDAO
+	cacheService cache.CacheService
 }
 
 // 全局交易服务
@@ -37,17 +39,24 @@ var GlobalTransactionService TransactionService
 // InitTransactionService 初始化交易服务
 func InitTransactionService(txDAO *dao.TransactionDAO) {
 	GlobalTransactionService = NewTransactionService(txDAO)
+	utils.Log.Info("交易服务初始化完成")
 }
 
 // NewTransactionService 创建交易服务实例
 func NewTransactionService(txDAO *dao.TransactionDAO) TransactionService {
 	return &transactionService{
-		txDAO: txDAO,
+		txDAO:        txDAO,
+		cacheService: cache.GetCacheService(),
 	}
 }
 
 // CreateTransaction 创建交易
 func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransactionDTO) error {
+	// 创建新交易前删除相关缓存
+	// 清除房产和买卖方的相关缓存
+	realtyCertHash := utils.GenerateHash(req.RealtyCert)
+	s.cacheService.Remove(cache.RealtyPrefix + "cert:" + req.RealtyCert)
+	s.cacheService.Remove(cache.RealtyPrefix + "hash:" + realtyCertHash)
 
 	// 创建交易
 	transactionUUID := uuid.New().String()
@@ -142,6 +151,16 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 
 // GetTransactionByTransactionUUID GetTransactionByUUID 根据ID获取交易信息
 func (s *transactionService) GetTransactionByTransactionUUID(transactionUUID string) (*transactionDto.TransactionDTO, error) {
+	// 构造缓存键
+	cacheKey := cache.TransactionPrefix + "uuid:" + transactionUUID
+
+	// 尝试从缓存获取
+	var result transactionDto.TransactionDTO
+	if s.cacheService.Get(cacheKey, &result) {
+		utils.Log.Info(fmt.Sprintf("从缓存获取交易[%s]信息成功", transactionUUID))
+		return &result, nil
+	}
+
 	// 调用DAO层查询交易
 	tx, err := s.txDAO.GetTransactionByTransactionUUID(transactionUUID)
 	if err != nil {
@@ -182,6 +201,9 @@ func (s *transactionService) GetTransactionByTransactionUUID(transactionUUID str
 		Price:               chaincodeTransactionResult.Price,
 		Tax:                 chaincodeTransactionResult.Tax,
 	}
+
+	// 将交易信息存入缓存，设置5分钟过期时间
+	s.cacheService.Set(cacheKey, txDTO, 0, 5*time.Minute)
 
 	return txDTO, nil
 }
@@ -257,6 +279,9 @@ func (s *transactionService) UpdateTransaction(req *transactionDto.UpdateTransac
 		return fmt.Errorf("查询交易失败: %v", err)
 	}
 
+	// 清除交易缓存
+	s.cacheService.Remove(cache.TransactionPrefix + "uuid:" + req.TransactionUUID)
+
 	// 调用链码更新交易
 	contract, err := blockchain.GetContract(constants.InvestorOrganization)
 	if err != nil {
@@ -293,6 +318,9 @@ func (s *transactionService) CompleteTransaction(completeTransactionDTO *transac
 	if err != nil {
 		return fmt.Errorf("查询交易失败: %v", err)
 	}
+
+	// 清除交易缓存
+	s.cacheService.Remove(cache.TransactionPrefix + "uuid:" + completeTransactionDTO.TransactionUUID)
 
 	// 调用链码完成交易
 	contract, err := blockchain.GetContract(constants.InvestorOrganization)

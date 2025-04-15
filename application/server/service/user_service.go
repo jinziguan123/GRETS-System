@@ -8,6 +8,7 @@ import (
 	realtyDto "grets_server/dto/realty_dto"
 	userDto "grets_server/dto/user_dto"
 	"grets_server/pkg/blockchain"
+	"grets_server/pkg/cache"
 	"grets_server/pkg/utils"
 	"log"
 	"strconv"
@@ -34,7 +35,8 @@ type UserService interface {
 
 // userService 用户服务实现
 type userService struct {
-	userDAO *dao.UserDAO
+	userDAO      *dao.UserDAO
+	cacheService cache.CacheService
 }
 
 // 全局用户服务
@@ -43,17 +45,20 @@ var GlobalUserService UserService
 // InitUserService 初始化用户服务
 func InitUserService(userDAO *dao.UserDAO) {
 	GlobalUserService = NewUserService(userDAO)
+	utils.Log.Info("用户服务初始化完成")
 }
 
 // NewUserService 创建用户服务实例
 func NewUserService(userDAO *dao.UserDAO) UserService {
 	return &userService{
-		userDAO: userDAO,
+		userDAO:      userDAO,
+		cacheService: cache.GetCacheService(),
 	}
 }
 
 // Login 用户登录
 func (s *userService) Login(req *userDto.LoginDTO) (*userDto.UserDTO, string, error) {
+	// 不缓存登录结果，因为需要验证密码
 	// 从本地数据库查询用户
 	user, err := s.userDAO.GetUserByCredentials(req.CitizenID, utils.GenerateHash(req.Password), req.Organization)
 	if err != nil {
@@ -91,6 +96,9 @@ func (s *userService) Login(req *userDto.LoginDTO) (*userDto.UserDTO, string, er
 
 // Register 用户注册
 func (s *userService) Register(req *userDto.RegisterDTO) error {
+	// 预先清除可能存在的缓存
+	cacheKey := cache.UserPrefix + "id:" + req.CitizenID + ":org:" + req.Organization
+	s.cacheService.Remove(cacheKey)
 	// 首先检查用户是否已存在（使用CitizenID和Organization）
 	contract, err := blockchain.GetContract(req.Organization)
 	if err != nil {
@@ -160,6 +168,16 @@ func (s *userService) GetUserByID(id string) (*userDto.UserDTO, error) {
 
 // GetUserByCitizenIDAndOrganization 根据身份证号和组织获取用户
 func (s *userService) GetUserByCitizenIDAndOrganization(citizenID, organization string) (*userDto.UserDTO, error) {
+	// 构造缓存键
+	cacheKey := cache.UserPrefix + "id:" + citizenID + ":org:" + organization
+
+	// 尝试从缓存获取
+	var result userDto.UserDTO
+	if s.cacheService.Get(cacheKey, &result) {
+		utils.Log.Info(fmt.Sprintf("从缓存获取用户[%s:%s]信息成功", citizenID, organization))
+		return &result, nil
+	}
+
 	// 从本地数据库查询用户
 	user, err := s.userDAO.GetUserByCitizenID(citizenID, organization)
 	if err != nil {
@@ -195,6 +213,9 @@ func (s *userService) GetUserByCitizenIDAndOrganization(citizenID, organization 
 		Status:       user.Status,
 	}
 
+	// 将用户信息缓存，过期时间设为10分钟
+	s.cacheService.Set(cacheKey, userDTO, 0, 10*time.Minute)
+
 	return userDTO, nil
 }
 
@@ -208,6 +229,10 @@ func (s *userService) UpdateUser(req *userDto.UpdateUserDTO) error {
 	if user == nil {
 		return fmt.Errorf("用户不存在")
 	}
+
+	// 清除用户缓存
+	cacheKey := cache.UserPrefix + "id:" + req.CitizenID + ":org:" + req.Organization
+	s.cacheService.Remove(cacheKey)
 
 	contract, err := blockchain.GetContract(req.Organization)
 	if err != nil {
