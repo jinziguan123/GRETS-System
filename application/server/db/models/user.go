@@ -7,7 +7,7 @@ type User struct {
 	ID           int64     `gorm:"primaryKey;autoIncrement:true" json:"id"`
 	Name         string    `gorm:"size:50;not null" json:"name"`
 	CitizenID    string    `gorm:"size:18;uniqueIndex:idx_citizen_org;not null" json:"citizenID"`
-	PasswordHash string    `gorm:"size:100;not null" json:"passwordHash"`
+	PasswordHash string    `gorm:"size:255;not null" json:"passwordHash"`
 	Phone        string    `gorm:"size:15" json:"phone"`
 	Email        string    `gorm:"size:100" json:"email"`
 	Role         string    `gorm:"size:20;not null" json:"role"` // 角色：buyer, seller, government, bank, etc.

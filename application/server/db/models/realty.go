@@ -9,7 +9,7 @@ import (
 type Realty struct {
 	ID              int64             `gorm:"primaryKey;autoIncrement:true;size:64" json:"id"` // 房产ID，使用链上生成的唯一标识
 	RealtyCert      string            `gorm:"size:100;not null" json:"realtyCert"`             // 产权证号
-	RealtyCertHash  string            `gorm:"size:100;not null" json:"realtyCertHash"`         // 产权证号Hash
+	RealtyCertHash  string            `gorm:"size:255;not null" json:"realtyCertHash"`         // 产权证号Hash
 	Area            float64           `gorm:"not null" json:"area"`                            // 面积(平方米)
 	Price           float64           `gorm:"not null" json:"price"`                           // 价格
 	HouseType       string            `gorm:"size:50;not null" json:"houseType"`               // 户型：single, double, triple, etc.
