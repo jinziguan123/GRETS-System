@@ -271,3 +271,54 @@ Profiles:
                 - *Investor
             Capabilities:
                 <<: *ApplicationCapabilities
+    
+    # 房产管理通道
+    RealtyChannel:
+        <<: *ChannelDefaults
+        Consortium: GretsConsortium
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *Government
+                - *Audit
+                - *Investor
+            Capabilities:
+                <<: *ApplicationCapabilities
+    
+    # 交易通道
+    TransactionChannel:
+        <<: *ChannelDefaults
+        Consortium: GretsConsortium
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *Government
+                - *Investor
+                - *Bank
+                - *Audit
+            Capabilities:
+                <<: *ApplicationCapabilities
+    
+    # 合同通道
+    ContractChannel:
+        <<: *ChannelDefaults
+        Consortium: GretsConsortium
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *Government
+                - *Investor
+                - *Audit
+            Capabilities:
+                <<: *ApplicationCapabilities
+    # 审计通道
+    AuditChannel:
+        <<: *ChannelDefaults
+        Consortium: GretsConsortium
+        Application:
+            <<: *ApplicationDefaults
+            Organizations:
+                - *Government
+                - *Audit
+            Capabilities:
+                <<: *ApplicationCapabilities
