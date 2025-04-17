@@ -29,6 +29,7 @@
       <!-- 用户名 -->
       <el-form-item prop="name">
         <el-input
+          v-if="registerForm.organization"
           v-model="registerForm.name"
           placeholder="请输入姓名"
           prefix-icon="User"
@@ -38,15 +39,18 @@
       <!-- 身份证号 -->
       <el-form-item prop="citizenID">
         <el-input
+            v-if="registerForm.organization"
           v-model="registerForm.citizenID"
           placeholder="请输入身份证号"
           prefix-icon="User"
+          :disabled="registerForm.organization !== 'investor'"
         />
       </el-form-item>
 
       <!-- 密码 -->
       <el-form-item prop="password">
         <el-input
+            v-if="registerForm.organization"
           v-model="registerForm.password"
           type="password"
           placeholder="请输入密码"
@@ -58,6 +62,7 @@
       <!-- 确认密码 -->
       <el-form-item prop="confirmPassword">
         <el-input
+            v-if="registerForm.organization"
           v-model="registerForm.confirmPassword"
           type="password"
           placeholder="请确认密码"
@@ -69,6 +74,7 @@
       <!-- 电子邮箱 -->
       <el-form-item prop="email">
         <el-input
+            v-if="registerForm.organization"
           v-model="registerForm.email"
           placeholder="请输入电子邮箱"
           prefix-icon="Message"
@@ -78,6 +84,7 @@
       <!-- 手机号码 -->
       <el-form-item prop="phone">
         <el-input
+            v-if="registerForm.organization"
           v-model="registerForm.phone"
           placeholder="请输入手机号码"
           prefix-icon="Phone"
@@ -258,6 +265,8 @@ watch(() => registerForm.organization, (newVal) => {
       const orgName = newVal.charAt(0).toUpperCase() + newVal.slice(1);
       registerForm.citizenID = `${orgName}Default`;
     }
+  }else{
+    registerForm.citizenID = ''
   }
 })
 

@@ -30,6 +30,8 @@
       <el-form-item prop="citizenID">
         <el-input
           v-model="loginForm.citizenID"
+          v-if="loginForm.organization"
+          :disabled="loginForm.organization !== 'investor'"
           placeholder="请输入身份证号"
           prefix-icon="User"
           autocomplete="citizenID"
@@ -40,6 +42,7 @@
       <el-form-item prop="password">
         <el-input
           v-model="loginForm.password"
+          v-if="loginForm.organization"
           type="password"
           placeholder="请输入密码"
           prefix-icon="Lock"
@@ -151,6 +154,19 @@ const loginRules = reactive<FormRules>({
   organization: [
     { required: true, message: '请选择组织', trigger: 'change' }
   ]
+})
+
+// 监听组织变化，非投资者时重置余额
+watch(() => loginForm.organization, (newVal) => {
+  if (newVal !== 'investor') {
+    // 对非投资者组织，设置固定身份证号
+    if (newVal) {
+      const orgName = newVal.charAt(0).toUpperCase() + newVal.slice(1);
+      loginForm.citizenID = `${orgName}Default`;
+    }
+  }else{
+    loginForm.citizenID = ''
+  }
 })
 
 if (localStorage.getItem('token') !== null) {
