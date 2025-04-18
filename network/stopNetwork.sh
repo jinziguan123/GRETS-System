@@ -68,9 +68,9 @@ clean_files() {
     rm -rf config data crypto-config 2>/dev/null || true
 
     log_info "清理链码包..."
-    CHAINCODE_DIR=$(cd .. && pwd)/chaincode/grets_chaincode
+    CHAINCODE_DIR=$(cd .. && pwd)/chaincode
     if [ -d "$CHAINCODE_DIR" ]; then
-        log_info "正在删除 $CHAINCODE_DIR 目录下的 tar.gz 文件..."
+        log_info "正在删除 $CHAINCODE_DIR 目录及其所有子目录下的 tar.gz 文件..."
         find "$CHAINCODE_DIR" -name "*.tar.gz" -type f -exec rm -f {} \; || log_error "删除链码包文件失败"
         log_success "链码包文件清理完成"
     else

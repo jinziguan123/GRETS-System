@@ -256,11 +256,12 @@ Profiles:
                     - *Thirdparty
                     - *Audit
                     - *Investor
+    # 父链通道配置
     GretsChannel:
         <<: *ChannelDefaults
         # 所属联盟
         Consortium: GretsConsortium
-        # 通道组织
+        # 通道组织 - 父链包含所有组织
         Application:
             <<: *ApplicationDefaults
             Organizations:
@@ -272,53 +273,43 @@ Profiles:
             Capabilities:
                 <<: *ApplicationCapabilities
     
-    # 房产管理通道
-    RealtyChannel:
+    # 子链1: 产权交易通道
+    RealtyTransferChannel:
         <<: *ChannelDefaults
         Consortium: GretsConsortium
         Application:
             <<: *ApplicationDefaults
             Organizations:
-                - *Government
-                - *Audit
-                - *Investor
+                - *Government  # 政府部门
+                - *Investor   # 投资者
+                - *Bank       # 银行
+                - *Audit      # 审计部门
             Capabilities:
                 <<: *ApplicationCapabilities
     
-    # 交易通道
-    TransactionChannel:
+    # 子链2: 支付跟踪通道
+    PaymentLogsChannel:
         <<: *ChannelDefaults
         Consortium: GretsConsortium
         Application:
             <<: *ApplicationDefaults
             Organizations:
-                - *Government
-                - *Investor
-                - *Bank
-                - *Audit
+                - *Government # 政府部门
+                - *Bank      # 银行
+                - *Investor  # 投资者
             Capabilities:
                 <<: *ApplicationCapabilities
     
-    # 合同通道
-    ContractChannel:
+    # 子链3: 审计跟踪通道
+    AuditLogsChannel:
         <<: *ChannelDefaults
         Consortium: GretsConsortium
         Application:
             <<: *ApplicationDefaults
             Organizations:
-                - *Government
-                - *Investor
-                - *Audit
-            Capabilities:
-                <<: *ApplicationCapabilities
-    # 审计通道
-    AuditChannel:
-        <<: *ChannelDefaults
-        Consortium: GretsConsortium
-        Application:
-            <<: *ApplicationDefaults
-            Organizations:
-                - *Government
-                - *Audit
+                - *Government # 政府部门
+                - *Audit     # 审计部门
+                - *Bank      # 银行
+                - *Investor  # 投资者
             Capabilities:
                 <<: *ApplicationCapabilities

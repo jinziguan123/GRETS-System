@@ -15,20 +15,13 @@ type SmartContract struct {
 	contractapi.Contract
 }
 
-// 资产状态枚举
-const (
-	StatusNormal        = "NORMAL"         // 正常状态
-	StatusInTransaction = "IN_TRANSACTION" // 交易中
-	StatusMortgaged     = "MORTGAGED"      // 已抵押
-	StatusFrozen        = "FROZEN"         // 已冻结
-)
-
 // 房产状态枚举
 const (
-	RealtyStatusNormal     = "NORMAL"      // 正常
-	RealtyStatusFrozen     = "FROZEN"      // 冻结
-	RealtyStatusInSale     = "IN_SALE"     // 在售
-	RealtyStatusInMortgage = "IN_MORTGAGE" // 抵押中
+	RealtyStatusNormal      = "NORMAL"       // 正常
+	RealtyStatusFrozen      = "FROZEN"       // 冻结
+	RealtyStatusPendingSale = "PENDING_SALE" // 挂牌
+	RealtyStatusInSale      = "IN_SALE"      // 在售
+	RealtyStatusInMortgage  = "IN_MORTGAGE"  // 抵押中
 )
 
 // 房产类型枚举
@@ -713,7 +706,6 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 func (s *SmartContract) QueryRealty(ctx contractapi.TransactionContextInterface,
 	realtyCertHash string,
 ) (*Realty, error) {
-	fmt.Println("realtyCertHash:", realtyCertHash)
 
 	key, err := s.createCompositeKey(ctx, DocTypeRealEstate, []string{realtyCertHash}...)
 	if err != nil {
@@ -834,7 +826,7 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 		return err
 	}
 
-	if realEstatePublic.Status == StatusFrozen {
+	if realEstatePublic.Status == RealtyStatusFrozen {
 		return fmt.Errorf("[UpdateRealty] 房产已被冻结，无法更新")
 	}
 
@@ -984,7 +976,7 @@ func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 检查房产状态
-	if realEstatePublic.Status != StatusNormal {
+	if realEstatePublic.Status != RealtyStatusPendingSale {
 		return fmt.Errorf("[CreateTransaction] 房产状态不允许交易: %s", realEstatePublic.Status)
 	}
 
@@ -1432,7 +1424,7 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 		ctx,
 		realtyIDHash,
 		realEstatePublic.RealtyType,
-		StatusNormal,
+		RealtyStatusNormal,
 		transactionPublic.BuyerCitizenIDHash,
 		transactionPublic.BuyerOrganization,
 		string(previousOwnersCitizenIDHashListJSON),

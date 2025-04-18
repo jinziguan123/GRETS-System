@@ -252,6 +252,6 @@ services:
       - ./crypto-config.yaml:/etc/hyperledger/crypto-config.yaml
       - ./config:/etc/hyperledger/config
       - ./crypto-config:/etc/hyperledger/crypto-config
-      - ./../chaincode/grets_chaincode:/opt/gopath/src/chaincode
+      - ./../chaincode:/opt/gopath/src/chaincode
     networks:
       - grets
