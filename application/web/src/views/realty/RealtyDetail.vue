@@ -93,7 +93,7 @@
           </div>
           
           <!-- 相关操作 -->
-          <div class="actions" v-if="realty.status === 'NORMAL' && hasTransactionPermission">
+          <div class="actions" v-if="realty.status === 'PENDING_SALE' && hasTransactionPermission">
             <el-divider />
             <el-button type="primary" @click="createTransaction" :disabled="isOwner">发起交易</el-button>
           </div>
@@ -244,8 +244,8 @@
         <el-form-item label="状态" prop="status" v-if="canEditStatus">
           <el-select v-model="editForm.status" placeholder="请选择状态" style="width: 100%">
             <el-option label="正常" value="NORMAL" v-if="isOwner || isGovernment"></el-option>
-            <el-option label="交易中" value="IN_TRANSACTION" v-if="isOwner"></el-option>
-            <el-option label="已抵押" value="MORTGAGED" v-if="isGovernment"></el-option>
+            <el-option label="挂牌" value="PENDING_SALE" v-if="isOwner"></el-option>
+            <el-option label="已抵押" value="IN_MORTGAGE" v-if="isGovernment"></el-option>
             <el-option label="已冻结" value="FROZEN" v-if="isGovernment"></el-option>
           </el-select>
         </el-form-item>
@@ -403,7 +403,7 @@ const canEdit = computed(() => {
 const canEditStatus = computed(() => {
   // 政府部门可以在任何情况下修改状态
   // 房产拥有者只能在房产状态为正常时修改状态
-  return isGovernment.value || (isOwner.value && realty.status === 'NORMAL')
+  return isGovernment.value || (isOwner.value && (realty.status === 'NORMAL' || realty.status === 'PENDING_SALE'))
 })
 
 // 计算属性：是否有交易权限
@@ -426,9 +426,10 @@ const getStatusTagType = (status) => {
 const getStatusText = (status) => {
   const statusMap = {
     'NORMAL': '正常',
-    'IN_TRANSACTION': '交易中',
-    'MORTGAGED': '已抵押',
-    'FROZEN': '已冻结'
+    'IN_SALE': '在售',
+    'IN_MORTGAGE': '抵押中',
+    'FROZEN': '已冻结',
+    'PENDING_SALE': '挂牌'
   }
   return statusMap[status] || status
 }

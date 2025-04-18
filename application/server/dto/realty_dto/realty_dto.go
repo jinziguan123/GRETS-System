@@ -61,6 +61,7 @@ type UpdateRealtyDTO struct {
 	RealtyCert      string   `json:"realtyCert" binding:"required"` // 不动产证号
 	RealtyType      string   `json:"realtyType,omitempty"`          // 类型
 	HouseType       string   `json:"houseType,omitempty"`           // 户型
+	IsNewHouse      *bool    `json:"isNewHouse,omitempty"`          // 是否为新房
 	RelContractUUID string   `json:"relContractUUID,omitempty"`     // 关联合同UUID
 	Price           float64  `json:"price,omitempty"`               // 价格
 	Status          string   `json:"status,omitempty"`              // 状态

@@ -273,8 +273,9 @@ const getRandomImage = (id) => {
 const getStatusClass = (status) => {
   const statusMap = {
     'NORMAL': 'status-normal',
-    'IN_TRANSACTION': 'status-pending',
+    'IN_SALE': 'status-pending',
     'MORTGAGED': 'status-mortgaged',
+    'PENDING_SALE': 'status-pendingSale',
     'FROZEN': 'status-frozen'
   }
   return statusMap[status] || ''
@@ -283,9 +284,10 @@ const getStatusClass = (status) => {
 // 获取状态文本
 const getStatusText = (status) => {
   const statusMap = {
-    'NORMAL': '可交易',
-    'IN_TRANSACTION': '交易中',
-    'MORTGAGED': '已抵押',
+    'NORMAL': '正常',
+    'IN_SALE': '交易中',
+    'IN_MORTGAGE': '已抵押',
+    'PENDING_SALE': '挂牌中',
     'FROZEN': '已冻结'
   }
   return statusMap[status] || '未知状态'

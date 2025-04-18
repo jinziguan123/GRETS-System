@@ -537,6 +537,9 @@ func (s *realtyService) UpdateRealty(req *realtyDto.UpdateRealtyDTO) error {
 	if req.RelContractUUID != "" {
 		realty.RelContractUUID = req.RelContractUUID
 	}
+	if req.IsNewHouse != nil {
+		realty.IsNewHouse = *req.IsNewHouse
+	}
 
 	if err := s.realtyDAO.UpdateRealEstate(realty); err != nil {
 		return fmt.Errorf("更新房产失败: %v", err)

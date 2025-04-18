@@ -354,7 +354,12 @@ func (s *transactionService) CompleteTransaction(completeTransactionDTO *transac
 		utils.Log.Error(fmt.Sprintf("获取房产信息失败: %v", err))
 		return fmt.Errorf("获取房产信息失败: %v", err)
 	}
-	realtyModel.IsNewHouse = false
-	realtyModel.Status = constants.RealtyStatusNormal
-	return dao.NewRealEstateDAO().UpdateRealEstate(realtyModel)
+
+	GlobalRealtyService.UpdateRealty(&realtyDto.UpdateRealtyDTO{
+		RealtyCert: realtyModel.RealtyCert,
+		IsNewHouse: &[]bool{false}[0],
+		Status:     constants.RealtyStatusNormal,
+	})
+
+	return nil
 }

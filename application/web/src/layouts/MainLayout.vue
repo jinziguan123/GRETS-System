@@ -76,15 +76,15 @@
 <!--        </el-sub-menu>-->
         
         <!-- 抵押贷款 - 投资者和银行可见 -->
-        <el-sub-menu index="/mortgage" v-if="hasOrganization(['investor', 'bank'])">
-          <template #title>
-            <el-icon><CreditCard /></el-icon>
-            <span>抵押贷款</span>
-          </template>
-          <el-menu-item index="/mortgage">贷款列表</el-menu-item>
-          <el-menu-item index="/mortgage/create" v-if="hasOrganization('investor')">申请贷款</el-menu-item>
-          <el-menu-item index="/mortgage/approve" v-if="hasOrganization('bank')">贷款审批</el-menu-item>
-        </el-sub-menu>
+<!--        <el-sub-menu index="/mortgage" v-if="hasOrganization(['investor', 'bank'])">-->
+<!--          <template #title>-->
+<!--            <el-icon><CreditCard /></el-icon>-->
+<!--            <span>抵押贷款</span>-->
+<!--          </template>-->
+<!--          <el-menu-item index="/mortgage">贷款列表</el-menu-item>-->
+<!--          <el-menu-item index="/mortgage/create" v-if="hasOrganization('investor')">申请贷款</el-menu-item>-->
+<!--          <el-menu-item index="/mortgage/approve" v-if="hasOrganization('bank')">贷款审批</el-menu-item>-->
+<!--        </el-sub-menu>-->
         
         <!-- 统计分析 - 政府和银行可见 -->
         <el-sub-menu index="/statistics" v-if="hasOrganization(['government', 'bank'])">
