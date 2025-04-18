@@ -344,6 +344,10 @@ func (s *transactionService) CompleteTransaction(completeTransactionDTO *transac
 		return fmt.Errorf("完成交易失败: %v", err)
 	}
 
+	// 删除缓存
+	s.cacheService.Remove(cache.RealtyPrefix + "cert:" + transaction.RealtyCertHash)
+	s.cacheService.Remove(cache.RealtyPrefix + "hash:" + transaction.RealtyCertHash)
+
 	// 修改房产信息
 	realtyModel, err := dao.NewRealEstateDAO().GetRealtyByRealtyCertHash(transaction.RealtyCertHash)
 	if err != nil {

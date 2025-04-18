@@ -320,7 +320,7 @@ const canAcceptTransaction = computed(() => {
   if (!userInfo.value || !transactionInfo.value) return false
 
   // 卖方且交易状态为待审核或进行中
-  return isSeller.value && ['PENDING', 'IN_PROGRESS'].includes(transactionInfo.value.status)
+  return isSeller.value && ['PENDING'].includes(transactionInfo.value.status)
 })
 
 // 获取交易详情
