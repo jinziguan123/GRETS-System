@@ -66,6 +66,7 @@
           :loading="loading"
           class="w-100"
           @click="handleLogin"
+          @keydown.enter="handleEnter"
         >
           {{ loading ? '登录中...' : '登录' }}
         </el-button>
@@ -212,6 +213,17 @@ const handleLogin = (): void => {
 const forgotPassword = (): void => {
   router.push('/forgot-password')
 }
+
+onMounted(() => {
+  window.addEventListener('keydown', handleEnter);
+});
+
+const handleEnter = (e) => {
+  if (e.keyCode === 13 || e.keyCode === 108) {
+    handleLogin()
+  }
+}
+
 </script>
 
 <style scoped>

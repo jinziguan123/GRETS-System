@@ -77,7 +77,7 @@
         <!-- 房产信息 -->
         <el-descriptions v-if="realtyInfo" title="房产信息" :column="3" border class="section-mt">
           <el-descriptions-item label="房产地址">{{ generateAddress(realtyInfo) }}</el-descriptions-item>
-          <el-descriptions-item label="房产类型">{{ realtyInfo.realtyType }}</el-descriptions-item>
+          <el-descriptions-item label="房产类型">{{ getRealtyTypeText(realtyInfo.realtyType) }}</el-descriptions-item>
           <el-descriptions-item label="建筑面积">{{ realtyInfo.area }} 平方米</el-descriptions-item>
           <el-descriptions-item label="房产状态">{{ getRealtyStatusText(realtyInfo.status) }}</el-descriptions-item>
           <el-descriptions-item label="参考价格">{{ formatPrice(realtyInfo.price) }}</el-descriptions-item>
@@ -374,6 +374,18 @@ const generateAddress = (item) => {
   return `${item.province || ''}${item.province ? '省' : ''}${item.city || ''}${item.city ? '市' : ''}${item.district || ''}${item.district ? '区' : ''}${item.street || ''}${item.community || ''}${item.unit || ''}${item.unit ? '单元' : ''}${item.floor || ''}${item.floor ? '楼' : ''}${item.room || ''}${item.room ? '号' : ''}`
 }
 
+// 获取房产类型文本
+const getRealtyTypeText = (type) => {
+  const typeMap = {
+    'HOUSE': '住宅',
+    'SHOP': '商铺',
+    'OFFICE': '办公',
+    'INDUSTRIAL': '工业',
+    'OTHER': '其他'
+  }
+  return typeMap[type] || type
+}
+
 // 获取合同详情
 const fetchContractDetail = async (contractUUID) => {
   try {
@@ -616,9 +628,10 @@ const getStatusText = (status) => {
 const getRealtyStatusText = (status) => {
   const statusMap = {
     'NORMAL': '正常',
-    'IN_TRANSACTION': '交易中',
-    'MORTGAGED': '已抵押',
-    'FROZEN': '已冻结'
+    'IN_SALE': '交易中',
+    'IN_MORTGAGE': '已抵押',
+    'FROZEN': '已冻结',
+    'PENDING_SALE': '挂牌'
   }
   return statusMap[status] || status
 }
