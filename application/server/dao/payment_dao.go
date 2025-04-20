@@ -41,6 +41,16 @@ func (dao *PaymentDAO) CreatePayment(payment *models.Payment) error {
 	return nil
 }
 
+// GetTotalPaymentAmount 获取总支付金额
+func (dao *PaymentDAO) GetTotalPaymentAmount() (int64, error) {
+	// 获取所有支付记录的amount字段并且相加
+	var totalAmount int64
+	if err := dao.mysqlDB.Model(&models.Payment{}).Select("SUM(amount) as total_amount").Scan(&totalAmount).Error; err != nil {
+		return 0, fmt.Errorf("获取总支付金额失败: %v", err)
+	}
+	return totalAmount, nil
+}
+
 // GetPaymentByID 根据ID获取支付记录
 func (dao *PaymentDAO) GetPaymentByID(id string) (*models.Payment, error) {
 	var payment models.Payment

@@ -1,11 +1,12 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
 	"grets_server/dao"
 	paymentDto "grets_server/dto/payment_dto"
 	"grets_server/pkg/utils"
 	"grets_server/service"
+
+	"github.com/gin-gonic/gin"
 )
 
 // PaymentController 支付控制器结构体
@@ -139,6 +140,21 @@ func (c *PaymentController) CompletePayment(ctx *gin.Context) {
 	utils.ResponseSuccess(ctx, "支付完成成功", nil)
 }
 
+// GetTotalPaymentAmount 获取总支付金额
+func (c *PaymentController) GetTotalPaymentAmount(ctx *gin.Context) {
+	// 调用服务获取总支付金额
+	totalAmount, err := c.paymentService.GetTotalPaymentAmount()
+	if err != nil {
+		utils.ResponseInternalServerError(ctx, err.Error())
+		return
+	}
+
+	// 返回成功结果
+	utils.ResponseSuccess(ctx, "获取总支付金额成功", gin.H{
+		"totalAmount": totalAmount,
+	})
+}
+
 // GlobalPaymentController 创建全局支付控制器实例
 var GlobalPaymentController *PaymentController
 
@@ -170,4 +186,8 @@ func ConfirmPayment(c *gin.Context) {
 
 func PayForTransaction(c *gin.Context) {
 	GlobalPaymentController.PayForTransaction(c)
+}
+
+func GetTotalPaymentAmount(c *gin.Context) {
+	GlobalPaymentController.GetTotalPaymentAmount(c)
 }

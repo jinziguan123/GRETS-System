@@ -30,6 +30,7 @@ type PaymentService interface {
 	VerifyPayment(id string) error
 	CompletePayment(id string) error
 	PayForTransaction(dto *paymentDto.PayForTransactionDTO) error
+	GetTotalPaymentAmount() (int64, error)
 }
 
 // paymentService 支付服务实现
@@ -40,6 +41,17 @@ type paymentService struct {
 // NewPaymentService 创建支付服务实例
 func NewPaymentService(paymentDAO *dao.PaymentDAO) PaymentService {
 	return &paymentService{paymentDAO: paymentDAO}
+}
+
+// GetTotalPaymentAmount 获取总支付金额
+func (s *paymentService) GetTotalPaymentAmount() (int64, error) {
+	// 从数据库获取总支付金额
+	totalAmount, err := s.paymentDAO.GetTotalPaymentAmount()
+	if err != nil {
+		return 0, fmt.Errorf("获取总支付金额失败: %v", err)
+	}
+
+	return totalAmount, nil
 }
 
 // PayForTransaction 支付交易

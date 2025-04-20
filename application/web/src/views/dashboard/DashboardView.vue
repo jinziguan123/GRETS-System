@@ -61,7 +61,7 @@
     <div class="quick-access">
       <h2>快速访问</h2>
       <el-row :gutter="20">
-        <el-col :xs="24" :sm="8" v-for="menu in quickAccessMenus" :key="menu.path">
+        <el-col :xs="24" :sm="6" v-for="menu in quickAccessMenus" :key="menu.path">
           <div class="quick-card" @click="router.push(menu.path)">
             <el-icon>
               <component :is="menu.icon"></component>
@@ -79,6 +79,10 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user.ts'
 import { House, Sell, Document, Money, CreditCard, DataAnalysis } from '@element-plus/icons-vue'
+import {queryContractList} from "@/api/contract.ts";
+import {queryRealtyList} from "@/api/realty.ts";
+import {queryTransactionList} from "@/api/transaction.ts";
+import {getTotalPaymentAmount} from "@/api/payment.ts";
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -111,7 +115,6 @@ const menus: QuickMenu[] = [
   { title: '交易列表', path: '/transaction', icon: 'Sell', organizations: ['government', 'investor', 'bank', 'audit'] },
   { title: '合同列表', path: '/contract', icon: 'Document', organizations: ['government', 'investor', 'bank', 'audit'] },
   { title: '支付列表', path: '/payment', icon: 'Money', organizations: ['investor', 'bank'] },
-  { title: '抵押贷款', path: '/mortgage', icon: 'CreditCard', organizations: ['investor', 'bank'] },
   { title: '统计分析', path: '/statistics/transaction', icon: 'DataAnalysis', organizations: ['government', 'bank'] }
 ]
 
@@ -131,14 +134,26 @@ const formatCurrency = (value: number): string => {
 // 获取统计数据
 const fetchStats = async () => {
   try {
-    // 这里应该调用API获取真实数据
-    // 暂时使用模拟数据
-    setTimeout(() => {
-      stats.realtyCount = 128
-      stats.transactionCount = 56
-      stats.contractCount = 72
-      stats.totalAmount = 89650000
-    }, 500)
+    const contractResponse = await queryContractList({
+      pageNumber: 1,
+      pageSize: 1000,
+    })
+    stats.contractCount = contractResponse.total
+
+    const realtyResponse = await queryRealtyList({
+      pageNumber: 1,
+      pageSize: 1000,
+    })
+    stats.realtyCount = realtyResponse.total
+
+    const transactionResponse = await queryTransactionList({
+      pageNumber: 1,
+      pageSize: 1000,
+    })
+    stats.transactionCount = transactionResponse.total
+
+    const totalAmount = await getTotalPaymentAmount()
+    stats.totalAmount = totalAmount.totalAmount
   } catch (error) {
     console.error('Failed to fetch stats:', error)
   }

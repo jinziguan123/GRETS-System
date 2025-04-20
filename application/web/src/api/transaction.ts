@@ -60,12 +60,12 @@ export function completeTransaction(data: {
 
 // 交易条件查询
 export function queryTransactionList(data: {
-  buyerCitizenID: string
-  sellerCitizenID: string
-  realtyCert: string
-  status: string
+  buyerCitizenID?: string
+  sellerCitizenID?: string
+  realtyCert?: string
+  status?: string
   pageSize: number
-  pageNum: number
+  pageNumber: number
 }){
   return request({
     url: '/transactions/queryTransactionList',

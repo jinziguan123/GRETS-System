@@ -54,4 +54,11 @@ export function payForTransaction(data: {
     method: 'post',
     data
   })
-} 
+}
+
+export function getTotalPaymentAmount(){
+  return request({
+    url: '/payments/getTotalPaymentAmount',
+    method: 'get'
+  })
+}

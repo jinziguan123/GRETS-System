@@ -102,6 +102,7 @@ func SetupRouter() *gin.Engine {
 			payments.POST("/payForTransaction", controller.PayForTransaction)
 			payments.GET("/:id", controller.GetPaymentByUUID)
 			payments.POST("/:id/verify", controller.VerifyPayment)
+			payments.GET("/getTotalPaymentAmount", controller.GetTotalPaymentAmount)
 		}
 
 		// 合同相关接口
