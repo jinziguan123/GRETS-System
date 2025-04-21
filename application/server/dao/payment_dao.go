@@ -92,6 +92,8 @@ func (dao *PaymentDAO) QueryPayments(
 				query = query.Where("receiver_citizen_id_hash = ?", v)
 			} else if field == "payment_type" {
 				query = query.Where("payment_type = ?", v)
+			} else if field == "payment_uuid" {
+				query = query.Where("payment_uuid = ?", v)
 			}
 		}
 	}

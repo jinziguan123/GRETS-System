@@ -185,6 +185,9 @@ func (s *paymentService) QueryPaymentList(dto *paymentDto.QueryPaymentDTO) ([]*p
 	conditions := make(map[string]interface{})
 
 	// 添加查询条件
+	if dto.PaymentUUID != "" {
+		conditions["payment_uuid"] = dto.PaymentUUID
+	}
 	if dto.TransactionUUID != "" {
 		conditions["transaction_uuid"] = dto.TransactionUUID
 	}

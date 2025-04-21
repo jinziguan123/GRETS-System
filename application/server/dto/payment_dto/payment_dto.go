@@ -41,6 +41,7 @@ type CreatePaymentDTO struct {
 }
 
 type QueryPaymentDTO struct {
+	PaymentUUID       string `json:"paymentUUID"`
 	TransactionUUID   string `json:"transactionUUID"`
 	PaymentType       string `json:"paymentType"` // 支付类型：deposit, full_payment, balance
 	PayerCitizenID    string `json:"payerCitizenID"`
