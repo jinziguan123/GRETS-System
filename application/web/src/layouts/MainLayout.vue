@@ -62,7 +62,6 @@
             <span>支付管理</span>
           </template>
           <el-menu-item index="/payment">支付列表</el-menu-item>
-          <el-menu-item index="/payment/create" v-if="hasOrganization('investor')">创建支付</el-menu-item>
         </el-sub-menu>
 
 <!--        &lt;!&ndash; 税费管理 - 政府和投资者可见 &ndash;&gt;-->

@@ -37,8 +37,6 @@ const ContractAudit = () => import('@/views/contract/ContractAudit.vue')
 
 // 支付管理
 const PaymentList = () => import('@/views/payment/PaymentList.vue')
-const PaymentDetail = () => import('@/views/payment/PaymentDetail.vue')
-const PaymentCreate = () => import('@/views/payment/PaymentCreate.vue')
 
 // 税费管理
 const TaxList = () => import('@/views/tax/TaxList.vue')
@@ -188,18 +186,6 @@ const routes: Array<RouteRecordRaw> = [
             name: 'PaymentList',
             component: PaymentList,
             meta: { title: '支付列表', organizations: ['investor', 'bank'] } as RouteMeta
-          },
-          {
-            path: 'create',
-            name: 'PaymentCreate',
-            component: PaymentCreate,
-            meta: { title: '创建支付', organizations: ['investor'] } as RouteMeta
-          },
-          {
-            path: ':id',
-            name: 'PaymentDetail',
-            component: PaymentDetail,
-            meta: { title: '支付详情', organizations: ['investor', 'bank'] } as RouteMeta
           }
         ]
       },
