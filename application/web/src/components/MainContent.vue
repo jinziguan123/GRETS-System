@@ -58,6 +58,28 @@ const hasPermission = computed(() => {
   return allowedPaths.some(path => route.path.startsWith(path))
 })
 
+// 路由标题映射表
+const routeTitleMap = {
+  '': '首页',
+  'realty': '房产管理',
+  'transaction': '交易管理',
+  'contract': '合同管理',
+  'payment': '支付管理',
+  'tax': '税费管理',
+  'mortgage': '抵押贷款管理',
+  'statistics': '统计分析',
+  'user': '用户管理',
+  'create': '创建',
+  'edit': '编辑',
+  'detail': '详情',
+  'chat': '聊天室',
+  'audit': '审核',
+  'profile': '个人资料',
+  'change-password': '修改密码',
+  'transaction-statistics': '交易统计',
+  'loan': '贷款统计'
+}
+
 // 面包屑导航
 const breadcrumbs = computed(() => {
   const crumbs = [{ title: '首页', path: '/' }]
@@ -66,19 +88,50 @@ const breadcrumbs = computed(() => {
     return crumbs
   }
   
-  const paths = route.path.split('/').filter(Boolean)
-  
+  const pathSegments = route.path.split('/').filter(Boolean)
   let currentPath = ''
-  paths.forEach(path => {
-    currentPath += `/${path}`
-    const currentRoute = router.resolve(currentPath).matched[0]
-    if (currentRoute) {
-      crumbs.push({
-        title: currentRoute.meta.title || path,
-        path: currentPath
-      })
+  
+  // 遍历路径段来构建面包屑
+  for (let i = 0; i < pathSegments.length; i++) {
+    const segment = pathSegments[i]
+    currentPath += `/${segment}`
+    
+    // 查找当前路径匹配的路由配置
+    const matchedRoute = router.resolve(currentPath).matched[0]
+    
+    // 查找该段路径对应的路由配置
+    let title = ''
+    
+    // 如果是动态参数路径(如/:id)
+    if (segment.match(/^[0-9a-fA-F]{8,}$/)) {
+      // 看起来像UUID或ID，直接显示
+      title = segment
+    } else {
+      // 优先从路由元数据获取标题
+      if (matchedRoute && matchedRoute.meta && matchedRoute.meta.title) {
+        // 当前路径有直接对应的路由配置
+        title = matchedRoute.meta.title
+      } else if (i > 0 && segment === 'create') {
+        // 创建页面
+        title = `创建${routeTitleMap[pathSegments[i-1].replace('-', '')] || ''}`
+      } else if (i > 0 && segment === 'edit') {
+        // 编辑页面
+        title = `编辑${routeTitleMap[pathSegments[i-1].replace('-', '')] || ''}`
+      } else if (i > 0 && segment === 'audit') {
+        // 审核页面
+        title = `${routeTitleMap[pathSegments[i-1].replace('-', '')] || ''}审核`
+      } else {
+        // 从映射表查找或直接使用段名
+        title = routeTitleMap[segment] || segment
+      }
     }
-  })
+    
+    // 添加到面包屑
+    crumbs.push({
+      title: title,
+      path: currentPath
+    })
+  }
   
   return crumbs
 })
