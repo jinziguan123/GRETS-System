@@ -23,7 +23,13 @@ database:
 # Fabric网络配置
 fabric:
   channelName: gretschannel
-  chaincodeName: gretschaincode
+  chainCodeName: gretschaincode
+  realtyTransferChannelName: realtytransferchannel
+  realtyTransferChainCode: realtytransfercode
+  paymentLogsChannelName: paymentlogschannel
+  paymentLogsChainCode: paymentlogscode
+  auditLogsChannelName: auditlogschannel
+  auditLogsChainCode: auditlogscode
   organizations:
     government:
       mspID: GovernmentMSP
