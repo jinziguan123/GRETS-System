@@ -13,8 +13,9 @@ import (
 	"sync"
 	"time"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/boltdb/bolt"
-	"github.com/gogo/protobuf/proto"
 	"github.com/hyperledger/fabric-gateway/pkg/client"
 	"github.com/hyperledger/fabric-protos-go-apiv2/common"
 )
@@ -249,6 +250,9 @@ func (l *blockListener) saveBlock(orgName string, block *common.Block) {
 
 	blockHash := sha256.Sum256(headerBytes)
 
+	env, _ := l.GetEnvelopeListFromBlock(block)
+	channelHeader, _ := l.GetChannelHeaderFromEnvelope(env[0])
+
 	// 准备区块数据
 	blockData := BlockData{
 		BlockNumber: blockNum,
@@ -256,7 +260,7 @@ func (l *blockListener) saveBlock(orgName string, block *common.Block) {
 		DataHash:    fmt.Sprintf("%x", block.GetHeader().GetDataHash()),
 		PrevHash:    fmt.Sprintf("%x", block.GetHeader().GetPreviousHash()),
 		TxCount:     len(block.GetData().GetData()),
-		SaveTime:    time.Now(),
+		SaveTime:    channelHeader.Timestamp.AsTime(),
 		Data:        block.GetData().GetData(),
 	}
 
@@ -401,10 +405,26 @@ func (l *blockListener) GetBlocksByOrg(orgName string, pageNum int, pageSize int
 	return &result, nil
 }
 
-func (l *blockListener) GetEnvelopeFromBlock(block *common.Block) (*common.Envelope, error) {
-	env := &common.Envelope{}
-	if err := proto.Unmarshal(block.Data.Data[0], env); err != nil {
-		return nil, fmt.Errorf("解码Envelope失败: %v", err)
+func (l *blockListener) GetEnvelopeListFromBlock(block *common.Block) ([]*common.Envelope, error) {
+	var envelopes []*common.Envelope
+	for _, envBytes := range block.Data.Data {
+		envelope := &common.Envelope{}
+		if err := proto.Unmarshal(envBytes, envelope); err != nil {
+			return nil, fmt.Errorf("getEnvelopeFromBlock error: %v", err)
+		}
+		envelopes = append(envelopes, envelope)
 	}
-	return env, nil
+	return envelopes, nil
+}
+
+func (l *blockListener) GetChannelHeaderFromEnvelope(env *common.Envelope) (*common.ChannelHeader, error) {
+	payload := &common.Payload{}
+	if err := proto.Unmarshal(env.Payload, payload); err != nil {
+		return nil, fmt.Errorf("getChannelHeaderFromEnvelope error: %v", err)
+	}
+	channelHeader := &common.ChannelHeader{}
+	if err := proto.Unmarshal(payload.Header.ChannelHeader, channelHeader); err != nil {
+		return nil, fmt.Errorf("getChannelHeaderFromEnvelope error: %v", err)
+	}
+	return channelHeader, nil
 }

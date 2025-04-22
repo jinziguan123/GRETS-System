@@ -8,15 +8,6 @@
       :destroy-on-close="false"
     >
       <div class="block-drawer-container">
-        <el-form :model="formState" inline @submit.prevent="handleSubmit">
-          <el-form-item label="区块号">
-            <el-input v-model="formState.blockNumber" placeholder="请输入区块号" clearable />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" native-type="submit" :loading="loading">查询</el-button>
-            <el-button style="margin-left: 8px" @click="resetForm">重置</el-button>
-          </el-form-item>
-        </el-form>
 
         <div class="block-list-container" v-loading="loading" element-loading-text="加载中...">
           <el-empty v-if="blockList.length === 0 && !loading" description="暂无数据" />
