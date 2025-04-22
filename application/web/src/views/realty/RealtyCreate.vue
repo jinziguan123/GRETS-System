@@ -59,13 +59,13 @@
         <el-form-item label="状态" prop="status">
           <el-select v-model="realtyForm.status" placeholder="请选择房产状态" style="width: 100%">
             <el-option label="正常" value="NORMAL"></el-option>
-            <el-option label="交易中" value="IN_TRANSACTION"></el-option>
-            <el-option label="已抵押" value="MORTGAGED"></el-option>
+            <el-option label="挂牌" value="PENDING_SALE"></el-option>
+            <el-option label="已抵押" value="IN_MORTGAGE"></el-option>
             <el-option label="已冻结" value="FROZEN"></el-option>
           </el-select>
         </el-form-item>
         
-        <el-form-item label="关联合同" prop="contractID" v-if="realtyForm.status === 'NORMAL'">
+        <el-form-item label="关联合同" prop="contractID" v-if="realtyForm.status === 'PENDING_SALE'">
           <el-select v-model="realtyForm.contractUUID" placeholder="请选择关联合同" style="width: 100%" filterable>
             <el-option 
               v-for="contract in contractList" 
@@ -96,21 +96,26 @@
             </el-form-item>
           </el-col>
         </el-row>
-        
-        <el-form-item label="街道" prop="street">
-          <el-input v-model="realtyForm.street" placeholder="请输入街道"></el-input>
-        </el-form-item>
-        
-        <el-form-item label="小区" prop="community">
-          <el-input v-model="realtyForm.community" placeholder="请输入小区名称"></el-input>
-        </el-form-item>
-        
+
         <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="街道" prop="street">
+              <el-input v-model="realtyForm.street" placeholder="请输入街道"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="小区" prop="community">
+              <el-input v-model="realtyForm.community" placeholder="请输入小区名称"></el-input>
+            </el-form-item>
+          </el-col>
           <el-col :span="8">
             <el-form-item label="单元" prop="unit">
               <el-input v-model="realtyForm.unit" placeholder="请输入单元"></el-input>
             </el-form-item>
           </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="楼层" prop="floor">
               <el-input v-model="realtyForm.floor" placeholder="请输入楼层"></el-input>

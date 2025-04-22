@@ -499,7 +499,7 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("[CreateRealty] 序列化房产私钥失败: %v", err)
 	}
 
-	err = ctx.GetStub().PutPrivateData(constances.RealEstatePrivateCollection, realtyCertHash, realEstatePrivateJSON)
+	err = ctx.GetStub().PutPrivateData(constances.RealEstatePrivateCollection, key, realEstatePrivateJSON)
 	if err != nil {
 		return fmt.Errorf("[CreateRealty] 保存房产私钥失败: %v", err)
 	}
@@ -576,7 +576,7 @@ func (s *SmartContract) QueryRealty(ctx contractapi.TransactionContextInterface,
 	}
 
 	var realEstatePrivate models.RealtyPrivate
-	realEstatePrivateBytes, err := ctx.GetStub().GetPrivateData(constances.RealEstatePrivateCollection, realtyCertHash)
+	realEstatePrivateBytes, err := ctx.GetStub().GetPrivateData(constances.RealEstatePrivateCollection, key)
 	if err != nil {
 		return nil, fmt.Errorf("[QueryRealty] 查询房产私钥失败: %v", err)
 	}
@@ -679,8 +679,14 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 		return fmt.Errorf("[UpdateRealty] 房产已被冻结，无法更新")
 	}
 
+	// 获取复合键
+	key, err := s.createCompositeKey(ctx, constances.DocTypeRealEstate, []string{realEstatePublic.RealtyCertHash}...)
+	if err != nil {
+		return err
+	}
+
 	// 查询房产私钥
-	realEstatePrivateBytes, err := ctx.GetStub().GetPrivateData(constances.RealEstatePrivateCollection, realtyCertHash)
+	realEstatePrivateBytes, err := ctx.GetStub().GetPrivateData(constances.RealEstatePrivateCollection, key)
 	if err != nil {
 		return fmt.Errorf("[UpdateRealty] 查询房产私钥失败: %v", err)
 	}
@@ -727,12 +733,6 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 	}
 	realEstatePublic.LastUpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
-	// 获取复合键
-	key, err := s.createCompositeKey(ctx, constances.DocTypeRealEstate, []string{realEstatePublic.RealtyCertHash}...)
-	if err != nil {
-		return err
-	}
-
 	// 序列化并保存
 	realEstatePublicJSON, err := json.Marshal(realEstatePublic)
 	if err != nil {
@@ -746,7 +746,7 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 	if err != nil {
 		return fmt.Errorf("[UpdateRealty] 序列化房产私钥失败: %v", err)
 	}
-	err = ctx.GetStub().PutPrivateData(constances.RealEstatePrivateCollection, realtyCertHash, realEstatePrivateJSON)
+	err = ctx.GetStub().PutPrivateData(constances.RealEstatePrivateCollection, key, realEstatePrivateJSON)
 	if err != nil {
 		return fmt.Errorf("[UpdateRealty] 保存房产私钥失败: %v", err)
 	}
