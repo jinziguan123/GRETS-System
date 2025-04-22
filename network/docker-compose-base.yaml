@@ -58,3 +58,12 @@ services:
     command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
     networks:
       - grets
+
+    # couchDB
+  couchdb-base:
+    image: couchdb:latest
+    environment:
+      - COUCHDB_USER=admin  # 可选：设置管理员账户
+      - COUCHDB_PASSWORD=adminpw
+    networks:
+      - grets

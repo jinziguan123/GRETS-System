@@ -121,6 +121,47 @@ services:
       - ./crypto-config/ordererOrganizations/grets.com/orderers/orderer3.grets.com/:/etc/hyperledger/orderer
       - ./data/orderer3.grets.com:/var/hyperledger/production/orderer
 
+  # couchDB 服务
+  couchdb.government.grets.com:
+    container_name: couchdb.government.grets.com
+    extends:
+      file: docker-compose-base.yaml
+      service: couchdb-base
+    ports:
+      - "5984:5984"
+
+  couchdb.bank.grets.com:
+    container_name: couchdb.bank.grets.com
+    extends:
+      file: docker-compose-base.yaml
+      service: couchdb-base
+    ports:
+      - "6084:5984"
+
+  couchdb.thirdparty.grets.com:
+    container_name: couchdb.thirdparty.grets.com
+    extends:
+      file: docker-compose-base.yaml
+      service: couchdb-base
+    ports:
+      - "6184:5984"
+
+  couchdb.audit.grets.com:
+    container_name: couchdb.audit.grets.com
+    extends:
+      file: docker-compose-base.yaml
+      service: couchdb-base
+    ports:
+      - "6284:5984"
+
+  couchdb.investor.grets.com:
+    container_name: couchdb.investor.grets.com
+    extends:
+      file: docker-compose-base.yaml
+      service: couchdb-base
+    ports:
+      - "6384:5984"
+
   # Peer 服务
   peer0.government.grets.com:
     extends:
@@ -134,6 +175,10 @@ services:
       - CORE_PEER_CHAINCODEADDRESS=peer0.government.grets.com:7052 # peer节点的链码访问地址
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.government.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.government.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB  # 启用CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb.government.grets.com:5984  # CouchDB地址
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin  # 与CouchDB服务配置一致
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
     ports:
       - "7051:7051"
       - "7053:7053"
@@ -144,6 +189,7 @@ services:
       - orderer1.grets.com
       - orderer2.grets.com
       - orderer3.grets.com
+      - couchdb.government.grets.com
 
   peer0.bank.grets.com:
     extends:
@@ -156,7 +202,11 @@ services:
       - CORE_PEER_ADDRESS=peer0.bank.grets.com:7051  # peer节点的访问地址
       - CORE_PEER_CHAINCODEADDRESS=peer0.bank.grets.com:7052 # peer节点的链码访问地址
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.bank.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.bank.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）  
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.bank.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB  # 启用CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb.bank.grets.com:5984  # CouchDB地址
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin  # 与CouchDB服务配置一致
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw  
     ports:
       - "8051:7051"
       - "8053:7053"
@@ -167,6 +217,7 @@ services:
       - orderer1.grets.com
       - orderer2.grets.com
       - orderer3.grets.com
+      - couchdb.bank.grets.com
 
   peer0.thirdparty.grets.com:
     extends:
@@ -180,6 +231,10 @@ services:
       - CORE_PEER_CHAINCODEADDRESS=peer0.thirdparty.grets.com:7052 # peer节点的链码访问地址
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.thirdparty.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.thirdparty.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB  # 启用CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb.thirdparty.grets.com:5984  # CouchDB地址
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin  # 与CouchDB服务配置一致
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw  
     ports:
       - "9051:7051"
       - "9053:7053"
@@ -190,6 +245,7 @@ services:
       - orderer1.grets.com
       - orderer2.grets.com
       - orderer3.grets.com
+      - couchdb.thirdparty.grets.com
 
   peer0.audit.grets.com:
     extends:
@@ -203,6 +259,10 @@ services:
       - CORE_PEER_CHAINCODEADDRESS=peer0.audit.grets.com:7052 # peer节点的链码访问地址
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.audit.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.audit.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点） 
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB  # 启用CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb.audit.grets.com:5984  # CouchDB地址
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin  # 与CouchDB服务配置一致
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw  
     ports:
       - "10051:7051"
       - "10053:7053"
@@ -213,6 +273,7 @@ services:
       - orderer1.grets.com
       - orderer2.grets.com
       - orderer3.grets.com
+      - couchdb.audit.grets.com
 
   peer0.investor.grets.com:
     extends:
@@ -226,6 +287,10 @@ services:
       - CORE_PEER_CHAINCODEADDRESS=peer0.investor.grets.com:7052 # peer节点的链码访问地址
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.investor.grets.com:7051 # Gossip引导节点，联络列表中的其他 peer 节点进行消息的 gossip 传播
       - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.investor.grets.com:7051 # 节点向组织外节点公开的服务地址（通过锚节点广播出去给其它组织节点）
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB  # 启用CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb.investor.grets.com:5984  # CouchDB地址
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin  # 与CouchDB服务配置一致
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw  
     ports:
       - "11051:7051"
       - "11053:7053"
@@ -236,6 +301,7 @@ services:
       - orderer1.grets.com
       - orderer2.grets.com
       - orderer3.grets.com  
+      - couchdb.investor.grets.com
 
   # CLI 工具
   cli.grets.com:
@@ -245,7 +311,7 @@ services:
     stdin_open: true
     environment:
       - GOPROXY=https://goproxy.cn,direct
-      - CORE_PEER_ID=cli.togettoyou.com
+      - CORE_PEER_ID=cli.grets.com
     command: /bin/bash
     volumes:
       - ./configtx.yaml:/etc/hyperledger/configtx.yaml
