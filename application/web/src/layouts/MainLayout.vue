@@ -136,7 +136,7 @@
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item @click="router.push('/profile')">个人信息</el-dropdown-item>
+                <el-dropdown-item @click="router.push('/user/profile')">个人信息</el-dropdown-item>
                 <el-dropdown-item @click="router.push('/change-password')">修改密码</el-dropdown-item>
                 <el-dropdown-item divided @click="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>

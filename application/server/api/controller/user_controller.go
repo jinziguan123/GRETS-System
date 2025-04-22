@@ -173,6 +173,27 @@ func (c *UserController) UpdateUser(ctx *gin.Context) {
 	utils.ResponseSuccess(ctx, "用户更新成功", nil)
 }
 
+// GetBalanceByCitizenIDHashAndOrganization 根据身份证号和组织获取用户余额
+func (c *UserController) GetBalanceByCitizenIDHashAndOrganization(ctx *gin.Context) {
+	// 获取请求参数
+	citizenID := ctx.Query("citizenID")
+	organization := ctx.Query("organization")
+
+	if citizenID == "" || organization == "" {
+		utils.ResponseError(ctx, constants.ParamError, "身份证号和组织不能为空")
+		return
+	}
+
+	// 调用服务层获取用户余额
+	balance, err := c.userService.GetBalanceByCitizenIDHashAndOrganization(citizenID, organization)
+	if err != nil {
+		utils.ResponseError(ctx, constants.ServiceError, err.Error())
+		return
+	}
+
+	utils.ResponseSuccess(ctx, "查询用户余额成功", balance)
+}
+
 // 创建全局用户控制器实例
 var GlobalUserController *UserController
 
@@ -208,4 +229,8 @@ func GetUserByCitizenID(c *gin.Context) {
 
 func GetUserRealty(c *gin.Context) {
 	GlobalUserController.GetUserRealty(c)
+}
+
+func GetBalanceByCitizenIDHashAndOrganization(c *gin.Context) {
+	GlobalUserController.GetBalanceByCitizenIDHashAndOrganization(c)
 }

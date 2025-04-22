@@ -68,6 +68,8 @@ func SetupRouter() *gin.Engine {
 			users.POST("/:id", controller.UpdateUser)
 			// 获取用户房产
 			users.GET("/:id/realty", controller.GetUserRealty)
+			//
+			users.GET("/getBalance", controller.GetBalanceByCitizenIDHashAndOrganization)
 		}
 
 		// 交易相关接口

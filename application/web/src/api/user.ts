@@ -10,6 +10,14 @@ export function login(data: LoginData): Promise<ApiResponse<{ token: string, use
   })
 }
 
+// 获取用户余额
+export function getBalanceByCitizenIDHashAndOrganization(citizenID: string, organization: string): Promise<ApiResponse<{ balance: number }>> {
+  return request({
+    url: '/user/getBalance',
+    method: 'get',
+    params: { citizenID, organization }
+  })
+}
 // 用户注册
 export function register(data: RegisterData): Promise<ApiResponse<void>> {
   return request({

@@ -31,6 +31,8 @@ type UserService interface {
 	UpdateUser(user *userDto.UpdateUserDTO) error
 	// GetUserRealty 获取用户房产
 	GetUserRealty(citizenID string) ([]*realtyDto.RealtyDTO, error)
+	// GetBalanceByCitizenIDHashAndOrganization 根据身份证号和组织获取用户余额
+	GetBalanceByCitizenIDHashAndOrganization(citizenID, organization string) (float64, error)
 }
 
 // userService 用户服务实现
@@ -54,6 +56,31 @@ func NewUserService(userDAO *dao.UserDAO) UserService {
 		userDAO:      userDAO,
 		cacheService: cache.GetCacheService(),
 	}
+}
+
+// GetBalanceByCitizenIDHashAndOrganization 根据身份证号和组织获取用户余额
+func (s *userService) GetBalanceByCitizenIDHashAndOrganization(citizenID, organization string) (float64, error) {
+	// 调用链码查询余额
+	contract, err := blockchain.GetContract(organization)
+	if err != nil {
+		return 0, fmt.Errorf("获取合约失败: %v", err)
+	}
+
+	balanceBytes, err := contract.EvaluateTransaction(
+		"GetBalanceByCitizenIDHashAndOrganization",
+		utils.GenerateHash(citizenID),
+		organization,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("查询余额失败: %v", err)
+	}
+
+	balance, err := strconv.ParseFloat(string(balanceBytes), 64)
+	if err != nil {
+		return 0, fmt.Errorf("解析余额失败: %v", err)
+	}
+
+	return balance, nil
 }
 
 // Login 用户登录

@@ -47,7 +47,7 @@ const organizationPermissions = {
 // 检查当前路由是否有权限访问
 const hasPermission = computed(() => {
   // 总是允许访问仪表盘和用户相关页面
-  if (route.path === '/' || route.path === '/profile' || route.path === '/change-password') {
+  if (route.path === '/' || route.path === '/user/profile' || route.path === '/change-password') {
     return true
   }
   

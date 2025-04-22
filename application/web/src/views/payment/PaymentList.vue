@@ -2,9 +2,6 @@
   <div class="payment-container">
     <div class="payment-header">
       <h2>支付记录列表</h2>
-      <el-button type="primary" @click="handleCreatePayment" v-if="userStore.organization === 'investor'">
-        创建支付记录
-      </el-button>
     </div>
 
     <!-- 搜索条件 -->

@@ -110,7 +110,7 @@
 // import { ref, reactive, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user.ts'
 import {ElMessage, type FormInstance, type FormRules} from 'element-plus'
-import { updateUserInfo } from '@/api/user'
+import { updateUserInfo, getBalanceByCitizenIDHashAndOrganization } from '@/api/user'
 import { useRouter } from 'vue-router'
 import { queryRealtyList } from '@/api/realty.js'
 import CryptoJS from 'crypto-js'
@@ -166,6 +166,7 @@ const profileRules = reactive<FormRules>({
 const fetchUserInfo = async () => {
   loading.value = true
   try {
+
     // 填充表单数据
     Object.assign(profileForm, {
       name: userStore.user?.name,
@@ -173,8 +174,13 @@ const fetchUserInfo = async () => {
       phone: userStore.user?.phone,
       email: userStore.user?.email,
       organization: userStore.user?.organization,
-      balance: userStore.user?.balance
     })
+
+    if (userStore.organization === 'investor') {
+      const response = await getBalanceByCitizenIDHashAndOrganization(userStore.user?.citizenID || '', userStore.user?.organization || '')
+      profileForm.balance = response
+    }
+
   } catch (error) {
     console.error('Get user info error:', error)
     ElMessage.error('获取用户信息失败')

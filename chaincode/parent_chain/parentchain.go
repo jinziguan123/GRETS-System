@@ -344,6 +344,33 @@ func (s *SmartContract) GetUserByCitizenIDAndOrganization(ctx contractapi.Transa
 	return &user, nil
 }
 
+// GetBalanceByCitizenIDHashAndOrganization 根据身份证号和组织获取用户余额
+func (s *SmartContract) GetBalanceByCitizenIDHashAndOrganization(ctx contractapi.TransactionContextInterface,
+	citizenIDHash string,
+	organization string,
+) (float64, error) {
+	key, err := s.createCompositeKey(ctx, DocTypeUser, []string{citizenIDHash, organization}...)
+	if err != nil {
+		return 0, fmt.Errorf("[GetBalanceByCitizenIDHashAndOrganization] 创建复合键失败: %v", err)
+	}
+
+	userBytes, err := ctx.GetStub().GetPrivateData(UserDataCollection, key)
+	if err != nil {
+		return 0, fmt.Errorf("[GetBalanceByCitizenIDHashAndOrganization] 查询用户数据失败: %v", err)
+	}
+	if userBytes == nil {
+		return 0, fmt.Errorf("[GetBalanceByCitizenIDHashAndOrganization] 用户不存在")
+	}
+
+	var user UserPrivate
+	err = json.Unmarshal(userBytes, &user)
+	if err != nil {
+		return 0, fmt.Errorf("[GetBalanceByCitizenIDHashAndOrganization] 解析用户数据失败: %v", err)
+	}
+
+	return user.Balance, nil
+}
+
 // UpdateUser 更新用户信息
 func (s *SmartContract) UpdateUser(ctx contractapi.TransactionContextInterface,
 	citizenIDHash string,
