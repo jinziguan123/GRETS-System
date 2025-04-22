@@ -256,14 +256,18 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 	}
 
 	// 调用智能合约创建房产
-	_, err = contract.SubmitTransaction(
+	options := client.WithEndorsingOrganizations("GovernmentMSP", "InvestorMSP", "BankMSP", "AuditMSP")
+	_, err = contract.Submit(
 		"CreateRealty",
-		utils.GenerateHash(req.RealtyCert), // realtyCertHash
-		req.RealtyCert,                     // realtyCert
-		req.RealtyType,                     // realtyType
-		utils.GenerateHash(req.CurrentOwnerCitizenID), // currentOwnerCitizenIDHash
-		req.CurrentOwnerOrganization,                  // currentOwnerOrganization
-		string(previousOwnersJSON),                    // previousOwnersCitizenIDHashListJSON
+		client.WithBytesArguments(
+			[]byte(utils.GenerateHash(req.RealtyCert)),
+			[]byte(req.RealtyCert),
+			[]byte(req.RealtyType),
+			[]byte(utils.GenerateHash(req.CurrentOwnerCitizenID)),
+			[]byte(req.CurrentOwnerOrganization),
+			previousOwnersJSON,
+		),
+		options,
 	)
 
 	if err != nil {
