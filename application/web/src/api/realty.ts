@@ -35,6 +35,17 @@ export function getRealtyDetail(id: string) {
   })
 }
 
+export function QueryRealtyByOrganizationAndCitizenID(organization: string, citizenID: string) {
+  return request({
+    url: `/realty/QueryRealtyByOrganizationAndCitizenID`,
+    method: 'get',
+    params: {
+      organization,
+      citizenID
+    }
+  })
+}
+
 // 创建房产 (仅政府)
 export function createRealty(data: {
   realtyCert: string

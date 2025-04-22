@@ -7,6 +7,7 @@ import (
 
 // Realty 房产信息结构
 type Realty struct {
+	DocType                         string    `json:"docType"`                         // 文档类型
 	RealtyCertHash                  string    `json:"realtyCertHash"`                  // 不动产证ID
 	RealtyCert                      string    `json:"realtyCert"`                      // 不动产证ID
 	RealtyType                      string    `json:"realtyType"`                      // 建筑类型
@@ -19,6 +20,7 @@ type Realty struct {
 }
 
 type RealtyPublic struct {
+	DocType        string    `json:"docType"`        // 文档类型
 	RealtyCertHash string    `json:"realtyCertHash"` // 不动产证ID
 	RealtyCert     string    `json:"realtyCert"`     // 不动产证ID
 	RealtyType     string    `json:"realtyType"`     // 建筑类型
@@ -28,6 +30,7 @@ type RealtyPublic struct {
 }
 
 type RealtyPrivate struct {
+	DocType                         string   `json:"docType"`                         // 文档类型
 	RealtyCertHash                  string   `json:"realtyCertHash"`                  // 不动产证ID
 	RealtyCert                      string   `json:"realtyCert"`                      // 不动产证ID
 	CurrentOwnerCitizenIDHash       string   `json:"currentOwnerCitizenIDHash"`       // 当前所有者

@@ -7,6 +7,7 @@ import (
 
 // Payment 支付信息结构
 type Payment struct {
+	DocType               string    `json:"docType"`               // 文档类型
 	PaymentUUID           string    `json:"paymentUUID"`           // 支付ID
 	TransactionUUID       string    `json:"transactionUUID"`       // 关联交易ID
 	Amount                float64   `json:"amount"`                // 金额

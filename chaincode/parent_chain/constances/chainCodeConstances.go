@@ -5,7 +5,7 @@ const (
 	RealtyStatusNormal      = "NORMAL"       // 正常
 	RealtyStatusFrozen      = "FROZEN"       // 冻结
 	RealtyStatusPendingSale = "PENDING_SALE" // 挂牌
-	RealtyStatusInSale      = "IN_SALE"      // 在售
+	RealtyStatusInSale      = "IN_SALE"      // 交易中
 	RealtyStatusInMortgage  = "IN_MORTGAGE"  // 抵押中
 )
 
@@ -74,4 +74,13 @@ const (
 const (
 	UserStatusActive   = "ACTIVE"   // 正常
 	UserStatusDisabled = "DISABLED" // 禁用
+)
+
+// 定义集合名称常量
+const (
+	BankCollection               = "BankCollection"
+	UserDataCollection           = "UserDataCollection"
+	MortgageDataCollection       = "MortgageDataCollection"
+	TransactionPrivateCollection = "TransactionPrivateCollection"
+	RealEstatePrivateCollection  = "RealEstatePrivateCollection"
 )

@@ -54,37 +54,37 @@
       
       <div v-else>
         <el-table :data="userRealties" style="width: 100%">
-          <el-table-column prop="realtyCert" label="不动产证号" width="180"></el-table-column>
-          <el-table-column prop="realtyType" label="房产类型" width="120">
+          <el-table-column prop="realtyCert" label="不动产证号"></el-table-column>
+          <el-table-column prop="realtyType" label="房产类型">
             <template #default="scope">
               {{ getRealtyTypeText(scope.row.realtyType) }}
             </template>
           </el-table-column>
-          <el-table-column prop="status" label="状态" width="120">
+          <el-table-column prop="status" label="状态">
             <template #default="scope">
               <el-tag :type="getStatusTagType(scope.row.status)">
                 {{ getStatusText(scope.row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="area" label="面积" width="120">
+          <el-table-column prop="area" label="面积">
             <template #default="scope">
               {{ scope.row.area }} 平方米
             </template>
           </el-table-column>
-          <el-table-column prop="price" label="参考价格" width="150">
+          <el-table-column prop="price" label="参考价格">
             <template #default="scope">
               {{ formatPrice(scope.row.price) }}
             </template>
           </el-table-column>
-          <el-table-column prop="createTime" label="登记时间" width="180">
+          <el-table-column prop="createTime" label="登记时间">
             <template #default="scope">
               {{ formatDate(scope.row.createTime) }}
             </template>
           </el-table-column>
-          <el-table-column fixed="right" label="操作" width="120">
+          <el-table-column fixed="right" label="操作">
             <template #default="scope">
-              <el-button type="primary" link @click="viewRealtyDetail(scope.row.id)">查看详情</el-button>
+              <el-button type="primary" link @click="viewRealtyDetail(scope.row.realtyCertHash)">查看详情</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -114,28 +114,28 @@
 
       <div v-else>
         <el-table :data="userTransactions" style="width: 100%">
-          <el-table-column prop="transactionUUID" label="交易ID" width="180" show-overflow-tooltip></el-table-column>
-          <el-table-column prop="realtyCertHash" label="房产证号" width="180" show-overflow-tooltip></el-table-column>
-          <el-table-column prop="role" label="角色" width="100">
+          <el-table-column prop="transactionUUID" label="交易ID" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="realtyCertHash" label="房产证号" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="role" label="角色">
             <template #default="scope">
               <el-tag :type="scope.row.role === 'buyer' ? 'success' : 'primary'">
                 {{ scope.row.role === 'buyer' ? '买方' : '卖方' }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="status" label="交易状态" width="120">
+          <el-table-column prop="status" label="交易状态">
             <template #default="scope">
               <el-tag :type="getTransactionStatusType(scope.row.status)">
                 {{ getTransactionStatusText(scope.row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="createTime" label="创建时间" width="180">
+          <el-table-column prop="createTime" label="创建时间">
             <template #default="scope">
               {{ formatDate(scope.row.createTime) }}
             </template>
           </el-table-column>
-          <el-table-column fixed="right" label="操作" width="120">
+          <el-table-column fixed="right" label="操作">
             <template #default="scope">
               <el-button type="primary" link @click="viewTransactionDetail(scope.row.transactionUUID)">查看详情</el-button>
             </template>
@@ -165,7 +165,7 @@ import { useUserStore } from '@/stores/user.ts'
 import {ElMessage, type FormInstance, type FormRules} from 'element-plus'
 import { updateUserInfo, getBalanceByCitizenIDHashAndOrganization } from '@/api/user'
 import { useRouter } from 'vue-router'
-import { queryRealtyList } from '@/api/realty.js'
+import { QueryRealtyByOrganizationAndCitizenID } from '@/api/realty.js'
 import { queryTransactionList } from '@/api/transaction'
 import CryptoJS from 'crypto-js'
 
@@ -298,23 +298,12 @@ const fetchUserRealties = async () => {
       return
     }
     
-    const citizenIDHash = CryptoJS.SHA256(user.citizenID).toString()
-    
     // 构造查询参数，使用适当的参数名称
-    const params = {
-      pageSize: realtyQuery.pageSize,
-      pageNumber: realtyQuery.pageNumber,
-    }
-    
-    // 添加额外的查询条件
-    // 注意：实际参数名称可能需要根据API接口定义调整
-    const queryParams = Object.assign({}, params, { owner: citizenIDHash })
-    
-    const response = await queryRealtyList(queryParams)
+    const response = await QueryRealtyByOrganizationAndCitizenID(userStore.user?.organization || '', userStore.user?.citizenID || '')
     
     // 确保响应数据结构正确
-    userRealties.value = response.data?.realties || []
-    realtyTotal.value = response.data?.total || 0
+    userRealties.value = response.realtyList || []
+    realtyTotal.value = response.total || 0
     
     if (userRealties.value.length === 0 && realtyTotal.value > 0 && realtyQuery.pageNumber > 1) {
       // 如果当前页没有数据，但总数大于0，可能是页码超出范围，回到第一页
@@ -333,7 +322,7 @@ const fetchUserRealties = async () => {
 
 // 查看房产详情
 const viewRealtyDetail = (id: number | string) => {
-  router.push(`/realty/detail/${id}`)
+  router.push(`/realty/${id}`)
 }
 
 // 处理分页大小变化
@@ -449,8 +438,9 @@ const getTransactionStatusText = (status: string) => {
 const getStatusTagType = (status: string): 'success' | 'warning' | 'info' | 'primary' | 'danger' | undefined => {
   const statusMap: Record<string, 'success' | 'warning' | 'info' | 'primary' | 'danger'> = {
     'NORMAL': 'success',
-    'IN_TRANSACTION': 'warning',
-    'MORTGAGED': 'info',
+    'IN_SALE': 'warning',
+    'PENDING_SALE': 'primary',
+    'IN_MORTGAGE': 'info',
     'FROZEN': 'danger'
   }
   return statusMap[status] || undefined
@@ -460,8 +450,9 @@ const getStatusTagType = (status: string): 'success' | 'warning' | 'info' | 'pri
 const getStatusText = (status: string) => {
   const statusMap: Record<string, string> = {
     'NORMAL': '正常',
-    'IN_TRANSACTION': '交易中',
-    'MORTGAGED': '已抵押',
+    'IN_SALE': '交易中',
+    'PENDING_SALE': '挂牌',
+    'IN_MORTGAGE': '抵押中',
     'FROZEN': '已冻结'
   }
   return statusMap[status] || status

@@ -35,6 +35,59 @@ type RealtyService interface {
 	UpdateRealty(req *realtyDto.UpdateRealtyDTO) error
 	GetRealtyByRealtyCert(realtyCert string) (*realtyDto.RealtyDTO, error)
 	GetRealtyByRealtyCertHash(realtyCertHash string) (*realtyDto.RealtyDTO, error)
+	QueryRealtyByOrganizationAndCitizenID(organization string, citizenID string) ([]*realtyDto.RealtyDTO, error)
+}
+
+func (r *realtyService) QueryRealtyByOrganizationAndCitizenID(organization string, citizenID string) ([]*realtyDto.RealtyDTO, error) {
+	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return nil, fmt.Errorf("获取合约失败: %v", err)
+	}
+
+	resultBytes, err := contract.EvaluateTransaction(
+		"QueryRealtyByOrganizationAndCitizenIDHash",
+		organization,
+		utils.GenerateHash(citizenID),
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询房产失败: %v", err))
+		return nil, fmt.Errorf("查询房产失败: %v", err)
+	}
+
+	var realtyList []*realtyDto.RealtyDTO
+	if err := json.Unmarshal(resultBytes, &realtyList); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析房产失败: %v", err))
+		return nil, fmt.Errorf("解析房产失败: %v", err)
+	}
+
+	// 根据查询到的房产信息，获取房产的详细信息
+	for _, realty := range realtyList {
+		realtyDetail, err := r.GetRealtyByRealtyCertHash(realty.RealtyCertHash)
+		if err != nil {
+			return nil, fmt.Errorf("查询房产失败: %v", err)
+		}
+		realty.Price = realtyDetail.Price
+		realty.Area = realtyDetail.Area
+		realty.Status = realtyDetail.Status
+		realty.Description = realtyDetail.Description
+		realty.Images = realtyDetail.Images
+		realty.HouseType = realtyDetail.HouseType
+		realty.Province = realtyDetail.Province
+		realty.City = realtyDetail.City
+		realty.District = realtyDetail.District
+		realty.Street = realtyDetail.Street
+		realty.Community = realtyDetail.Community
+		realty.Unit = realtyDetail.Unit
+		realty.Floor = realtyDetail.Floor
+		realty.Room = realtyDetail.Room
+		realty.IsNewHouse = realtyDetail.IsNewHouse
+		realty.CreateTime = realtyDetail.CreateTime
+		realty.LastUpdateTime = realtyDetail.LastUpdateTime
+		realty.RelContractUUID = realtyDetail.RelContractUUID
+	}
+
+	return realtyList, nil
 }
 
 func (r *realtyService) GetRealtyByRealtyCert(realtyCert string) (*realtyDto.RealtyDTO, error) {

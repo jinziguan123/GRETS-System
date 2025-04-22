@@ -7,6 +7,7 @@ import (
 
 // User 用户信息结构
 type User struct {
+	DocType        string    `json:"docType"`        // 文档类型
 	CitizenID      string    `json:"citizenID"`      // 公民身份证号
 	Name           string    `json:"name"`           // 用户名称
 	Role           string    `json:"role"`           // 用户角色
@@ -21,6 +22,7 @@ type User struct {
 }
 
 type UserPublic struct {
+	DocType        string    `json:"docType"`        // 文档类型
 	CitizenID      string    `json:"citizenID"`      // 公民身份证号
 	Name           string    `json:"name"`           // 用户名称
 	Role           string    `json:"role"`           // 用户角色
@@ -31,6 +33,7 @@ type UserPublic struct {
 }
 
 type UserPrivate struct {
+	DocType      string  `json:"docType"`      // 文档类型
 	CitizenID    string  `json:"citizenID"`    // 公民身份证号
 	PasswordHash string  `json:"passwordHash"` // 用户密码
 	Balance      float64 `json:"balance"`      // 余额

@@ -7,6 +7,7 @@ import (
 
 // Transaction 交易信息结构
 type Transaction struct {
+	DocType                string    `json:"docType"`                // 文档类型
 	TransactionUUID        string    `json:"transactionUUID"`        // 交易UUID
 	RealtyCertHash         string    `json:"realtyCertHash"`         // 房产ID
 	SellerCitizenIDHash    string    `json:"sellerCitizenIDHash"`    // 卖方
@@ -24,6 +25,7 @@ type Transaction struct {
 }
 
 type TransactionPublic struct {
+	DocType                string    `json:"docType"`                // 文档类型
 	TransactionUUID        string    `json:"transactionUUID"`        // 交易UUID
 	RealtyCertHash         string    `json:"realtyCertHash"`         // 房产ID
 	SellerCitizenIDHash    string    `json:"sellerCitizenIDHash"`    // 卖方
@@ -37,6 +39,7 @@ type TransactionPublic struct {
 }
 
 type TransactionPrivate struct {
+	DocType         string   `json:"docType"`         // 文档类型
 	TransactionUUID string   `json:"transactionUUID"` // 交易UUID
 	Price           float64  `json:"price"`           // 成交价格
 	Tax             float64  `json:"tax"`             // 应缴税费
