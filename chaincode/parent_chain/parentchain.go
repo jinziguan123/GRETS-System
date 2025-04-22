@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"parent_chain_chaincode/constances"
+	"parent_chain_chaincode/models"
 	"time"
 
 	"maps"
@@ -13,115 +15,6 @@ import (
 
 type SmartContract struct {
 	contractapi.Contract
-}
-
-// 房产状态枚举
-const (
-	RealtyStatusNormal      = "NORMAL"       // 正常
-	RealtyStatusFrozen      = "FROZEN"       // 冻结
-	RealtyStatusPendingSale = "PENDING_SALE" // 挂牌
-	RealtyStatusInSale      = "IN_SALE"      // 在售
-	RealtyStatusInMortgage  = "IN_MORTGAGE"  // 抵押中
-)
-
-// 房产类型枚举
-const (
-	RealtyTypeHouse      = "HOUSE"      // 住宅
-	RealtyTypeShop       = "SHOP"       // 商铺
-	RealtyTypeOffice     = "OFFICE"     // 办公
-	RealtyTypeIndustrial = "INDUSTRIAL" // 工业
-	RealtyTypeOther      = "OTHER"      // 其他
-)
-
-// 交易状态枚举
-const (
-	TxStatusPending    = "PENDING"     // 待处理
-	TxStatusInProgress = "IN_PROGRESS" // 已批准
-	TxStatusRejected   = "REJECTED"    // 已拒绝
-	TxStatusCompleted  = "COMPLETED"   // 已完成
-)
-
-// 组织MSP ID
-const (
-	GovernmentMSP = "GovernmentMSP" // 政府MSP ID
-	AuditMSP      = "AuditMSP"      // 审计机构MSP ID
-	ThirdpartyMSP = "ThirdpartyMSP" // 第三方机构MSP ID
-	BankMSP       = "BankMSP"       // 银行MSP ID
-	InvestorMSP   = "InvestorMSP"   // 投资者MSP ID
-)
-
-// 文档类型常量（用于创建复合键）
-const (
-	DocTypeRealEstate  = "RE" // 房产信息
-	DocTypeTransaction = "TX" // 交易信息
-	DocTypeContract    = "CT" // 合同信息
-	DocTypeMortgage    = "MG" // 抵押信息
-	DocTypeAudit       = "AD" // 审计记录
-	DocTypeUser        = "US" // 用户信息
-	DocTypeTax         = "TX" // 税费信息
-	DocTypePayment     = "PT" // 支付信息
-)
-
-// 用户角色枚举
-const (
-	RoleGovernment = "GOVERNMENT"  // 政府机构
-	RoleBank       = "BANK"        // 银行
-	RoleInvestor   = "INVESTOR"    // 投资者
-	RoleThirdParty = "THIRD_PARTY" // 第三方服务提供商
-	RoleAuditor    = "AUDITOR"     // 审计人员
-)
-
-// 支付类型枚举（现金/贷款/转账）
-const (
-	PaymentTypeCash     = "CASH"     // 现金支付
-	PaymentTypeLoan     = "LOAN"     // 贷款支付
-	PaymentTypeTransfer = "TRANSFER" // 转账支付
-)
-
-// 合同状态枚举
-const (
-	ContractStatusNormal    = "NORMAL"    // 正常
-	ContractStatusFrozen    = "FROZEN"    // 冻结
-	ContractStatusCompleted = "COMPLETED" // 已完成
-)
-
-// 用户状态枚举
-const (
-	UserStatusActive   = "ACTIVE"   // 正常
-	UserStatusDisabled = "DISABLED" // 禁用
-)
-
-// User 用户信息结构
-type User struct {
-	CitizenID      string    `json:"citizenID"`      // 公民身份证号
-	Name           string    `json:"name"`           // 用户名称
-	Role           string    `json:"role"`           // 用户角色
-	PasswordHash   string    `json:"passwordHash"`   // 用户密码
-	Phone          string    `json:"phone"`          // 联系电话
-	Email          string    `json:"email"`          // 电子邮箱
-	Organization   string    `json:"organization"`   // 所属组织
-	CreateTime     time.Time `json:"createTime"`     // 创建时间
-	LastUpdateTime time.Time `json:"lastUpdateTime"` // 最后更新时间
-	Status         string    `json:"status"`         // 状态（激活/禁用）
-	Balance        float64   `json:"balance"`        // 余额
-}
-
-type UserPublic struct {
-	CitizenID      string    `json:"citizenID"`      // 公民身份证号
-	Name           string    `json:"name"`           // 用户名称
-	Role           string    `json:"role"`           // 用户角色
-	Organization   string    `json:"organization"`   // 所属组织
-	CreateTime     time.Time `json:"createTime"`     // 创建时间
-	LastUpdateTime time.Time `json:"lastUpdateTime"` // 最后更新时间
-	Status         string    `json:"status"`         // 状态（激活/禁用）
-}
-
-type UserPrivate struct {
-	CitizenID    string  `json:"citizenID"`    // 公民身份证号
-	PasswordHash string  `json:"passwordHash"` // 用户密码
-	Balance      float64 `json:"balance"`      // 余额
-	Phone        string  `json:"phone"`        // 联系电话
-	Email        string  `json:"email"`        // 电子邮箱
 }
 
 // Realty 房产信息结构
@@ -310,7 +203,7 @@ func (s *SmartContract) createCompositeKey(ctx contractapi.TransactionContextInt
 func (s *SmartContract) GetUserByCitizenIDAndOrganization(ctx contractapi.TransactionContextInterface,
 	citizenIDHash string,
 	organization string,
-) (*UserPublic, error) {
+) (*models.UserPublic, error) {
 	// 检查必填参数
 	if len(citizenIDHash) == 0 {
 		return nil, fmt.Errorf("[GetUserByCitizenIDAndOrganization] 身份证号不能为空")
@@ -320,7 +213,7 @@ func (s *SmartContract) GetUserByCitizenIDAndOrganization(ctx contractapi.Transa
 	}
 
 	// 生成复合键：身份证号-组织
-	key, err := s.createCompositeKey(ctx, DocTypeUser, []string{citizenIDHash, organization}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeUser, []string{citizenIDHash, organization}...)
 	if err != nil {
 		return nil, fmt.Errorf("[GetUserByCitizenIDAndOrganization] 创建复合键失败: %v", err)
 	}
@@ -335,7 +228,7 @@ func (s *SmartContract) GetUserByCitizenIDAndOrganization(ctx contractapi.Transa
 	}
 
 	// 解析用户数据
-	var user UserPublic
+	var user models.UserPublic
 	err = json.Unmarshal(userBytes, &user)
 	if err != nil {
 		return nil, fmt.Errorf("[GetUserByCitizenIDAndOrganization] 解析用户数据失败: %v", err)
@@ -349,7 +242,7 @@ func (s *SmartContract) GetBalanceByCitizenIDHashAndOrganization(ctx contractapi
 	citizenIDHash string,
 	organization string,
 ) (float64, error) {
-	key, err := s.createCompositeKey(ctx, DocTypeUser, []string{citizenIDHash, organization}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeUser, []string{citizenIDHash, organization}...)
 	if err != nil {
 		return 0, fmt.Errorf("[GetBalanceByCitizenIDHashAndOrganization] 创建复合键失败: %v", err)
 	}
@@ -362,7 +255,7 @@ func (s *SmartContract) GetBalanceByCitizenIDHashAndOrganization(ctx contractapi
 		return 0, fmt.Errorf("[GetBalanceByCitizenIDHashAndOrganization] 用户不存在")
 	}
 
-	var user UserPrivate
+	var user models.UserPrivate
 	err = json.Unmarshal(userBytes, &user)
 	if err != nil {
 		return 0, fmt.Errorf("[GetBalanceByCitizenIDHashAndOrganization] 解析用户数据失败: %v", err)
@@ -381,7 +274,7 @@ func (s *SmartContract) UpdateUser(ctx contractapi.TransactionContextInterface,
 	passwordHash string,
 	status string,
 ) error {
-	key, err := s.createCompositeKey(ctx, DocTypeUser, []string{citizenIDHash}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeUser, []string{citizenIDHash}...)
 	if err != nil {
 		return fmt.Errorf("[UpdateUser] 创建复合键失败: %v", err)
 	}
@@ -404,13 +297,13 @@ func (s *SmartContract) UpdateUser(ctx contractapi.TransactionContextInterface,
 	}
 
 	// 解析用户数据
-	var userPublic UserPublic
+	var userPublic models.UserPublic
 	err = json.Unmarshal(userPublicBytes, &userPublic)
 	if err != nil {
 		return fmt.Errorf("[UpdateUser] 解析用户公开信息失败: %v", err)
 	}
 
-	var userPrivate UserPrivate
+	var userPrivate models.UserPrivate
 	err = json.Unmarshal(userPrivateBytes, &userPrivate)
 	if err != nil {
 		return fmt.Errorf("[UpdateUser] 解析用户私密信息失败: %v", err)
@@ -476,7 +369,7 @@ func (s *SmartContract) Register(ctx contractapi.TransactionContextInterface,
 	balance float64,
 ) error {
 	// 检查用户是否已存在
-	key, err := s.createCompositeKey(ctx, DocTypeUser, []string{citizenIDHash, organization}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeUser, []string{citizenIDHash, organization}...)
 	if err != nil {
 		return fmt.Errorf("[Register] 创建复合键失败: %v", err)
 	}
@@ -488,7 +381,7 @@ func (s *SmartContract) Register(ctx contractapi.TransactionContextInterface,
 		return fmt.Errorf("[Register] 用户已存在")
 	}
 
-	userKey, err := s.createCompositeKey(ctx, DocTypeUser, []string{citizenIDHash, organization}...)
+	userKey, err := s.createCompositeKey(ctx, constances.DocTypeUser, []string{citizenIDHash, organization}...)
 	if err != nil {
 		return fmt.Errorf("[Register] 创建复合键失败: %v", err)
 	}
@@ -499,7 +392,7 @@ func (s *SmartContract) Register(ctx contractapi.TransactionContextInterface,
 	}
 
 	// 创建用户公开信息
-	userPublic := UserPublic{
+	userPublic := models.UserPublic{
 		CitizenID:      citizenID,
 		Name:           name,
 		Organization:   organization,
@@ -522,7 +415,7 @@ func (s *SmartContract) Register(ctx contractapi.TransactionContextInterface,
 	}
 
 	// 创建用户私钥
-	userPrivate := UserPrivate{
+	userPrivate := models.UserPrivate{
 		CitizenID:    citizenID,
 		PasswordHash: passwordHash,
 		Balance:      balance,
@@ -547,15 +440,15 @@ func (s *SmartContract) Register(ctx contractapi.TransactionContextInterface,
 // ListUsersByOrganization 查询特定组织的用户
 func (s *SmartContract) ListUsersByOrganization(ctx contractapi.TransactionContextInterface,
 	organization string,
-) ([]*User, error) {
+) ([]*models.UserPublic, error) {
 	// 获取所有用户
-	resultsIterator, err := ctx.GetStub().GetStateByPartialCompositeKey(DocTypeUser, []string{organization})
+	resultsIterator, err := ctx.GetStub().GetStateByPartialCompositeKey(constances.DocTypeUser, []string{organization})
 	if err != nil {
 		return nil, fmt.Errorf("[ListUsersByOrganization] 创建迭代器失败: %v", err)
 	}
 	defer resultsIterator.Close()
 
-	var users []*User
+	var users []*models.UserPublic
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
@@ -597,7 +490,7 @@ func (s *SmartContract) ListUsersByOrganization(ctx contractapi.TransactionConte
 			return nil, fmt.Errorf("[ListUsersByOrganization] 序列化用户失败: %v", err)
 		}
 
-		var user User
+		var user models.UserPublic
 		err = json.Unmarshal(mergedJSON, &user)
 		if err != nil {
 			return nil, fmt.Errorf("[ListUsersByOrganization] 序列化用户失败: %v", err)
@@ -638,12 +531,12 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 		return err
 	}
 
-	if clientMSPID != GovernmentMSP {
+	if clientMSPID != constances.GovernmentMSP {
 		return fmt.Errorf("[CreateRealty] 只有政府机构可以创建房产信息")
 	}
 
 	// 创建房产信息复合键
-	key, err := s.createCompositeKey(ctx, DocTypeRealEstate, []string{realtyCertHash}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeRealEstate, []string{realtyCertHash}...)
 	if err != nil {
 		return err
 	}
@@ -674,7 +567,7 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 		RealtyCert:     realtyCert,
 		RealtyType:     realtyType,
 		CreateTime:     time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
-		Status:         RealtyStatusNormal,
+		Status:         constances.RealtyStatusNormal,
 		LastUpdateTime: time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 	}
 
@@ -707,7 +600,7 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 	}
 
 	// 创建房产登记记录
-	key, err = s.createCompositeKey(ctx, DocTypeRealEstate, []string{realtyCertHash, "createRealty"}...)
+	key, err = s.createCompositeKey(ctx, constances.DocTypeRealEstate, []string{realtyCertHash, "createRealty"}...)
 	if err != nil {
 		return err
 	}
@@ -734,7 +627,7 @@ func (s *SmartContract) QueryRealty(ctx contractapi.TransactionContextInterface,
 	realtyCertHash string,
 ) (*Realty, error) {
 
-	key, err := s.createCompositeKey(ctx, DocTypeRealEstate, []string{realtyCertHash}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeRealEstate, []string{realtyCertHash}...)
 	if err != nil {
 		return nil, err
 	}
@@ -797,7 +690,7 @@ func (s *SmartContract) QueryRealtyList(ctx contractapi.TransactionContextInterf
 ) ([]*RealtyPublic, error) {
 
 	iter, _, err := ctx.GetStub().GetStateByPartialCompositeKeyWithPagination(
-		DocTypeRealEstate,
+		constances.DocTypeRealEstate,
 		[]string{},
 		pageSize,
 		bookmark,
@@ -843,7 +736,7 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 		return err
 	}
 
-	if clientMSPID != GovernmentMSP && clientMSPID != InvestorMSP {
+	if clientMSPID != constances.GovernmentMSP && clientMSPID != constances.InvestorMSP {
 		return fmt.Errorf("[UpdateRealty] 只有政府机构、投资者可以更新房产信息")
 	}
 
@@ -853,7 +746,7 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 		return err
 	}
 
-	if realEstatePublic.Status == RealtyStatusFrozen {
+	if realEstatePublic.Status == constances.RealtyStatusFrozen {
 		return fmt.Errorf("[UpdateRealty] 房产已被冻结，无法更新")
 	}
 
@@ -906,7 +799,7 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 	realEstatePublic.LastUpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
 	// 获取复合键
-	key, err := s.createCompositeKey(ctx, DocTypeRealEstate, []string{realEstatePublic.RealtyCertHash}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeRealEstate, []string{realEstatePublic.RealtyCertHash}...)
 	if err != nil {
 		return err
 	}
@@ -930,7 +823,7 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 	}
 
 	// 创建房产登记记录
-	key, err = s.createCompositeKey(ctx, DocTypeRealEstate, []string{realEstatePublic.RealtyCertHash, "updateRealty"}...)
+	key, err = s.createCompositeKey(ctx, constances.DocTypeRealEstate, []string{realEstatePublic.RealtyCertHash, "updateRealty"}...)
 	if err != nil {
 		return err
 	}
@@ -979,7 +872,7 @@ func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInte
 		return err
 	}
 
-	if clientMSPID != InvestorMSP && clientMSPID != GovernmentMSP {
+	if clientMSPID != constances.InvestorMSP && clientMSPID != constances.GovernmentMSP {
 		return fmt.Errorf("[CreateTransaction] 只有投资者、政府可以创建交易")
 	}
 
@@ -1003,7 +896,7 @@ func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 检查房产状态
-	if realEstatePublic.Status != RealtyStatusPendingSale {
+	if realEstatePublic.Status != constances.RealtyStatusPendingSale {
 		return fmt.Errorf("[CreateTransaction] 房产状态不允许交易: %s", realEstatePublic.Status)
 	}
 
@@ -1025,7 +918,7 @@ func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInte
 		SellerOrganization:  sellerOrganization,
 		BuyerCitizenIDHash:  buyerCitizenIDHash,
 		BuyerOrganization:   buyerOrganization,
-		Status:              TxStatusPending,
+		Status:              constances.TxStatusPending,
 		CreateTime:          time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 		UpdateTime:          time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 	}
@@ -1046,7 +939,7 @@ func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 创建交易复合键
-	key, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeTransaction, []string{transactionUUID}...)
 	if err != nil {
 		return err
 	}
@@ -1076,7 +969,7 @@ func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInte
 		return err
 	}
 
-	key, err = s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID, "createTransaction"}...)
+	key, err = s.createCompositeKey(ctx, constances.DocTypeTransaction, []string{transactionUUID, "createTransaction"}...)
 	if err != nil {
 		return err
 	}
@@ -1112,12 +1005,12 @@ func (s *SmartContract) QueryTransaction(ctx contractapi.TransactionContextInter
 		return nil, fmt.Errorf("[QueryTransaction] 获取客户端ID失败: %v", err)
 	}
 
-	if clientMSPID != InvestorMSP && clientMSPID != GovernmentMSP {
+	if clientMSPID != constances.InvestorMSP && clientMSPID != constances.GovernmentMSP {
 		return nil, fmt.Errorf("[QueryTransaction] 只有投资者、政府可以查询交易")
 	}
 
 	// 查询交易信息
-	key, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeTransaction, []string{transactionUUID}...)
 	if err != nil {
 		return nil, fmt.Errorf("[QueryTransaction] 创建复合键失败: %v", err)
 	}
@@ -1178,7 +1071,7 @@ func (s *SmartContract) QueryTransactionList(ctx contractapi.TransactionContextI
 ) ([]*TransactionPublic, error) {
 
 	iter, _, err := ctx.GetStub().GetStateByPartialCompositeKeyWithPagination(
-		DocTypeTransaction,
+		constances.DocTypeTransaction,
 		[]string{},
 		pageSize,
 		bookmark,
@@ -1215,12 +1108,12 @@ func (s *SmartContract) CheckTransaction(ctx contractapi.TransactionContextInter
 		return err
 	}
 
-	if clientMSPID != InvestorMSP && clientMSPID != GovernmentMSP {
+	if clientMSPID != constances.InvestorMSP && clientMSPID != constances.GovernmentMSP {
 		return fmt.Errorf("[CheckTransaction] 只有投资者、政府可以检查交易")
 	}
 
 	// 查询交易信息
-	key, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeTransaction, []string{transactionUUID}...)
 	if err != nil {
 		return err
 	}
@@ -1246,7 +1139,7 @@ func (s *SmartContract) CheckTransaction(ctx contractapi.TransactionContextInter
 	}
 
 	// 检查交易状态
-	if transactionPublic.Status != TxStatusPending {
+	if transactionPublic.Status != constances.TxStatusPending {
 		return fmt.Errorf("[CheckTransaction] 交易状态不允许检查: %s", transactionPublic.Status)
 	}
 
@@ -1270,7 +1163,7 @@ func (s *SmartContract) CheckTransaction(ctx contractapi.TransactionContextInter
 	if err != nil {
 		return err
 	}
-	key, err = s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID, "checkTransaction"}...)
+	key, err = s.createCompositeKey(ctx, constances.DocTypeTransaction, []string{transactionUUID, "checkTransaction"}...)
 	if err != nil {
 		return err
 	}
@@ -1308,12 +1201,12 @@ func (s *SmartContract) UpdateTransaction(ctx contractapi.TransactionContextInte
 		return err
 	}
 
-	if clientMSPID != InvestorMSP && clientMSPID != GovernmentMSP {
+	if clientMSPID != constances.InvestorMSP && clientMSPID != constances.GovernmentMSP {
 		return fmt.Errorf("[UpdateTransaction] 只有投资者、政府可以更新交易")
 	}
 
 	// 查询交易信息
-	key, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeTransaction, []string{transactionUUID}...)
 	if err != nil {
 		return err
 	}
@@ -1333,7 +1226,7 @@ func (s *SmartContract) UpdateTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[UpdateTransaction] 解析交易信息失败: %v", err)
 	}
 
-	if transactionPublic.Status != TxStatusPending && transactionPublic.Status != TxStatusInProgress {
+	if transactionPublic.Status != constances.TxStatusPending && transactionPublic.Status != constances.TxStatusInProgress {
 		return fmt.Errorf("[UpdateTransaction] 交易状态不允许更新: %s", transactionPublic.Status)
 	}
 
@@ -1371,12 +1264,12 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 		return err
 	}
 
-	if clientMSPID != InvestorMSP && clientMSPID != GovernmentMSP {
+	if clientMSPID != constances.InvestorMSP && clientMSPID != constances.GovernmentMSP {
 		return fmt.Errorf("[CompleteTransaction] 只有投资者、政府可以完成交易")
 	}
 
 	// 查询交易信息
-	key, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeTransaction, []string{transactionUUID}...)
 	if err != nil {
 		return err
 	}
@@ -1395,7 +1288,7 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 		return fmt.Errorf("[CompleteTransaction] 解析交易信息失败: %v", err)
 	}
 
-	if transactionPublic.Status != TxStatusInProgress {
+	if transactionPublic.Status != constances.TxStatusInProgress {
 		return fmt.Errorf("[CompleteTransaction] 交易状态不允许完成: %s", transactionPublic.Status)
 	}
 
@@ -1405,7 +1298,7 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 	}
 
 	// 更新交易状态
-	transactionPublic.Status = TxStatusCompleted
+	transactionPublic.Status = constances.TxStatusCompleted
 	transactionPublic.UpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
 	// 序列化交易信息
@@ -1451,7 +1344,7 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 		ctx,
 		realtyIDHash,
 		realEstatePublic.RealtyType,
-		RealtyStatusNormal,
+		constances.RealtyStatusNormal,
 		transactionPublic.BuyerCitizenIDHash,
 		transactionPublic.BuyerOrganization,
 		string(previousOwnersCitizenIDHashListJSON),
@@ -1465,7 +1358,7 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 	if err != nil {
 		return err
 	}
-	key, err = s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID, "completeTransaction"}...)
+	key, err = s.createCompositeKey(ctx, constances.DocTypeTransaction, []string{transactionUUID, "completeTransaction"}...)
 	if err != nil {
 		return err
 	}
@@ -1513,12 +1406,12 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 		return err
 	}
 
-	if clientMSPID != BankMSP && clientMSPID != InvestorMSP {
+	if clientMSPID != constances.BankMSP && clientMSPID != constances.InvestorMSP {
 		return fmt.Errorf("[CreatePayment] 只有银行和投资者可以创建支付信息")
 	}
 
 	// 检查支付信息是否已存在
-	paymentKey, err := s.createCompositeKey(ctx, DocTypePayment, []string{paymentUUID}...)
+	paymentKey, err := s.createCompositeKey(ctx, constances.DocTypePayment, []string{paymentUUID}...)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 创建复合键失败: %v", err)
 	}
@@ -1557,7 +1450,7 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("[CreatePayment] 保存支付信息失败: %v", err)
 	}
 
-	fromUserKey, err := s.createCompositeKey(ctx, DocTypeUser, []string{fromCitizenIDHash, fromOrganization}...)
+	fromUserKey, err := s.createCompositeKey(ctx, constances.DocTypeUser, []string{fromCitizenIDHash, fromOrganization}...)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 创建复合键失败: %v", err)
 	}
@@ -1571,7 +1464,7 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("[CreatePayment] 来源用户不存在: %s", fromCitizenIDHash)
 	}
 
-	var fromCitizenPrivate UserPrivate
+	var fromCitizenPrivate models.UserPrivate
 	err = json.Unmarshal(fromCitizenPrivateBytes, &fromCitizenPrivate)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 解析用户余额失败: %v", err)
@@ -1602,7 +1495,7 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("[CreatePayment] 查询用户信息失败: %v", err)
 	}
 
-	var fromCitizenPublic UserPublic
+	var fromCitizenPublic models.UserPublic
 	err = json.Unmarshal(fromCitizenPublicBytes, &fromCitizenPublic)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 解析用户信息失败: %v", err)
@@ -1622,7 +1515,7 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("[CreatePayment] 保存用户信息失败: %v", err)
 	}
 
-	toUserKey, err := s.createCompositeKey(ctx, DocTypeUser, []string{toCitizenIDHash, toOrganization}...)
+	toUserKey, err := s.createCompositeKey(ctx, constances.DocTypeUser, []string{toCitizenIDHash, toOrganization}...)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 创建复合键失败: %v", err)
 	}
@@ -1636,7 +1529,7 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("[CreatePayment] 目标用户不存在: %s", toCitizenIDHash)
 	}
 
-	var toCitizenPrivate UserPrivate
+	var toCitizenPrivate models.UserPrivate
 	err = json.Unmarshal(toCitizenBytes, &toCitizenPrivate)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 解析用户余额失败: %v", err)
@@ -1663,7 +1556,7 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 		return fmt.Errorf("[CreatePayment] 查询用户信息失败: %v", err)
 	}
 
-	var toCitizenPublic UserPublic
+	var toCitizenPublic models.UserPublic
 	err = json.Unmarshal(toCitizenPublicBytes, &toCitizenPublic)
 	if err != nil {
 		return fmt.Errorf("[CreatePayment] 解析用户信息失败: %v", err)
@@ -1690,7 +1583,7 @@ func (s *SmartContract) CreatePayment(ctx contractapi.TransactionContextInterfac
 func (s *SmartContract) QueryPayment(ctx contractapi.TransactionContextInterface,
 	paymentUUID string,
 ) (*Payment, error) {
-	paymentKey, err := s.createCompositeKey(ctx, DocTypePayment, []string{paymentUUID}...)
+	paymentKey, err := s.createCompositeKey(ctx, constances.DocTypePayment, []string{paymentUUID}...)
 	if err != nil {
 		return nil, fmt.Errorf("[QueryPayment] 创建复合键失败: %v", err)
 	}
@@ -1728,12 +1621,12 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return err
 	}
 
-	if clientMSPID != BankMSP && clientMSPID != InvestorMSP {
+	if clientMSPID != constances.BankMSP && clientMSPID != constances.InvestorMSP {
 		return fmt.Errorf("[PayForTransaction] 只有银行和投资者可以支付交易")
 	}
 
 	// 检查交易是否已存在
-	transactionKey, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{transactionUUID}...)
+	transactionKey, err := s.createCompositeKey(ctx, constances.DocTypeTransaction, []string{transactionUUID}...)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 创建复合键失败: %v", err)
 	}
@@ -1746,7 +1639,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 检查支付信息是否已存在
-	paymentKey, err := s.createCompositeKey(ctx, DocTypePayment, []string{paymentUUID}...)
+	paymentKey, err := s.createCompositeKey(ctx, constances.DocTypePayment, []string{paymentUUID}...)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 创建复合键失败: %v", err)
 	}
@@ -1788,7 +1681,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[PayForTransaction] 保存支付信息失败: %v", err)
 	}
 
-	fromUserKey, err := s.createCompositeKey(ctx, DocTypeUser, []string{fromCitizenIDHash, fromOrganization}...)
+	fromUserKey, err := s.createCompositeKey(ctx, constances.DocTypeUser, []string{fromCitizenIDHash, fromOrganization}...)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 创建复合键失败: %v", err)
 	}
@@ -1801,7 +1694,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[PayForTransaction] 来源用户不存在: %s", fromCitizenIDHash)
 	}
 
-	var fromCitizenPrivate UserPrivate
+	var fromCitizenPrivate models.UserPrivate
 	err = json.Unmarshal(fromCitizenPrivateBytes, &fromCitizenPrivate)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 解析用户余额失败: %v", err)
@@ -1832,7 +1725,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[PayForTransaction] 查询用户信息失败: %v", err)
 	}
 
-	var fromCitizenPublic UserPublic
+	var fromCitizenPublic models.UserPublic
 	err = json.Unmarshal(fromCitizenPublicBytes, &fromCitizenPublic)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 解析用户信息失败: %v", err)
@@ -1852,7 +1745,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[PayForTransaction] 保存用户信息失败: %v", err)
 	}
 
-	toUserKey, err := s.createCompositeKey(ctx, DocTypeUser, []string{toCitizenIDHash, toOrganization}...)
+	toUserKey, err := s.createCompositeKey(ctx, constances.DocTypeUser, []string{toCitizenIDHash, toOrganization}...)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 创建复合键失败: %v", err)
 	}
@@ -1866,7 +1759,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[PayForTransaction] 目标用户不存在: %s", toCitizenIDHash)
 	}
 
-	var toCitizenPrivate UserPrivate
+	var toCitizenPrivate models.UserPrivate
 	err = json.Unmarshal(toCitizenBytes, &toCitizenPrivate)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 解析用户余额失败: %v", err)
@@ -1893,7 +1786,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[PayForTransaction] 查询用户信息失败: %v", err)
 	}
 
-	var toCitizenPublic UserPublic
+	var toCitizenPublic models.UserPublic
 	err = json.Unmarshal(toCitizenPublicBytes, &toCitizenPublic)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 解析用户信息失败: %v", err)
@@ -1946,7 +1839,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[PayForTransaction] 解析交易信息失败: %v", err)
 	}
 
-	transactionPublic.Status = TxStatusCompleted
+	transactionPublic.Status = constances.TxStatusCompleted
 	transactionPublic.UpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
 	// 序列化交易
@@ -1978,13 +1871,13 @@ func (s *SmartContract) AuditTransaction(ctx contractapi.TransactionContextInter
 		return err
 	}
 
-	if clientMSPID != AuditMSP {
+	if clientMSPID != constances.AuditMSP {
 		return fmt.Errorf("只有审计机构可以进行交易审计")
 	}
 
 	// 查询交易信息
-	for _, status := range []string{TxStatusPending, TxStatusCompleted} {
-		txKey, err := s.createCompositeKey(ctx, DocTypeTransaction, []string{status, txID}...)
+	for _, status := range []string{constances.TxStatusPending, constances.TxStatusCompleted} {
+		txKey, err := s.createCompositeKey(ctx, constances.DocTypeTransaction, []string{status, txID}...)
 		if err != nil {
 			return err
 		}
@@ -1997,17 +1890,17 @@ func (s *SmartContract) AuditTransaction(ctx contractapi.TransactionContextInter
 			// 创建审计记录
 			auditRecord := AuditRecord{
 				AuditID:      fmt.Sprintf("AUDIT_%s_%s", txID, time.Now().Format("20060102150405")),
-				TargetType:   DocTypeTransaction,
+				TargetType:   constances.DocTypeTransaction,
 				TargetID:     txID,
 				AuditorID:    clientMSPID,
-				AuditorOrgID: AuditMSP,
+				AuditorOrgID: constances.AuditMSP,
 				Result:       auditResult,
 				Comments:     comments,
 				AuditedAt:    time.Now(),
 			}
 
 			// 创建审计记录复合键
-			auditKey, err := s.createCompositeKey(ctx, DocTypeAudit, []string{txID, auditRecord.AuditID}...)
+			auditKey, err := s.createCompositeKey(ctx, constances.DocTypeAudit, []string{txID, auditRecord.AuditID}...)
 			if err != nil {
 				return err
 			}
@@ -2027,7 +1920,7 @@ func (s *SmartContract) AuditTransaction(ctx contractapi.TransactionContextInter
 
 // QueryAuditHistory 查询交易的审计历史
 func (s *SmartContract) QueryAuditHistory(ctx contractapi.TransactionContextInterface, txID string) ([]AuditRecord, error) {
-	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey(DocTypeAudit, []string{txID})
+	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey(constances.DocTypeAudit, []string{txID})
 	if err != nil {
 		return nil, fmt.Errorf("查询审计记录失败: %v", err)
 	}
@@ -2088,12 +1981,12 @@ func (s *SmartContract) CreateContract(ctx contractapi.TransactionContextInterfa
 		return err
 	}
 
-	if clientMSPID != InvestorMSP && clientMSPID != GovernmentMSP {
+	if clientMSPID != constances.InvestorMSP && clientMSPID != constances.GovernmentMSP {
 		return fmt.Errorf("[CreateContract] 只有投资者和政府机构可以创建合同")
 	}
 
 	// 创建合同信息复合键
-	key, err := s.createCompositeKey(ctx, DocTypeContract, []string{contractUUID}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeContract, []string{contractUUID}...)
 	if err != nil {
 		return err
 	}
@@ -2120,7 +2013,7 @@ func (s *SmartContract) CreateContract(ctx contractapi.TransactionContextInterfa
 		DocHash:              docHash,
 		CreatorCitizenIDHash: creatorCitizenIDHash,
 		ContractType:         contractType,
-		Status:               ContractStatusNormal,
+		Status:               constances.ContractStatusNormal,
 	}
 
 	// 序列化并保存合同信息
@@ -2142,10 +2035,10 @@ func (s *SmartContract) QueryContract(ctx contractapi.TransactionContextInterfac
 		return nil, err
 	}
 
-	if clientMSPID != InvestorMSP && clientMSPID != GovernmentMSP && clientMSPID != AuditMSP {
+	if clientMSPID != constances.InvestorMSP && clientMSPID != constances.GovernmentMSP && clientMSPID != constances.AuditMSP {
 		return nil, fmt.Errorf("[QueryContract] 只有投资者、政府机构和审计机构可以查询合同信息")
 	}
-	key, err := s.createCompositeKey(ctx, DocTypeContract, []string{contractUUID}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeContract, []string{contractUUID}...)
 	if err != nil {
 		return nil, fmt.Errorf("[QueryContract] 创建复合键失败: %v", err)
 	}
@@ -2179,7 +2072,7 @@ func (s *SmartContract) UpdateContract(ctx contractapi.TransactionContextInterfa
 		return err
 	}
 
-	if clientMSPID != InvestorMSP && clientMSPID != GovernmentMSP && clientMSPID != AuditMSP {
+	if clientMSPID != constances.InvestorMSP && clientMSPID != constances.GovernmentMSP && clientMSPID != constances.AuditMSP {
 		return fmt.Errorf("[UpdateContractStatus] 只有投资者、政府机构和审计机构可以更新合同状态")
 	}
 
@@ -2190,7 +2083,7 @@ func (s *SmartContract) UpdateContract(ctx contractapi.TransactionContextInterfa
 	}
 
 	// 检查合同状态
-	if contract.Status == ContractStatusFrozen {
+	if contract.Status == constances.ContractStatusFrozen {
 		return fmt.Errorf("[UpdateContractStatus] 合同已冻结，无法更新状态")
 	}
 
