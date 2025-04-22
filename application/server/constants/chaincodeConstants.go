@@ -28,10 +28,10 @@ const (
 
 // 交易状态枚举
 const (
-	TxStatusPending   = "PENDING"    // 待处理
-	TxStatusInProcess = "IN_PROCESS" // 处理中
-	TxStatusRejected  = "REJECTED"   // 已拒绝
-	TxStatusCompleted = "COMPLETED"  // 已完成
+	TxStatusPending   = "PENDING"     // 待处理
+	TxStatusInProcess = "IN_PROGRESS" // 处理中
+	TxStatusRejected  = "REJECTED"    // 已拒绝
+	TxStatusCompleted = "COMPLETED"   // 已完成
 )
 
 // 组织MSP ID

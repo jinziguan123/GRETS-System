@@ -103,6 +103,59 @@
         </div>
       </div>
     </div>
+    
+    <!-- 用户参与的交易列表 -->
+    <div class="card mt-20" v-loading="transactionLoading">
+      <div class="card-title">我的交易</div>
+
+      <div v-if="userTransactions.length === 0" class="empty-transaction">
+        <el-empty description="暂无交易信息"></el-empty>
+      </div>
+
+      <div v-else>
+        <el-table :data="userTransactions" style="width: 100%">
+          <el-table-column prop="transactionUUID" label="交易ID" width="180" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="realtyCertHash" label="房产证号" width="180" show-overflow-tooltip></el-table-column>
+          <el-table-column prop="role" label="角色" width="100">
+            <template #default="scope">
+              <el-tag :type="scope.row.role === 'buyer' ? 'success' : 'primary'">
+                {{ scope.row.role === 'buyer' ? '买方' : '卖方' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="交易状态" width="120">
+            <template #default="scope">
+              <el-tag :type="getTransactionStatusType(scope.row.status)">
+                {{ getTransactionStatusText(scope.row.status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createTime" label="创建时间" width="180">
+            <template #default="scope">
+              {{ formatDate(scope.row.createTime) }}
+            </template>
+          </el-table-column>
+          <el-table-column fixed="right" label="操作" width="120">
+            <template #default="scope">
+              <el-button type="primary" link @click="viewTransactionDetail(scope.row.transactionUUID)">查看详情</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <!-- 交易分页 -->
+        <div class="pagination-container">
+          <el-pagination
+            v-model:current-page="transactionQuery.pageNumber"
+            v-model:page-size="transactionQuery.pageSize"
+            :page-sizes="[5, 10, 20, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="transactionTotal"
+            @size-change="handleTransactionSizeChange"
+            @current-change="handleTransactionCurrentChange"
+          />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -113,6 +166,7 @@ import {ElMessage, type FormInstance, type FormRules} from 'element-plus'
 import { updateUserInfo, getBalanceByCitizenIDHashAndOrganization } from '@/api/user'
 import { useRouter } from 'vue-router'
 import { queryRealtyList } from '@/api/realty.js'
+import { queryTransactionList } from '@/api/transaction'
 import CryptoJS from 'crypto-js'
 
 // 表单引用
@@ -177,8 +231,7 @@ const fetchUserInfo = async () => {
     })
 
     if (userStore.organization === 'investor') {
-      const response = await getBalanceByCitizenIDHashAndOrganization(userStore.user?.citizenID || '', userStore.user?.organization || '')
-      profileForm.balance = response
+      profileForm.balance = await getBalanceByCitizenIDHashAndOrganization(userStore.user?.citizenID || '', userStore.user?.organization || '')
     }
 
   } catch (error) {
@@ -295,6 +348,103 @@ const handleCurrentChange = (page: number) => {
   fetchUserRealties()
 }
 
+// 用户交易相关
+const userTransactions = ref([])
+const transactionLoading = ref(false)
+const transactionTotal = ref(0)
+const transactionQuery = reactive({
+  pageSize: 5,
+  pageNumber: 1
+})
+
+// 获取用户参与的交易
+const fetchUserTransactions = async () => {
+  transactionLoading.value = true
+  try {
+    // 使用用户身份证哈希作为筛选条件
+    const user = userStore.user
+    if (!user || !user.citizenID) {
+      ElMessage.error('用户信息不完整，无法获取交易信息')
+      return
+    }
+    
+    // 构造查询参数
+    const params1 = {
+      pageSize: transactionQuery.pageSize,
+      pageNumber: transactionQuery.pageNumber,
+      buyerCitizenID: user.citizenID,
+    }
+    
+    const response1 = await queryTransactionList(params1)
+    let transactionList1 = response1.transactions.map(e => {
+      e.role = 'buyer'
+      return e
+    })
+
+    const params2 = {
+      pageSize: transactionQuery.pageSize,
+      pageNumber: transactionQuery.pageNumber,
+      sellerCitizenID: user.citizenID,
+    }
+
+    const response2 = await queryTransactionList(params2)
+    let transactionList2 = response2.transactions.map(e => {
+      e.role = 'seller'
+      return e
+    })
+
+    userTransactions.value= [...transactionList1, ...transactionList2]
+    transactionTotal.value = 0
+
+  } catch (error) {
+    console.error('获取用户交易失败:', error)
+    ElMessage.error('获取用户交易信息失败')
+    userTransactions.value = []
+    transactionTotal.value = 0
+  } finally {
+    transactionLoading.value = false
+  }
+}
+
+// 查看交易详情
+const viewTransactionDetail = (id: string) => {
+  router.push(`/transaction/${id}`)
+}
+
+// 处理交易分页大小变化
+const handleTransactionSizeChange = (size: number) => {
+  transactionQuery.pageSize = size
+  fetchUserTransactions()
+}
+
+// 处理交易页码变化
+const handleTransactionCurrentChange = (page: number) => {
+  transactionQuery.pageNumber = page
+  fetchUserTransactions()
+}
+
+// 获取交易状态对应的Tag类型
+const getTransactionStatusType = (status: string): 'success' | 'warning' | 'info' | 'primary' | 'danger' | undefined => {
+  const statusMap: Record<string, 'success' | 'warning' | 'info' | 'primary' | 'danger'> = {
+    'PENDING': 'info',
+    'IN_PROGRESS': 'warning',
+    'COMPLETED': 'success',
+    'REJECTED': 'danger',
+  }
+  return statusMap[status] || undefined
+}
+
+// 获取交易状态对应的文本
+const getTransactionStatusText = (status: string) => {
+  const statusMap: Record<string, string> = {
+    'PENDING': '待处理',
+    'IN_PROGRESS': '进行中',
+    'COMPLETED': '已完成',
+    'REJECTED': '已拒绝',
+  }
+  return statusMap[status] || status
+}
+
 // 获取房产状态对应的Tag类型
 const getStatusTagType = (status: string): 'success' | 'warning' | 'info' | 'primary' | 'danger' | undefined => {
   const statusMap: Record<string, 'success' | 'warning' | 'info' | 'primary' | 'danger'> = {
@@ -341,7 +491,7 @@ const formatPrice = (price: number) => {
 const formatDate = (date: string | Date | null | undefined) => {
   if (!date) return '-'
   const dateObj = new Date(date)
-  return dateObj.toLocaleString('zh-CN', {
+  return dateObj.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -354,6 +504,7 @@ const formatDate = (date: string | Date | null | undefined) => {
 onMounted(() => {
   fetchUserInfo()
   fetchUserRealties()
+  fetchUserTransactions()
 })
 </script>
 
@@ -386,7 +537,7 @@ onMounted(() => {
   margin-top: 20px;
 }
 
-.empty-realty {
+.empty-realty, .empty-transaction {
   padding: 30px 0;
   text-align: center;
 }
