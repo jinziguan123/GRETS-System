@@ -32,7 +32,7 @@
         </el-sub-menu>
         
         <!-- 交易管理 - 投资者、银行、政府可见 -->
-        <el-sub-menu index="/transaction" v-if="hasOrganization(['investor', 'bank', 'government'])">
+        <el-sub-menu index="/transaction" v-if="hasOrganization(['investor', 'bank', 'government', 'audit'])">
           <template #title>
             <el-icon><Sell /></el-icon>
             <span>交易管理</span>

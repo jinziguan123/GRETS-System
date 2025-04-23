@@ -25,6 +25,7 @@ func InitServices() error {
 	service.InitContractService(contractDAO)
 	service.InitPaymentService(paymentDAO)
 	service.InitBlockService()
+	service.InitPictureService()
 
 	// 初始化控制器
 	controller.InitUserController()
@@ -33,6 +34,7 @@ func InitServices() error {
 	controller.InitContractController()
 	controller.InitPaymentController()
 	controller.InitBlockController()
+	controller.InitPictureController()
 	return nil
 }
 
@@ -125,6 +127,11 @@ func SetupRouter() *gin.Engine {
 		blocks.Use(middleware.JWTAuth())
 		{
 			blocks.POST("/queryBlockList", controller.QueryBlockList)
+		}
+
+		picture := api.Group("/picture")
+		{
+			picture.POST("/upload", controller.UploadPicture)
 		}
 	}
 

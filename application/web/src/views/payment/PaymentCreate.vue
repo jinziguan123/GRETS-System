@@ -1,8 +1,5 @@
 <template>
   <div class="payment-create-container">
-    <div class="create-header">
-      <h2>创建支付记录</h2>
-    </div>
 
     <el-card class="form-card">
       <el-form 

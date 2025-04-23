@@ -21,6 +21,24 @@ services:
     networks:
       - grets_network
 
+  lsky-pro:
+    image: dko0/lsky-pro
+    container_name: lsky-pro
+    ports:
+      - "8089:80"  # 网页访问端口
+    volumes:
+      - ./lsky-pro/data:/var/www/html  # 图片及配置文件存储路径
+    environment:
+      - MYSQL_HOST=grets_mysql
+      - MYSQL_USER=grets_user
+      - MYSQL_PASSWORD=grets_password
+      - MYSQL_DATABASE=grets
+    restart: unless-stopped
+    networks:
+      - grets_network
+    depends_on:
+      - mysql
+
 networks:
   grets_network:
     driver: bridge 

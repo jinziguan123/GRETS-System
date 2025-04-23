@@ -123,7 +123,7 @@ const routes: Array<RouteRecordRaw> = [
             path: '',
             name: 'TransactionList',
             component: TransactionList,
-            meta: { title: '交易列表', organizations: ['investor', 'bank', 'government'] } as RouteMeta
+            meta: { title: '交易列表', organizations: ['investor', 'bank', 'government', 'audit'] } as RouteMeta
           },
           {
             path: 'create',

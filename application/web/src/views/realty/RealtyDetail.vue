@@ -269,7 +269,7 @@
         
         <el-form-item label="图片" prop="images" v-if="isOwner && realty.status === 'NORMAL'">
           <el-upload
-            action="/api/upload"
+            action="/api/v1/picture/upload"
             list-type="picture-card"
             :file-list="fileList"
             :on-preview="handlePictureCardPreview"

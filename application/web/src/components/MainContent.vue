@@ -40,8 +40,8 @@ const organizationPermissions = {
   'investor': ['/realty', '/transaction', '/contract', '/payment', '/mortgage'],
   'government': ['/realty', '/transaction', '/contract', '/tax', '/statistics'],
   'bank': ['/transaction', '/payment', '/mortgage', '/statistics'],
-  'audit': ['/contract', '/realty'],
-  'administrator': ['/admin', '/realty', '/transaction', '/contract', '/payment', '/tax', '/mortgage', '/statistics']
+  'audit': ['/contract', '/realty', '/transaction'],
+  'thirdparty': ['/admin', '/realty', '/transaction', '/contract', '/payment', '/tax', '/mortgage', '/statistics']
 }
 
 // 检查当前路由是否有权限访问
