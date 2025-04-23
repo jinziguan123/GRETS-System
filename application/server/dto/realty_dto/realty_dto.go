@@ -94,4 +94,5 @@ type QueryRealtyListDTO struct {
 	IsNewHouse *bool   `json:"isNewHouse"` // 是否为新房
 	PageSize   int     `json:"pageSize"`   // 每页条数
 	PageNumber int     `json:"pageNumber"` // 页码
+	Status     string  `json:"status"`     // 状态
 }

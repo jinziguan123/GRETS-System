@@ -465,14 +465,17 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 	}
 
 	// 创建公开房产信息
-	realEstate := models.RealtyPublic{
-		DocType:        constances.DocTypeRealEstate,
-		RealtyCertHash: realtyCertHash,
-		RealtyCert:     realtyCert,
-		RealtyType:     realtyType,
-		CreateTime:     time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
-		Status:         constances.RealtyStatusNormal,
-		LastUpdateTime: time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+	realEstate := models.Realty{
+		DocType:                         constances.DocTypeRealEstate,
+		RealtyCertHash:                  realtyCertHash,
+		RealtyCert:                      realtyCert,
+		RealtyType:                      realtyType,
+		CreateTime:                      time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+		Status:                          constances.RealtyStatusNormal,
+		LastUpdateTime:                  time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+		CurrentOwnerCitizenIDHash:       currentOwnerCitizenIDHash,
+		CurrentOwnerOrganization:        currentOwnerOrganization,
+		PreviousOwnersCitizenIDHashList: previousOwnersCitizenIDHashList,
 	}
 
 	// 序列化并保存

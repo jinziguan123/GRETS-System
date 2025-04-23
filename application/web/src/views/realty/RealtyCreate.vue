@@ -241,7 +241,7 @@ addressFields.forEach(field => {
 
 // 监听状态变化，如果状态为NORMAL，则需要选择合同
 watch(() => realtyForm.status, (newVal) => {
-  if (newVal === 'NORMAL') {
+  if (newVal === 'PENDING_SALE') {
     // 修改规则，添加合同ID验证
     rules.contractUUID = [
       { required: true, message: '正常状态的新房必须选择关联合同', trigger: 'change' }
@@ -327,7 +327,7 @@ const submitForm = async () => {
     }
     
     // 检查状态为NORMAL时是否选择了合同
-    if (realtyForm.status === 'NORMAL' && !realtyForm.contractUUID) {
+    if (realtyForm.status === 'PENDING_SALE' && !realtyForm.contractUUID) {
       ElMessage.warning('正常状态的新房必须选择关联合同')
       return
     }

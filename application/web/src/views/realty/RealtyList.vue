@@ -101,14 +101,24 @@
         </el-row>
 
         <el-row :gutter="20">
-          <el-col :span="12">
+          <el-col :span="8">
+            <el-form-item label="房产状态">
+              <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 100%">
+                <el-option label="正常" value="NORMAL"></el-option>
+                <el-option label="挂牌" value="PENDING_SALE"></el-option>
+                <el-option label="已抵押" value="IN_MORTGAGE"></el-option>
+                <el-option label="已冻结" value="FROZEN"></el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
             <el-form-item label="面积范围">
               <el-input-number v-model="searchForm.minArea" :min="0.0" :step="10" placeholder="最小面积" style="width: 45%" />
               <span class="separator">-</span>
               <el-input-number v-model="searchForm.maxArea" :min="0.0" :step="10" placeholder="最大面积" style="width: 45%" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="价格范围">
               <el-input-number v-model="searchForm.minPrice" :min="0.0" :step="50000" :formatter="formatPrice" :parser="parsePrice" placeholder="最小价格" style="width: 45%" />
               <span class="separator">-</span>
@@ -224,7 +234,8 @@ const searchForm = reactive({
   room: '',
   isNewHouse: null,
   pageSize: 10,
-  pageNumber: 1
+  pageNumber: 1,
+  status: ''
 })
 
 // 重置查询条件
@@ -378,7 +389,8 @@ const fetchData = async () => {
       floor: searchForm.floor,
       room: searchForm.room,
       pageSize: searchForm.pageSize,
-      pageNumber: searchForm.pageNumber
+      pageNumber: searchForm.pageNumber,
+      status: searchForm.status,
     })
 
     // 适配新的API返回格式
