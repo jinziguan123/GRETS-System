@@ -461,7 +461,7 @@ const getHouseTypeText = (houseType) => {
 const getTransactionStatusTagType = (status) => {
   const statusMap = {
     'PENDING': 'info',
-    'APPROVED': 'success',
+    'IN_PROGRESS': 'primary',
     'REJECTED': 'danger',
     'COMPLETED': 'success'
   }
@@ -472,7 +472,7 @@ const getTransactionStatusTagType = (status) => {
 const getTransactionStatusText = (status) => {
   const statusMap = {
     'PENDING': '待处理',
-    'APPROVED': '已批准',
+    'IN_PROGRESS': '进行中',
     'REJECTED': '已拒绝',
     'COMPLETED': '已完成'
   }
