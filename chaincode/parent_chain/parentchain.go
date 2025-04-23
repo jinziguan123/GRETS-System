@@ -809,31 +809,18 @@ func (s *SmartContract) CreateTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 查询房产信息
-	realEstatePrivateBytes, err := ctx.GetStub().GetPrivateData(constances.RealEstatePrivateCollection, realtyCertHash)
-	if err != nil {
-		return fmt.Errorf("[CreateTransaction] 查询房产私钥失败: %v", err)
-	}
-	if realEstatePrivateBytes == nil {
-		return fmt.Errorf("[CreateTransaction] 房产私钥不存在")
-	}
-	var realEstatePrivate models.RealtyPrivate
-	err = json.Unmarshal(realEstatePrivateBytes, &realEstatePrivate)
-	if err != nil {
-		return fmt.Errorf("[CreateTransaction] 解析房产私钥失败: %v", err)
-	}
-
-	realEstatePublic, err := s.QueryRealty(ctx, realtyCertHash)
+	realEstate, err := s.QueryRealty(ctx, realtyCertHash)
 	if err != nil {
 		return err
 	}
 
 	// 检查房产状态
-	if realEstatePublic.Status != constances.RealtyStatusPendingSale {
-		return fmt.Errorf("[CreateTransaction] 房产状态不允许交易: %s", realEstatePublic.Status)
+	if realEstate.Status != constances.RealtyStatusPendingSale {
+		return fmt.Errorf("[CreateTransaction] 房产状态不允许交易: %s", realEstate.Status)
 	}
 
 	// 检查卖方是否为房产所有者
-	if realEstatePrivate.CurrentOwnerCitizenIDHash != sellerCitizenIDHash {
+	if realEstate.CurrentOwnerCitizenIDHash != sellerCitizenIDHash {
 		return fmt.Errorf("[CreateTransaction] 卖方不是房产所有者")
 	}
 
@@ -1249,27 +1236,13 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 
 	// 更新房产信息
 	realtyIDHash := transactionPublic.RealtyCertHash
-	realEstatePublic, err := s.QueryRealty(ctx, realtyIDHash)
+	realEstate, err := s.QueryRealty(ctx, realtyIDHash)
 	if err != nil {
 		return fmt.Errorf("[CompleteTransaction] 查询房产信息失败: %v", err)
 	}
 
-	realEstatePrivateBytes, err := ctx.GetStub().GetPrivateData(constances.RealEstatePrivateCollection, realtyIDHash)
-	if err != nil {
-		return fmt.Errorf("[CompleteTransaction] 查询房产私钥失败: %v", err)
-	}
-	if realEstatePrivateBytes == nil {
-		return fmt.Errorf("[CompleteTransaction] 房产私钥不存在")
-	}
-
-	var realEstatePrivate models.RealtyPrivate
-	err = json.Unmarshal(realEstatePrivateBytes, &realEstatePrivate)
-	if err != nil {
-		return fmt.Errorf("[CompleteTransaction] 解析房产私钥失败: %v", err)
-	}
-
 	// 更新房产信息
-	previousOwnersCitizenIDHashList := append(realEstatePrivate.PreviousOwnersCitizenIDHashList, transactionPublic.SellerCitizenIDHash)
+	previousOwnersCitizenIDHashList := append(realEstate.PreviousOwnersCitizenIDHashList, transactionPublic.SellerCitizenIDHash)
 	previousOwnersCitizenIDHashListJSON, err := json.Marshal(previousOwnersCitizenIDHashList)
 	if err != nil {
 		return fmt.Errorf("[CompleteTransaction] 序列化历史所有者列表失败: %v", err)
@@ -1277,7 +1250,7 @@ func (s *SmartContract) CompleteTransaction(ctx contractapi.TransactionContextIn
 	err = s.UpdateRealty(
 		ctx,
 		realtyIDHash,
-		realEstatePublic.RealtyType,
+		realEstate.RealtyType,
 		constances.RealtyStatusNormal,
 		transactionPublic.BuyerCitizenIDHash,
 		transactionPublic.BuyerOrganization,
