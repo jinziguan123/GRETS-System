@@ -16,9 +16,9 @@
         <el-divider content-position="center">基本信息</el-divider>
         <el-form-item label="合同类型" prop="contractType">
           <el-select v-model="contractForm.contractType" placeholder="请选择合同类型">
-            <el-option label="购房合同" value="purchase" />
-            <el-option label="贷款合同" value="mortgage" />
-            <el-option label="租赁合同" value="lease" />
+            <el-option label="购房合同" value="PURCHASE" />
+            <el-option label="贷款合同" value="MORTGAGE" />
+            <el-option label="租赁合同" value="LEASE" />
           </el-select>
         </el-form-item>
         <el-form-item label="合同标题" prop="title">
@@ -74,7 +74,7 @@ const submitting = ref(false)
 
 // 合同表单数据
 const contractForm = reactive({
-  contractType: 'purchase',
+  contractType: 'PURCHASE',
   title: '',
   content: '',
   creatorCitizenID: userStore.user.citizenID || ''
@@ -223,7 +223,7 @@ const submitContract = async () => {
 const resetForm = () => {
   if (contractFormRef.value) {
     contractFormRef.value.resetFields()
-    contractForm.contractType = 'purchase'
+    contractForm.contractType = 'PURCHASE'
     contractForm.title = ''
     contractForm.content = ''
     selectedTemplate.value = ''

@@ -419,6 +419,7 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 	realtyCertHash string,
 	realtyCert string,
 	realtyType string,
+	status string,
 	currentOwnerCitizenIDHash string,
 	currentOwnerOrganization string,
 	previousOwnersCitizenIDHashListJSON string,
@@ -471,7 +472,7 @@ func (s *SmartContract) CreateRealty(ctx contractapi.TransactionContextInterface
 		RealtyCert:                      realtyCert,
 		RealtyType:                      realtyType,
 		CreateTime:                      time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
-		Status:                          constances.RealtyStatusNormal,
+		Status:                          status,
 		LastUpdateTime:                  time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
 		CurrentOwnerCitizenIDHash:       currentOwnerCitizenIDHash,
 		CurrentOwnerOrganization:        currentOwnerOrganization,
@@ -1736,7 +1737,10 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 保存交易
-	err = ctx.GetStub().PutPrivateData(constances.TransactionPrivateCollection, transactionUUID, transactionPrivateJSON)
+	if err != nil {
+		return fmt.Errorf("[PayForTransaction] 创建复合键失败: %v", err)
+	}
+	err = ctx.GetStub().PutPrivateData(constances.TransactionPrivateCollection, transactionKey, transactionPrivateJSON)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 保存交易信息失败: %v", err)
 	}
@@ -1758,7 +1762,7 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 	}
 
 	// 保存交易
-	err = ctx.GetStub().PutState(transactionUUID, transactionPublicJSON)
+	err = ctx.GetStub().PutState(transactionKey, transactionPublicJSON)
 	if err != nil {
 		return fmt.Errorf("[PayForTransaction] 保存交易信息失败: %v", err)
 	}

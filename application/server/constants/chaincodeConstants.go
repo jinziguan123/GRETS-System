@@ -76,7 +76,15 @@ const (
 const (
 	ContractStatusNormal    = "NORMAL"    // 正常
 	ContractStatusFrozen    = "FROZEN"    // 冻结
+	ContractStatusCancel    = "CANCEL"    // 取消
 	ContractStatusCompleted = "COMPLETED" // 已完成
+)
+
+// 合同类型枚举
+const (
+	ContractTypePurchase = "PURCHASE" // 购买
+	ContractTypeMortgage = "MORTGAGE" // 抵押
+	ContractTypeLease    = "LEASE"    // 租赁
 )
 
 // 用户状态枚举

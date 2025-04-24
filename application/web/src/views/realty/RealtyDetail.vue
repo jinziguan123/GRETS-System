@@ -81,6 +81,13 @@
             <div class="info-value address-value">{{ generateAddress(realty) }}</div>
           </div>
           
+          <div class="info-row" v-if="realty.relContractUUID">
+            <div class="info-label">关联合同</div>
+            <div class="info-value">
+              <el-button type="primary" link @click="openContractDialog">查看合同详情</el-button>
+            </div>
+          </div>
+          
           <div class="info-row description-row">
             <el-row>
               <el-col :span="24">
@@ -312,6 +319,46 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 合同详情对话框 -->
+    <el-dialog
+      v-model="contractDialogVisible"
+      title="合同详情"
+      width="60%"
+    >
+      <div v-loading="contractLoading">
+        <template v-if="currentContract">
+          <div class="contract-header">
+            <h2 class="contract-title">{{ currentContract.title }}</h2>
+            <el-tag :type="getContractStatusType(currentContract.status)">
+              {{ getContractStatusText(currentContract.status) }}
+            </el-tag>
+          </div>
+          
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="合同编号">{{ currentContract.contractUUID }}</el-descriptions-item>
+            <el-descriptions-item label="创建时间">{{ formatDate(currentContract.createTime) }}</el-descriptions-item>
+            <el-descriptions-item label="更新时间">{{ formatDate(currentContract.updateTime) }}</el-descriptions-item>
+            <el-descriptions-item label="合同类型">{{ getContractTypeText(currentContract.contractType) }}</el-descriptions-item>
+            <el-descriptions-item label="创建者" :span="2">{{ currentContract.creatorCitizenIDHash }}</el-descriptions-item>
+          </el-descriptions>
+          
+          <div class="contract-content">
+            <h3>合同内容</h3>
+            <div class="content-box" v-html="currentContract.content"></div>
+          </div>
+        </template>
+        <el-empty v-else description="暂无合同信息" />
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="contractDialogVisible = false">关闭</el-button>
+          <el-button type="primary" @click="downloadContract" :disabled="!currentContract">
+            下载合同
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -324,7 +371,7 @@ import { useUserStore } from '@/stores/user'
 import { getRealtyDetail, updateRealty } from "@/api/realty.js"
 import CryptoJS from 'crypto-js'
 import {queryTransactionList} from "@/api/transaction.js";
-import { queryContractList } from '@/api/contract'
+import {queryContractList, getContractDetail, getContractByUUID} from '@/api/contract'
 
 const router = useRouter()
 const route = useRoute()
@@ -339,6 +386,9 @@ const editFormRef = ref(null)
 const transactionLoading = ref(false)
 const transactionTotal = ref(0)
 const contractList = ref([])
+const contractDialogVisible = ref(false)
+const contractLoading = ref(false)
+const currentContract = ref(null)
 
 // 房产信息
 const realty = reactive({
@@ -720,6 +770,77 @@ const createTransaction = () => {
   router.push(`/transaction/create?realtyCert=${realty.realtyCert}`)
 }
 
+// 获取合同状态对应的Tag类型
+const getContractStatusType = (status) => {
+  const statusMap = {
+    'NORMAL': 'success',
+    'FROZEN': 'danger',
+    'COMPLETED': 'info'
+  }
+  return statusMap[status] || ''
+}
+
+// 获取合同状态对应的文本
+const getContractStatusText = (status) => {
+  const statusMap = {
+    'NORMAL': '正常',
+    'FROZEN': '已冻结',
+    'COMPLETED': '已完成'
+  }
+  return statusMap[status] || status
+}
+
+// 获取合同类型对应的文本
+const getContractTypeText = (contractType) => {
+  const typeMap = {
+    'PURCHASE': '房屋买卖',
+    'MORTGAGE': '抵押合同',
+    'LEASE': '租赁合同',
+  }
+  return typeMap[contractType] || contractType
+}
+
+// 打开合同详情对话框
+const openContractDialog = async () => {
+  if (!realty.relContractUUID) {
+    ElMessage.warning('该房产没有关联合同')
+    return
+  }
+  
+  contractDialogVisible.value = true
+  contractLoading.value = true
+  
+  try {
+    const response = await getContractByUUID(realty.relContractUUID)
+    currentContract.value = response
+  } catch (error) {
+    console.error('获取合同详情失败:', error)
+    ElMessage.error(error.response?.data?.message || '获取合同详情失败')
+    currentContract.value = null
+  } finally {
+    contractLoading.value = false
+  }
+}
+
+// 下载合同
+const downloadContract = () => {
+  if (!currentContract.value) return
+  
+  // 创建一个链接用于下载
+  const element = document.createElement('a')
+  const file = new Blob([currentContract.value.content], {type: 'text/plain'})
+  element.href = URL.createObjectURL(file)
+  element.download = `合同_${currentContract.value.contractUUID}.txt`
+  document.body.appendChild(element)
+  element.click()
+  document.body.removeChild(element)
+}
+
+// 处理合同选择变更
+const handleContractChange = (contractUUID) => {
+  editForm.relContractUUID = contractUUID
+}
+
 onMounted(() => {
   fetchRealtyDetail()
   fetchContractList()
@@ -913,5 +1034,39 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* 合同详情样式 */
+.contract-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.contract-title {
+  margin: 0;
+  font-size: 20px;
+  color: #303133;
+}
+
+.contract-content {
+  margin-top: 20px;
+}
+
+.contract-content h3 {
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #606266;
+}
+
+.content-box {
+  padding: 15px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  min-height: 200px;
+  white-space: pre-wrap;
+  font-family: 'Courier New', Courier, monospace;
+  line-height: 1.5;
 }
 </style>

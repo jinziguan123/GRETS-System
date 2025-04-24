@@ -46,7 +46,7 @@
         
         <el-form-item>
           <el-button type="primary" @click="submitForm" :loading="submitLoading">提交交易申请</el-button>
-          <el-button type="info" @click="searchRealty" :disabled="!transactionForm.realtyCert">查询房产信息</el-button>
+<!--          <el-button type="info" @click="searchRealty" :disabled="!transactionForm.realtyCert">查询房产信息</el-button>-->
           <el-button @click="goBack">取消</el-button>
         </el-form-item>
       </el-form>

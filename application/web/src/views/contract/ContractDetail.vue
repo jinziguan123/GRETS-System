@@ -52,12 +52,12 @@
             <el-divider content-position="left">交易信息</el-divider>
             
             <el-descriptions :column="2" border>
-              <el-descriptions-item label="买方">{{ contract.parties?.buyer }}</el-descriptions-item>
-              <el-descriptions-item label="卖方">{{ contract.parties?.seller }}</el-descriptions-item>
-              <el-descriptions-item label="合同金额">¥{{ formatCurrency(contract.amount) }}</el-descriptions-item>
-              <el-descriptions-item label="支付方式">{{ contract.paymentMethod || '未指定' }}</el-descriptions-item>
-              <el-descriptions-item label="签署日期" :span="1">{{ formatDate(contract.signDate) || '未签署' }}</el-descriptions-item>
-              <el-descriptions-item label="生效日期" :span="1">{{ formatDate(contract.effectiveDate) || '未生效' }}</el-descriptions-item>
+              <el-descriptions-item label="买方">{{ transaction?.buyerCitizenIDHash }}</el-descriptions-item>
+              <el-descriptions-item label="买方组织">{{ transaction?.buyerOrganization }}</el-descriptions-item>
+              <el-descriptions-item label="卖方">{{ transaction?.sellerCitizenIDHash }}</el-descriptions-item>
+              <el-descriptions-item label="卖方组织">{{ transaction?.sellerOrganization }}</el-descriptions-item>
+              <el-descriptions-item label="交易金额">¥{{ formatCurrency(transaction?.amount) }}</el-descriptions-item>
+              <el-descriptions-item label="生效日期" :span="1">{{ formatDate(transaction?.createTime) || '未生效' }}</el-descriptions-item>
             </el-descriptions>
             
             <el-divider content-position="left">相关资产</el-divider>
@@ -87,61 +87,6 @@
               </div>
             </div>
             <el-empty v-else description="暂无合同内容" />
-          </el-card>
-        </el-tab-pane>
-        
-<!--        <el-tab-pane label="签署记录">-->
-<!--          <el-card>-->
-<!--            <div v-if="contract.auditLogs && contract.auditLogs.length > 0">-->
-<!--              <el-timeline>-->
-<!--                <el-timeline-item-->
-<!--                  v-for="(log, index) in contract.auditLogs"-->
-<!--                  :key="index"-->
-<!--                  :type="getAuditLogType(log.action)"-->
-<!--                  :timestamp="formatDateTime(log.timestamp)"-->
-<!--                >-->
-<!--                  <h4>{{ getAuditLogTitle(log.action) }}</h4>-->
-<!--                  <p>{{ log.comments }}</p>-->
-<!--                  <p v-if="log.revisionRequirements" class="log-details">-->
-<!--                    <strong>修改要求：</strong> {{ log.revisionRequirements }}-->
-<!--                  </p>-->
-<!--                  <p v-if="log.rejectionReason" class="log-details">-->
-<!--                    <strong>拒绝理由：</strong> {{ log.rejectionReason }}-->
-<!--                  </p>-->
-<!--                  <div class="log-meta">-->
-<!--                    <span>操作人：{{ log.auditor }}</span>-->
-<!--                  </div>-->
-<!--                </el-timeline-item>-->
-<!--              </el-timeline>-->
-<!--            </div>-->
-<!--            <el-empty v-else description="暂无签署/审核记录" />-->
-<!--          </el-card>-->
-<!--        </el-tab-pane>-->
-        
-        <el-tab-pane label="附件">
-          <el-card>
-            <div v-if="contract.attachments && contract.attachments.length > 0">
-              <el-table :data="contract.attachments" style="width: 100%">
-                <el-table-column prop="name" label="文件名" min-width="200" />
-                <el-table-column prop="type" label="类型" width="120" />
-                <el-table-column prop="size" label="大小" width="120">
-                  <template #default="scope">
-                    {{ formatFileSize(scope.row.size) }}
-                  </template>
-                </el-table-column>
-                <el-table-column prop="uploadTime" label="上传时间" width="180">
-                  <template #default="scope">
-                    {{ formatDateTime(scope.row.uploadTime) }}
-                  </template>
-                </el-table-column>
-                <el-table-column label="操作" width="120" fixed="right">
-                  <template #default="scope">
-                    <el-button type="primary" link @click="downloadFile(scope.row)">下载</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
-            <el-empty v-else description="暂无合同附件" />
           </el-card>
         </el-tab-pane>
       </el-tabs>
@@ -187,6 +132,7 @@ import {ElMessage} from 'element-plus'
 import axios from 'axios'
 import dayjs from 'dayjs'
 import {getContractByUUID} from "@/api/contract.js";
+import {getTransactionDetail} from "@/api/transaction.js";
 
 const route = useRoute()
 const router = useRouter()
@@ -199,9 +145,11 @@ const signing = ref(false)
 // 合同信息
 const contract = ref(null)
 const signDialogVisible = ref(false)
+const transaction = ref(null)
 
 // 合同ID
 const contractUUID = computed(() => route.params.id)
+const transactionUUID = ref(null)
 
 // 判断是否可以签署合同
 const canSign = computed(() => {
@@ -233,11 +181,23 @@ const fetchContractDetail = async () => {
     
     // 调用API获取合同详情
     contract.value = await getContractByUUID(contractUUID.value)
+    transactionUUID.value = contract.value.transactionUUID
   } catch (error) {
     console.error('Failed to fetch contract details:', error)
     ElMessage.error('获取合同详情失败')
   } finally {
     loading.value = false
+  }
+}
+
+// 获取交易信息
+const getTransactionInfo = async () => {
+  try {
+    const response = await getTransactionDetail(transactionUUID.value)
+    transaction.value = response.transaction
+  } catch (error) {
+    console.error('Failed to get transaction info:', error)
+    ElMessage.error('获取交易信息失败')
   }
 }
 
@@ -392,13 +352,9 @@ const formatFileSize = (bytes) => {
 }
 
 // 页面加载时获取合同详情
-onMounted(() => {
-  if (contractUUID.value) {
-    fetchContractDetail()
-  } else {
-    loading.value = false
-    ElMessage.error('合同ID不能为空')
-  }
+onMounted(async () => {
+  await fetchContractDetail()
+  await getTransactionInfo()
 })
 </script>
 

@@ -38,7 +38,7 @@
             <span>交易管理</span>
           </template>
           <el-menu-item index="/transaction">交易列表</el-menu-item>
-          <el-menu-item index="/transaction/create" v-if="hasOrganization('investor')">创建交易</el-menu-item>
+<!--          <el-menu-item index="/transaction/create" v-if="hasOrganization('investor')">创建交易</el-menu-item>-->
           <!-- 投资者可见 - 聊天室 -->
 <!--          <el-menu-item index="/transaction/chat" v-if="hasOrganization('investor')">交易聊天室</el-menu-item>-->
         </el-sub-menu>

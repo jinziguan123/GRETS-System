@@ -347,9 +347,9 @@ const auditContract = (contract) => {
 // 获取合同类型标签类型
 const getContractTypeTag = (type) => {
   const tagMap = {
-    purchase: 'success',
-    mortgage: 'primary',
-    lease: 'primary'
+    PURCHASE: 'success',
+    MORTGAGE: 'primary',
+    LEASE: 'primary'
   }
   return tagMap[type] || ''
 }
@@ -357,9 +357,9 @@ const getContractTypeTag = (type) => {
 // 获取合同类型名称
 const getContractTypeName = (type) => {
   const nameMap = {
-    purchase: '购房合同',
-    mortgage: '贷款合同',
-    lease: '租赁合同'
+    PURCHASE: '购房合同',
+    MORTGAGE: '贷款合同',
+    LEASE: '租赁合同'
   }
   return nameMap[type] || type
 }

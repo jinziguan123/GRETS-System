@@ -56,10 +56,9 @@
 | 服务端 | Golang（Gin框架），提供REST API |
 | 前端 | Vue3 + TypeScript + Pinia状态管理 |
 | 链上数据库 | BoltDB（状态数据库） |
-| 链下数据库 | MySQL（结构化数据） + IPFS（大文件存储） |
-| 辅助工具 | Docker Compose（本地网络部署）、Kubernetes（生产环境） |
+| 链下数据库 | MySQL（结构化数据） + IPFS（大文件存储） + Lsky-Pro（图床） |
+| 部署 | Docker + Docker Compose（本地网络部署） |
 | 安全与加密 | Fabric CA、TLS 1.3、AES-256（链下数据加密） |
-|部署|Docker|
 
 IPFS客户端：http://119.45.9.196:8888/ipfs/#{cid}
 IPFS API端：http://119.45.9.196:5001
