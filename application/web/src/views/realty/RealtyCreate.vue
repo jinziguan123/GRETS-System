@@ -190,7 +190,8 @@ const fetchContracts = async () => {
     const response = await queryContractList({
       status: 'NORMAL',
       pageSize: 100,
-      pageNumber: 1
+      pageNumber: 1,
+      creatorCitizenID: userStore.user.citizenID,
     })
     contractList.value = response.contracts.filter(e => !e.transactionUUID) || []
   } catch (error) {

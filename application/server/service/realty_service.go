@@ -584,12 +584,15 @@ func (s *realtyService) UpdateRealty(req *realtyDto.UpdateRealtyDTO) error {
 	}
 	if req.Status != "" {
 		realty.Status = req.Status
+		if req.Status != constants.RealtyStatusPendingSale {
+			realty.RelContractUUID = ""
+		}
 	}
 	if req.RealtyType != "" {
 		realty.RealtyType = req.RealtyType
 	}
 	if req.Images != nil {
-		realty.Images = utils.StringSlice(req.Images)
+		realty.Images = req.Images
 	}
 	if req.Price != 0 {
 		realty.Price = req.Price

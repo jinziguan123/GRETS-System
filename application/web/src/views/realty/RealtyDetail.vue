@@ -249,6 +249,26 @@
             <el-option label="已冻结" value="FROZEN" v-if="isGovernment"></el-option>
           </el-select>
         </el-form-item>
+
+        <el-form-item label="关联合同" prop="relContractUUID" v-if="isOwner && editForm.status === 'PENDING_SALE'" required>
+          <el-select 
+            v-model="editForm.relContractUUID" 
+            placeholder="请选择关联合同" 
+            style="width: 100%"
+            @change="handleContractChange"
+            filterable
+            clearable
+            :loading="contractLoading"
+          >
+            <el-option 
+              v-for="contract in contractList" 
+              :key="contract.contractUUID" 
+              :label="contract.title" 
+              :value="contract.contractUUID"
+              :disabled="contract.status !== 'NORMAL'"
+            ></el-option>
+          </el-select>
+        </el-form-item>
         
         <el-form-item label="价格" prop="price" v-if="isOwner && realty.status === 'NORMAL'">
           <el-input-number v-model="editForm.price" :min="0" :step="10000" style="width: 100%"></el-input-number>
@@ -304,6 +324,7 @@ import { useUserStore } from '@/stores/user'
 import { getRealtyDetail, updateRealty } from "@/api/realty.js"
 import CryptoJS from 'crypto-js'
 import {queryTransactionList} from "@/api/transaction.js";
+import { queryContractList } from '@/api/contract'
 
 const router = useRouter()
 const route = useRoute()
@@ -317,6 +338,7 @@ const previewUrl = ref('')
 const editFormRef = ref(null)
 const transactionLoading = ref(false)
 const transactionTotal = ref(0)
+const contractList = ref([])
 
 // 房产信息
 const realty = reactive({
@@ -343,6 +365,12 @@ const realty = reactive({
   isNewHouse: false
 })
 
+watch(realty.status, (newStatus) => {
+  if (newStatus !== 'PENDING_SALE') {
+    editForm.relContractUUID = ''
+  }
+})
+
 // 交易记录
 const transactions = ref([])
 
@@ -362,7 +390,8 @@ const editForm = reactive({
   price: 0,
   houseType: '',
   description: '',
-  images: []
+  images: [],
+  relContractUUID: '',
 })
 
 // 编辑表单校验规则
@@ -377,6 +406,18 @@ const editRules = {
     { required: true, message: '请输入价格', trigger: 'blur' },
     { type: 'number', min: 0, message: '价格必须大于0', trigger: 'blur' }
   ]
+}
+
+// 获取合同列表
+const fetchContractList = async (query) => {
+  const response = await queryContractList({
+    status: 'NORMAL',
+    pageSize: 100,
+    pageNumber: 1,
+    creatorCitizenID: userStore.user.citizenID,
+    contractUUID: query,
+  })
+  contractList.value = response.contracts || []
 }
 
 // 上传文件列表
@@ -599,6 +640,7 @@ const openEditDialog = () => {
   editForm.houseType = realty.houseType
   editForm.description = realty.description
   editForm.images = realty.images || []
+  editForm.relContractUUID = realty.relContractUUID || ''
   
   editDialogVisible.value = true
   
@@ -680,6 +722,7 @@ const createTransaction = () => {
 
 onMounted(() => {
   fetchRealtyDetail()
+  fetchContractList()
 })
 </script>
 
