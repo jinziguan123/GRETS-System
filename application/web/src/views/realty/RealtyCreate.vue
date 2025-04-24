@@ -147,6 +147,7 @@
             :file-list="fileList"
             :on-change="handleFileChange"
             :on-remove="handleFileRemove"
+            :on-success="handleFileSuccess"
           >
             <el-icon><Plus /></el-icon>
             <template #tip>
@@ -260,6 +261,11 @@ const handleFileChange = (file) => {
 
 const handleFileRemove = (file) => {
   console.log('移除文件:', file)
+}
+
+const handleFileSuccess = (response) => {
+  console.log('上传成功:', response)
+  realtyForm.images.push(response.data.url)
 }
 
 // 表单验证规则
