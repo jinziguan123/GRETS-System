@@ -2022,7 +2022,11 @@ func (s *SmartContract) UpdateContract(ctx contractapi.TransactionContextInterfa
 		return fmt.Errorf("[UpdateContractStatus] 序列化合同信息失败: %v", err)
 	}
 
-	return ctx.GetStub().PutState(contract.ContractUUID, contractJSON)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeContract, []string{contractUUID}...)
+	if err != nil {
+		return fmt.Errorf("[UpdateContractStatus] 构造复合键失败: %v", err)
+	}
+	return ctx.GetStub().PutState(key, contractJSON)
 }
 
 func main() {

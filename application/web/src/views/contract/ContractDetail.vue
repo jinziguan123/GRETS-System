@@ -10,21 +10,14 @@
         </div>
       </div>
       <div class="header-actions">
-        <el-button @click="goBack">返回</el-button>
-        <el-button 
-          v-if="canSign"
-          type="success" 
-          @click="showSignDialog"
-        >
-          签署合同
-        </el-button>
         <el-button 
           v-if="canAudit"
           type="warning" 
-          @click="auditContract"
+          @click="openUpdateStatusDialog"
         >
-          审核合同
+          修改状态
         </el-button>
+        <el-button @click="goBack">返回</el-button>
       </div>
     </div>
     
@@ -121,6 +114,51 @@
         </span>
       </template>
     </el-dialog>
+    
+    <!-- 修改合同状态对话框 -->
+    <el-dialog
+      v-model="updateStatusDialogVisible"
+      title="修改合同状态"
+      width="450px"
+      destroy-on-close
+    >
+      <div class="update-status-form">
+        <el-form :model="updateStatusForm" label-width="100px">
+          <el-form-item label="当前状态">
+            <el-tag :type="getStatusTag(contract?.status)">
+              {{ getStatusName(contract?.status) }}
+            </el-tag>
+          </el-form-item>
+          
+          <el-form-item label="新状态" prop="newStatus">
+            <el-select v-model="updateStatusForm.newStatus" placeholder="请选择新状态" style="width: 100%">
+              <el-option label="正常" value="NORMAL"></el-option>
+              <el-option label="冻结" value="FROZEN"></el-option>
+              <el-option label="取消" value="CANCEL"></el-option>
+              <el-option label="已完成" value="COMPLETED"></el-option>
+            </el-select>
+          </el-form-item>
+          
+          <el-form-item label="修改原因" prop="reason">
+            <el-input 
+              v-model="updateStatusForm.reason" 
+              type="textarea" 
+              :rows="3" 
+              placeholder="请输入修改原因"
+            ></el-input>
+          </el-form-item>
+        </el-form>
+      </div>
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="updateStatusDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmUpdateStatus" :loading="updating">
+            确认修改
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -131,7 +169,7 @@ import {useUserStore} from '@/stores/user'
 import {ElMessage} from 'element-plus'
 import axios from 'axios'
 import dayjs from 'dayjs'
-import {getContractByUUID} from "@/api/contract.js";
+import {getContractByUUID, updateContractStatus} from "@/api/contract.js";
 import {getTransactionDetail} from "@/api/transaction.js";
 
 const route = useRoute()
@@ -141,6 +179,7 @@ const userStore = useUserStore()
 // 加载状态
 const loading = ref(true)
 const signing = ref(false)
+const updating = ref(false)
 
 // 合同信息
 const contract = ref(null)
@@ -150,6 +189,13 @@ const transaction = ref(null)
 // 合同ID
 const contractUUID = computed(() => route.params.id)
 const transactionUUID = ref(null)
+
+// 修改状态相关
+const updateStatusDialogVisible = ref(false)
+const updateStatusForm = ref({
+  newStatus: '',
+  reason: ''
+})
 
 // 判断是否可以签署合同
 const canSign = computed(() => {
@@ -171,7 +217,7 @@ const canSign = computed(() => {
 const canAudit = computed(() => {
   return userStore.hasOrganization('audit') && 
          contract.value && 
-         contract.value.status === 'signed'
+         ['NORMAL', 'FROZEN', 'PENDING', 'SIGNED'].includes(contract.value.status)
 })
 
 // 获取合同详情
@@ -277,7 +323,8 @@ const getStatusTag = (status) => {
   const tagMap = {
     NORMAL: 'primary',
     FROZEN: 'warning',
-    COMPLETED: 'success'
+    COMPLETED: 'success',
+    CANCEL: 'danger'
   }
   return tagMap[status] || ''
 }
@@ -288,6 +335,7 @@ const getStatusName = (status) => {
     NORMAL: '正常',
     FROZEN: '冻结',
     COMPLETED: '已完成',
+    CANCEL: '已取消'
   }
   return nameMap[status] || status
 }
@@ -349,6 +397,48 @@ const formatFileSize = (bytes) => {
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+// 打开修改状态对话框
+const openUpdateStatusDialog = () => {
+  updateStatusForm.value = {
+    newStatus: '',
+    reason: ''
+  }
+  updateStatusDialogVisible.value = true
+}
+
+// 确认修改状态
+const confirmUpdateStatus = async () => {
+  if (!updateStatusForm.value.newStatus) {
+    ElMessage.warning('请选择新状态')
+    return
+  }
+  
+  if (!updateStatusForm.value.reason) {
+    ElMessage.warning('请输入修改原因')
+    return
+  }
+  
+  updating.value = true
+  
+  try {
+    await updateContractStatus(contractUUID.value, {
+      status: updateStatusForm.value.newStatus,
+      reason: updateStatusForm.value.reason
+    })
+    
+    ElMessage.success('合同状态修改成功')
+    updateStatusDialogVisible.value = false
+    
+    // 刷新合同详情
+    await fetchContractDetail()
+  } catch (error) {
+    console.error('Failed to update contract status:', error)
+    ElMessage.error(error.response?.data?.message || '修改合同状态失败')
+  } finally {
+    updating.value = false
+  }
 }
 
 // 页面加载时获取合同详情
@@ -447,5 +537,9 @@ onMounted(async () => {
   margin-top: 20px;
   color: #E6A23C;
   font-size: 14px;
+}
+
+.update-status-form {
+  padding: 10px 20px;
 }
 </style>

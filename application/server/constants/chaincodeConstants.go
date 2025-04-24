@@ -68,7 +68,6 @@ const (
 const (
 	PaymentTypeTransfer = "TRANSFER" // 房款
 	PaymentTypeTax      = "TAX"      // 税费
-	PaymentTypeFee      = "FEE"      // 手续费
 
 )
 

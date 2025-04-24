@@ -7,7 +7,7 @@
     <div class="payment-dialog-content">
       <div class="payment-info-row">
         <div class="info-label">交易总金额:</div>
-        <div class="info-value">{{ formatPrice(transaction?.price || 0) }}</div>
+        <div class="info-value">{{ formatPrice(transaction?.price + transaction?.tax || 0) }}</div>
       </div>
       <div class="payment-info-row">
         <div class="info-label">已支付金额:</div>
@@ -25,7 +25,6 @@
           <el-select v-model="form.paymentType" placeholder="请选择支付类型" style="width: 100%">
             <el-option label="房款支付" value="TRANSFER"></el-option>
             <el-option label="税费支付" value="TAX"></el-option>
-            <el-option label="手续费支付" value="FEE"></el-option>
           </el-select>
         </el-form-item>
         
@@ -120,7 +119,7 @@ const rules = {
 // 剩余应付金额
 const remainingAmount = computed(() => {
   if (!props.transaction) return 0
-  const remaining = props.transaction.price - props.totalPaid
+  const remaining = props.transaction.price + props.transaction.tax - props.totalPaid
   return remaining > 0 ? remaining : 0
 })
 

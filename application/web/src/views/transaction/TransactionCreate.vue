@@ -22,13 +22,13 @@
         <el-form-item label="买方身份证" prop="buyerCitizenID">
           <el-input v-model="transactionForm.buyerCitizenID" placeholder="请输入买方身份证号" disabled></el-input>
         </el-form-item>
-
-        <el-form-item label="税费" prop="tax">
-          <el-input-number v-model="transactionForm.tax" :min="0" :precision="2" :step="1000" style="width: 100%"></el-input-number>
-        </el-form-item>
         
         <el-form-item label="交易价格" prop="price">
           <el-input-number v-model="transactionForm.price" :min="0" :precision="2" :step="10000" style="width: 100%"></el-input-number>
+        </el-form-item>
+
+        <el-form-item label="税费" prop="tax">
+          <el-input-number v-model="transactionForm.tax" :min="0" :precision="2" :step="1000" style="width: 100%" disabled></el-input-number>
         </el-form-item>
         
         <div v-if="realtyInfo" class="realty-info-container">
@@ -93,7 +93,16 @@ const rules = reactive({
   price: [
     { required: true, message: '请输入交易价格', trigger: 'blur' },
     { type: 'number', min: 1, message: '价格必须大于0', trigger: 'blur' }
+  ],
+  tax: [
+    { required: true, message: '请输入税费', trigger: 'blur' },
+    { type: 'number', min: 0, message: '税费必须大于0', trigger: 'blur' }
   ]
+})
+
+// 税费始终为交易价格的3%
+watch(() => transactionForm.price, (newVal) => {
+  transactionForm.tax = newVal * 0.03
 })
 
 // 价格格式化

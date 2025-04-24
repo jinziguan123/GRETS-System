@@ -25,7 +25,6 @@
               <el-select v-model="searchForm.paymentType" placeholder="请选择支付类型" clearable>
                 <el-option label="房款" value="TRANSFER"></el-option>
                 <el-option label="税费" value="TAX"></el-option>
-                <el-option label="手续费" value="FEE"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
@@ -228,7 +227,6 @@ const formatPaymentType = (type: string): string => {
   const typeMap = {
     'TRANSFER': '房款',
     'TAX': '税费',
-    'FEE': '手续费',
   };
   return typeMap[type] || type;
 };

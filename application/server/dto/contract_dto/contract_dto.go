@@ -57,3 +57,9 @@ type UpdateContractDTO struct {
 	DocHash         string `json:"docHash"`
 	Status          string `json:"status"`
 }
+
+type UpdateContractStatusDTO struct {
+	ContractUUID string `json:"contractUUID"`
+	Status       string `json:"status"`
+	Reason       string `json:"reason"`
+}

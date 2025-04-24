@@ -43,7 +43,7 @@
           <div class="progress-info">
             <div class="progress-text">
               <span>已支付: {{ formatPrice(totalPaidAmount) }}</span>
-              <span>总金额: {{ formatPrice(transactionInfo.price) }}</span>
+              <span>总金额: {{ formatPrice(transactionInfo.price + transactionInfo.tax) }}</span>
             </div>
             <el-progress
                 :percentage="paymentPercentage"
@@ -237,7 +237,7 @@ const getCurrentOwnerOrganization = (organization) => {
 
 const paymentPercentage = computed(() => {
   if (!transactionInfo.value || !transactionInfo.value.price || transactionInfo.value.price === 0) return 0
-  const percentage = (totalPaidAmount.value / transactionInfo.value.price) * 100
+  const percentage = (totalPaidAmount.value / (transactionInfo.value.price + transactionInfo.value.tax)) * 100
   return Math.min(percentage, 100) // 最大不超过100%
 })
 
@@ -663,7 +663,6 @@ const getPaymentTypeText = (type) => {
   const typeMap = {
     'TRANSFER': '房款',
     'TAX': '税费',
-    'FEE': '手续费'
   }
   return typeMap[type] || type
 }

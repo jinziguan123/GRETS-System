@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 	"grets_server/constants"
 	"grets_server/dao"
@@ -31,6 +32,7 @@ type ContractService interface {
 	AuditContract(id string, req *contractDto.AuditContractDTO) error
 	UpdateContract(req *contractDto.UpdateContractDTO) error
 	GetContractByUUID(contractUUID string) (*contractDto.ContractDTO, error)
+	UpdateContractStatus(req *contractDto.UpdateContractStatusDTO) error
 }
 
 // contractService 合同服务实现
@@ -41,6 +43,50 @@ type contractService struct {
 // NewContractService 创建合同服务实例
 func NewContractService(contractDAO *dao.ContractDAO) ContractService {
 	return &contractService{contractDAO: contractDAO}
+}
+
+// UpdateContractStatus 更新合同状态
+func (s *contractService) UpdateContractStatus(req *contractDto.UpdateContractStatusDTO) error {
+	// 调用链码更新合同状态
+	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
+		return fmt.Errorf("获取合约失败: %v", err)
+	}
+
+	// 调用链码查询
+	contractFromChainCodeBytes, err := contract.SubmitTransaction(
+		"QueryContract",
+		req.ContractUUID,
+	)
+
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询合同失败: %v", err))
+		return fmt.Errorf("查询合同失败: %v", err)
+	}
+
+	contractFromChainCode := &contractDto.ContractDTO{}
+	err = json.Unmarshal(contractFromChainCodeBytes, contractFromChainCode)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询合同失败: %v", err))
+		return fmt.Errorf("查询合同失败: %v", err)
+	}
+
+	// 构建更新参数
+	_, err = contract.SubmitTransaction(
+		"UpdateContract",
+		req.ContractUUID,
+		contractFromChainCode.DocHash,
+		contractFromChainCode.ContractType,
+		req.Status,
+	)
+
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("更新合同状态失败: %v", err))
+		return fmt.Errorf("更新合同状态失败: %v", err)
+	}
+
+	return nil
 }
 
 // CreateContract 创建合同

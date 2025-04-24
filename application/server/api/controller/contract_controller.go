@@ -155,6 +155,25 @@ func (ctrl *ContractController) GetContractByUUID(c *gin.Context) {
 	utils.ResponseSuccess(c, "查询合同成功", contract)
 }
 
+// UpdateContractStatus 更新合同状态
+func (ctrl *ContractController) UpdateContractStatus(c *gin.Context) {
+	// 解析请求参数
+	var req contractDto.UpdateContractStatusDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ResponseBadRequest(c, "无效的请求参数")
+		return
+	}
+
+	// 调用服务更新合同状态
+	if err := ctrl.contractService.UpdateContractStatus(&req); err != nil {
+		utils.ResponseInternalServerError(c, err.Error())
+		return
+	}
+
+	// 返回成功结果
+	utils.ResponseSuccess(c, "合同状态更新成功", nil)
+}
+
 // 创建全局合同控制器实例
 var GlobalContractController *ContractController
 
@@ -186,4 +205,8 @@ func AuditContract(c *gin.Context) {
 
 func GetContractByUUID(c *gin.Context) {
 	GlobalContractController.GetContractByUUID(c)
+}
+
+func UpdateContractStatus(c *gin.Context) {
+	GlobalContractController.UpdateContractStatus(c)
 }
