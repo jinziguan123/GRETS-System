@@ -52,7 +52,7 @@
           <el-menu-item index="/contract">合同列表</el-menu-item>
           <el-menu-item index="/contract/create" v-if="hasOrganization(['investor', 'government'])">创建合同</el-menu-item>
           <!-- 审计组织特有 - 合规审核 -->
-          <el-menu-item index="/contract/audit" v-if="hasOrganization('audit')">合规审核</el-menu-item>
+<!--          <el-menu-item index="/contract/audit" v-if="hasOrganization('audit')">合规审核</el-menu-item>-->
         </el-sub-menu>
         
         <!-- 支付管理 - 投资者、银行可见 -->

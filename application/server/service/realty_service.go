@@ -263,6 +263,7 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 			[]byte(utils.GenerateHash(req.RealtyCert)),
 			[]byte(req.RealtyCert),
 			[]byte(req.RealtyType),
+			[]byte(req.Status),
 			[]byte(utils.GenerateHash(req.CurrentOwnerCitizenID)),
 			[]byte(req.CurrentOwnerOrganization),
 			previousOwnersJSON,

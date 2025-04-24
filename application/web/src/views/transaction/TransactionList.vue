@@ -295,7 +295,7 @@ const isTransactionParty = (transaction) => {
   const isSeller = transaction.sellerCitizenIDHash === userCitizenIDHash
   
   // 政府和审计可以查看所有交易
-  const isAdmin = userInfo.value.role === 'GOVERNMENT' || userInfo.value.role === 'AUDIT'
+  const isAdmin = userInfo.value.organization === 'government' || userInfo.value.organization === 'audit'
   
   return isBuyer || isSeller || isAdmin
 }

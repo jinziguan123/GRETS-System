@@ -250,10 +250,10 @@
         
         <el-form-item label="状态" prop="status" v-if="canEditStatus">
           <el-select v-model="editForm.status" placeholder="请选择状态" style="width: 100%">
-            <el-option label="正常" value="NORMAL" v-if="isOwner || isGovernment"></el-option>
+            <el-option label="正常" value="NORMAL" v-if="isOwner || isGovernment || isAudit"></el-option>
             <el-option label="挂牌" value="PENDING_SALE" v-if="isOwner"></el-option>
             <el-option label="已抵押" value="IN_MORTGAGE" v-if="isGovernment"></el-option>
-            <el-option label="已冻结" value="FROZEN" v-if="isGovernment"></el-option>
+            <el-option label="已冻结" value="FROZEN" v-if="isGovernment || isAudit"></el-option>
           </el-select>
         </el-form-item>
 
@@ -478,6 +478,11 @@ const isGovernment = computed(() => {
   return userStore.hasOrganization('government')
 })
 
+// 计算属性：是否为审计
+const isAudit = computed(() => {
+  return userStore.hasOrganization('audit')
+})
+
 // 计算属性：是否为房产拥有者
 const isOwner = computed(() => {
   // 这里需要根据实际情况判断当前用户是否为房产拥有者
@@ -487,14 +492,14 @@ const isOwner = computed(() => {
 
 // 计算属性：是否有编辑权限
 const canEdit = computed(() => {
-  return isGovernment.value || isOwner.value
+  return isGovernment.value || isOwner.value || isAudit.value
 })
 
 // 计算属性：是否可以编辑状态
 const canEditStatus = computed(() => {
   // 政府部门可以在任何情况下修改状态
   // 房产拥有者只能在房产状态为正常时修改状态
-  return isGovernment.value || (isOwner.value && (realty.status === 'NORMAL' || realty.status === 'PENDING_SALE'))
+  return isGovernment.value || (isOwner.value && (realty.status === 'NORMAL' || realty.status === 'PENDING_SALE')) || isAudit.value
 })
 
 // 计算属性：是否有交易权限
