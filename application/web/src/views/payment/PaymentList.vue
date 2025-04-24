@@ -76,6 +76,11 @@
               {{ formatDateTime(scope.row.createTime) }}
             </template>
           </el-table-column>
+          <el-table-column prop="remarks" label="备注">
+            <template #default="scope">
+              {{ scope.row.remarks || '无' }}
+            </template>
+          </el-table-column>
         </el-table>
 
         <!-- 分页 -->
