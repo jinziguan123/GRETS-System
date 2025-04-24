@@ -1,7 +1,6 @@
 package controller
 
 import (
-	pictureDTO "grets_server/dto/picture_dto"
 	"grets_server/pkg/utils"
 	"grets_server/service"
 
@@ -22,17 +21,24 @@ func NewPictureController() *PictureController {
 
 // UploadPicture 上传图片
 func (c *PictureController) UploadPicture(ctx *gin.Context) {
-	var req pictureDTO.UploadPictureDTO
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	file, err := ctx.FormFile("file")
+	if err != nil {
 		utils.ResponseBadRequest(ctx, err.Error())
 		return
 	}
-	err := c.pictureService.UploadPicture(&req)
+	openFile, err := file.Open()
 	if err != nil {
 		utils.ResponseInternalServerError(ctx, err.Error())
 		return
 	}
-	utils.ResponseSuccess(ctx, "图片上传成功", nil)
+	url, err := c.pictureService.UploadPicture(&openFile)
+	if err != nil {
+		utils.ResponseInternalServerError(ctx, err.Error())
+		return
+	}
+	utils.ResponseSuccess(ctx, "图片上传成功", gin.H{
+		"url": url,
+	})
 }
 
 // 创建全局图片控制器实例

@@ -39,6 +39,24 @@ services:
     depends_on:
       - mysql
 
+  lsky-pro-mysql:
+    image: mysql:8.0
+    container_name: lsky-pro-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: grets123
+      MYSQL_DATABASE: lsky_pro
+      MYSQL_USER: lsky_pro_user
+      MYSQL_PASSWORD: lsky_pro_password
+      TZ: Asia/Shanghai
+    ports:
+      - "3308:3306"
+    volumes:
+      - ./lsky-pro/db/data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - grets_network
+
 networks:
   grets_network:
     driver: bridge 
