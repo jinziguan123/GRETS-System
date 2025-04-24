@@ -1752,7 +1752,6 @@ func (s *SmartContract) PayForTransaction(ctx contractapi.TransactionContextInte
 		return fmt.Errorf("[PayForTransaction] 解析交易信息失败: %v", err)
 	}
 
-	transactionPublic.Status = constances.TxStatusCompleted
 	transactionPublic.UpdateTime = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
 
 	// 序列化交易
