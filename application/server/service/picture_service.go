@@ -135,35 +135,61 @@ func (s *pictureService) uploadPicture(token string, file *multipart.File) (stri
 	// 	}
 	// }
 	// 使用http.Post请求
-	requestBody := map[string]string{
-		"file": "图片文件",
-	}
-	jsonData, err := json.Marshal(requestBody)
+	// 创建一个buffer用于构建multipart请求
+	var requestBody bytes.Buffer
+	writer := multipart.NewWriter(&requestBody)
+
+	// 创建文件表单字段
+	part, err := writer.CreateFormFile("file", "file.jpg") // 文件名可以根据需要调整
 	if err != nil {
 		return "", err
 	}
-	request, err := http.NewRequest("POST", "http://localhost:8089/api/v1/upload", bytes.NewBuffer(jsonData))
+
+	// 复制文件内容到表单字段
+	_, err = io.Copy(part, *file)
 	if err != nil {
 		return "", err
 	}
+
+	// 关闭writer以完成请求内容
+	err = writer.Close()
+	if err != nil {
+		return "", err
+	}
+
+	// 创建请求
+	request, err := http.NewRequest("POST", "http://localhost:8089/api/v1/upload", &requestBody)
+	if err != nil {
+		return "", err
+	}
+
+	// 设置请求头
 	request.Header.Set("Authorization", "Bearer "+token)
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+
+	// 发送请求
 	client := &http.Client{}
 	response, err := client.Do(request)
 	if err != nil {
 		return "", err
 	}
 	defer response.Body.Close()
-	body, err := io.ReadAll(response.Body)
+
+	// 处理响应
+	respBody, err := io.ReadAll(response.Body)
 	if err != nil {
 		return "", err
 	}
+
 	var responseBody map[string]interface{}
-	err = json.Unmarshal(body, &responseBody)
+	err = json.Unmarshal(respBody, &responseBody)
 	if err != nil {
 		return "", err
 	}
+
 	if responseBody["status"].(bool) {
 		return responseBody["data"].(map[string]interface{})["links"].(map[string]interface{})["url"].(string), nil
 	}
+
 	return "", fmt.Errorf("上传图片失败: %v", responseBody["message"])
 }

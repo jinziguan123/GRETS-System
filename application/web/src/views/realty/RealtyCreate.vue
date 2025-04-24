@@ -141,9 +141,8 @@
         
         <el-form-item label="房产图片" prop="images">
           <el-upload
-            action="#"
+            action="http://localhost:8080/api/v1/picture/upload"
             list-type="picture-card"
-            :auto-upload="false"
             :limit="5"
             :file-list="fileList"
             :on-change="handleFileChange"
