@@ -39,7 +39,7 @@ const userStore = useUserStore()
 const organizationPermissions = {
   'investor': ['/realty', '/transaction', '/contract', '/payment', '/mortgage'],
   'government': ['/realty', '/transaction', '/contract', '/tax', '/statistics'],
-  'bank': ['/transaction', '/payment', '/mortgage', '/statistics'],
+  'bank': ['/transaction', '/payment', '/mortgage', '/statistics', '/contract', '/realty'],
   'audit': ['/contract', '/realty', '/transaction'],
   'thirdparty': ['/admin', '/realty', '/transaction', '/contract', '/payment', '/tax', '/mortgage', '/statistics']
 }
