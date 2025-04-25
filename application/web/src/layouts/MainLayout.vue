@@ -188,7 +188,8 @@ const organizationName = computed(() => {
     'government': '政府监管部门',
     'investor': '投资者/买家',
     'bank': '银行机构',
-    'audit': '审计监管部门'
+    'audit': '审计监管部门',
+    'thirdparty': '第三方机构'
   }
   return orgMap[userOrganization.value] || '未知组织'
 })
