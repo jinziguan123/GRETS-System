@@ -66,6 +66,8 @@
           <el-descriptions-item label="交易价格">{{ formatPrice(transactionInfo.price) }}</el-descriptions-item>
           <el-descriptions-item label="卖方身份证">{{ transactionInfo.sellerCitizenIDHash }}</el-descriptions-item>
           <el-descriptions-item label="买方身份证">{{ transactionInfo.buyerCitizenIDHash }}</el-descriptions-item>
+          <el-descriptions-item label="卖方组织">{{ getCurrentOwnerOrganization(transactionInfo.sellerOrganization) }}</el-descriptions-item>
+          <el-descriptions-item label="买方组织">{{ getCurrentOwnerOrganization(transactionInfo.buyerOrganization) }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ formatDate(transactionInfo.createTime) }}</el-descriptions-item>
           <el-descriptions-item label="更新时间">{{ formatDate(transactionInfo.updateTime) }}</el-descriptions-item>
           <el-descriptions-item label="预计完成时间">

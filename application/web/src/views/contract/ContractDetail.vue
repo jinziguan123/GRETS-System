@@ -46,9 +46,9 @@
             
             <el-descriptions :column="2" border>
               <el-descriptions-item label="买方">{{ transaction?.buyerCitizenIDHash }}</el-descriptions-item>
-              <el-descriptions-item label="买方组织">{{ transaction?.buyerOrganization }}</el-descriptions-item>
+              <el-descriptions-item label="买方组织">{{ getCurrentOwnerOrganization(transaction?.buyerOrganization) }}</el-descriptions-item>
               <el-descriptions-item label="卖方">{{ transaction?.sellerCitizenIDHash }}</el-descriptions-item>
-              <el-descriptions-item label="卖方组织">{{ transaction?.sellerOrganization }}</el-descriptions-item>
+              <el-descriptions-item label="卖方组织">{{ getCurrentOwnerOrganization(transaction?.sellerOrganization) }}</el-descriptions-item>
               <el-descriptions-item label="交易金额">¥{{ formatCurrency(transaction?.amount) }}</el-descriptions-item>
               <el-descriptions-item label="生效日期" :span="1">{{ formatDate(transaction?.createTime) || '未生效' }}</el-descriptions-item>
             </el-descriptions>
@@ -213,6 +213,18 @@ const canSign = computed(() => {
   return false
 })
 
+// 获取房产所有者组织对应的文本
+const getCurrentOwnerOrganization = (organization) => {
+  const organizationMap = {
+    'government': '政府监管部门',
+    'investor': '投资者/买家',
+    'bank': '银行机构',
+    'thirdparty': '第三方机构',
+    'audit': '审计机构'
+  }
+  return organizationMap[organization] || organization
+}
+
 // 判断是否可以审核合同
 const canAudit = computed(() => {
   return userStore.hasOrganization('audit') && 
@@ -228,6 +240,9 @@ const fetchContractDetail = async () => {
     // 调用API获取合同详情
     contract.value = await getContractByUUID(contractUUID.value)
     transactionUUID.value = contract.value.transactionUUID
+    if (transactionUUID.value) {
+      await getTransactionInfo()
+    }
   } catch (error) {
     console.error('Failed to fetch contract details:', error)
     ElMessage.error('获取合同详情失败')
@@ -444,7 +459,6 @@ const confirmUpdateStatus = async () => {
 // 页面加载时获取合同详情
 onMounted(async () => {
   await fetchContractDetail()
-  await getTransactionInfo()
 })
 </script>
 
