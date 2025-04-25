@@ -37,20 +37,59 @@
       </template>
 
       <div v-if="transactionInfo">
-        <!-- 交易进度条 -->
+        <!-- 支付进度 -->
         <div class="progress-section">
           <h4>支付进度</h4>
-          <div class="progress-info">
-            <div class="progress-text">
-              <span>已支付: {{ formatPrice(totalPaidAmount) }}</span>
-              <span>总金额: {{ formatPrice(transactionInfo.price + transactionInfo.tax) }}</span>
+          
+          <!-- 房款支付进度 -->
+          <div class="progress-item">
+            <div class="progress-title">房款支付进度</div>
+            <div class="progress-info">
+              <div class="progress-text">
+                <span>已支付: {{ formatPrice(totalTransferAmount) }}</span>
+                <span>总金额: {{ formatPrice(transactionInfo.price) }}</span>
+              </div>
+              <el-progress
+                  :percentage="transferPercentage"
+                  :format="percentFormat"
+                  :status="transferPercentage >= 100 ? 'success' : ''"
+                  :stroke-width="20"
+              ></el-progress>
             </div>
-            <el-progress
-                :percentage="paymentPercentage"
-                :format="percentFormat"
-                :status="paymentPercentage >= 100 ? 'success' : ''"
-                :stroke-width="20"
-            ></el-progress>
+          </div>
+          
+          <!-- 税费支付进度 -->
+          <div class="progress-item">
+            <div class="progress-title">税费支付进度</div>
+            <div class="progress-info">
+              <div class="progress-text">
+                <span>已支付: {{ formatPrice(totalTaxAmount) }}</span>
+                <span>总金额: {{ formatPrice(transactionInfo.tax) }}</span>
+              </div>
+              <el-progress
+                  :percentage="taxPercentage"
+                  :format="percentFormat"
+                  :status="taxPercentage >= 100 ? 'success' : ''"
+                  :stroke-width="20"
+              ></el-progress>
+            </div>
+          </div>
+          
+          <!-- 总支付进度 -->
+          <div class="progress-item total-progress">
+            <div class="progress-title">总支付进度</div>
+            <div class="progress-info">
+              <div class="progress-text">
+                <span>已支付: {{ formatPrice(totalPaidAmount) }}</span>
+                <span>总金额: {{ formatPrice(transactionInfo.price + transactionInfo.tax) }}</span>
+              </div>
+              <el-progress
+                  :percentage="paymentPercentage"
+                  :format="percentFormat"
+                  :status="paymentPercentage >= 100 ? 'success' : ''"
+                  :stroke-width="20"
+              ></el-progress>
+            </div>
           </div>
         </div>
 
@@ -226,6 +265,41 @@ const totalPaidAmount = computed(() => {
   return payments.value.reduce((total, payment) => total + payment.amount, 0)
 })
 
+// 分别计算房款和税费的已支付金额
+const totalTransferAmount = computed(() => {
+  if (!payments.value || payments.value.length === 0) return 0
+  return payments.value
+    .filter(payment => payment.paymentType === 'TRANSFER')
+    .reduce((total, payment) => total + payment.amount, 0)
+})
+
+const totalTaxAmount = computed(() => {
+  if (!payments.value || payments.value.length === 0) return 0
+  return payments.value
+    .filter(payment => payment.paymentType === 'TAX')
+    .reduce((total, payment) => total + payment.amount, 0)
+})
+
+const paymentPercentage = computed(() => {
+  if (!transactionInfo.value || !transactionInfo.value.price || transactionInfo.value.price === 0) return 0
+  const percentage = (totalPaidAmount.value / (transactionInfo.value.price + transactionInfo.value.tax)) * 100
+  return Math.min(percentage, 100) // 最大不超过100%
+})
+
+// 计算房款支付进度百分比
+const transferPercentage = computed(() => {
+  if (!transactionInfo.value || !transactionInfo.value.price || transactionInfo.value.price === 0) return 0
+  const percentage = (totalTransferAmount.value / transactionInfo.value.price) * 100
+  return Math.min(percentage, 100) // 最大不超过100%
+})
+
+// 计算税费支付进度百分比
+const taxPercentage = computed(() => {
+  if (!transactionInfo.value || !transactionInfo.value.tax || transactionInfo.value.tax === 0) return 0
+  const percentage = (totalTaxAmount.value / transactionInfo.value.tax) * 100
+  return Math.min(percentage, 100) // 最大不超过100%
+})
+
 const getCurrentOwnerOrganization = (organization) => {
   const organizationMap = {
     'government': '政府监管部门',
@@ -235,17 +309,6 @@ const getCurrentOwnerOrganization = (organization) => {
     'audit': '审计机构'
   }
   return organizationMap[organization] || organization
-}
-
-const paymentPercentage = computed(() => {
-  if (!transactionInfo.value || !transactionInfo.value.price || transactionInfo.value.price === 0) return 0
-  const percentage = (totalPaidAmount.value / (transactionInfo.value.price + transactionInfo.value.tax)) * 100
-  return Math.min(percentage, 100) // 最大不超过100%
-})
-
-// 格式化百分比
-const percentFormat = (percentage) => {
-  return `${percentage.toFixed(2)}%`
 }
 
 // 获取用户信息
@@ -298,14 +361,15 @@ const canCheckTransaction = computed(() => {
   return userInfo.value.organization === 'government' && transactionInfo.value.status === 'PENDING'
 })
 
-// 判断是否可以完成交易
+// 判断是否可以完成交易 - 修改为需要两种支付都完成
 const canCompleteTransaction = computed(() => {
   if (!userInfo.value || !transactionInfo.value) return false
 
-  // 政府组织且交易状态为已审核且已支付足够金额
+  // 政府组织且交易状态为已审核且房款和税费都已支付足够金额
   return userInfo.value.organization === 'government' &&
       transactionInfo.value.status === 'IN_PROGRESS' &&
-      totalPaidAmount.value >= transactionInfo.value.price
+      transferPercentage.value >= 100 &&
+      taxPercentage.value >= 100
 })
 
 // 判断是否可以取消交易
@@ -679,8 +743,14 @@ const getContractTypeText = (type) => {
   return typeMap[type] || type
 }
 
-// 买方完成交易
+// 买方完成交易按钮判断逻辑也需要修改
 const handleBuyerComplete = async () => {
+  // 检查两种支付是否都已完成
+  if (transferPercentage.value < 100 || taxPercentage.value < 100) {
+    ElMessage.warning('请先完成所有房款和税费的支付')
+    return
+  }
+  
   ElMessageBox.confirm('交易金额已支付完成，确定要完成此次交易吗？完成后将不可撤销', '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -727,6 +797,26 @@ onMounted(() => {
   padding: 20px;
   border-radius: 8px;
   margin-bottom: 20px;
+}
+
+.progress-item {
+  margin-bottom: 20px;
+}
+
+.progress-item:last-child {
+  margin-bottom: 0;
+}
+
+.progress-title {
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #606266;
+}
+
+.total-progress {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px dashed #d9d9d9;
 }
 
 .progress-info {

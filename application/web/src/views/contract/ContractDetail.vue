@@ -46,8 +46,8 @@
             
             <el-descriptions :column="2" border>
               <el-descriptions-item label="买方">{{ transaction?.buyerCitizenIDHash }}</el-descriptions-item>
-              <el-descriptions-item label="买方组织">{{ getCurrentOwnerOrganization(transaction?.buyerOrganization) }}</el-descriptions-item>
               <el-descriptions-item label="卖方">{{ transaction?.sellerCitizenIDHash }}</el-descriptions-item>
+              <el-descriptions-item label="买方组织">{{ getCurrentOwnerOrganization(transaction?.buyerOrganization) }}</el-descriptions-item>
               <el-descriptions-item label="卖方组织">{{ getCurrentOwnerOrganization(transaction?.sellerOrganization) }}</el-descriptions-item>
               <el-descriptions-item label="交易金额">¥{{ formatCurrency(transaction?.amount) }}</el-descriptions-item>
               <el-descriptions-item label="生效日期" :span="1">{{ formatDate(transaction?.createTime) || '未生效' }}</el-descriptions-item>
