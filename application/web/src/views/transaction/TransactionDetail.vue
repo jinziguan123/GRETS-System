@@ -186,6 +186,11 @@
                   {{ formatDate(scope.row.createTime) }}
                 </template>
               </el-table-column>
+              <el-table-column prop="remarks" label="备注" width="auto">
+                <template #default="scope">
+                  {{ scope.row.remarks || '无' }}
+                </template>
+              </el-table-column>
             </el-table>
           </div>
           <el-empty v-else description="暂无支付记录"></el-empty>
@@ -231,6 +236,8 @@
         v-model:visible="paymentDialogVisible"
         :transaction="transactionInfo"
         :total-paid="totalPaidAmount"
+        :total-paid-transfer="totalTransferAmount"
+        :total-paid-tax="totalTaxAmount"
         @payment-success="handlePaymentSuccess"
     />
   </div>
@@ -283,21 +290,21 @@ const totalTaxAmount = computed(() => {
 const paymentPercentage = computed(() => {
   if (!transactionInfo.value || !transactionInfo.value.price || transactionInfo.value.price === 0) return 0
   const percentage = (totalPaidAmount.value / (transactionInfo.value.price + transactionInfo.value.tax)) * 100
-  return Math.min(percentage, 100) // 最大不超过100%
+  return Math.min(parseFloat(percentage.toFixed(2)), 100) // 最大不超过100%，保留两位小数
 })
 
 // 计算房款支付进度百分比
 const transferPercentage = computed(() => {
   if (!transactionInfo.value || !transactionInfo.value.price || transactionInfo.value.price === 0) return 0
   const percentage = (totalTransferAmount.value / transactionInfo.value.price) * 100
-  return Math.min(percentage, 100) // 最大不超过100%
+  return Math.min(parseFloat(percentage.toFixed(2)), 100) // 最大不超过100%，保留两位小数
 })
 
 // 计算税费支付进度百分比
 const taxPercentage = computed(() => {
   if (!transactionInfo.value || !transactionInfo.value.tax || transactionInfo.value.tax === 0) return 0
   const percentage = (totalTaxAmount.value / transactionInfo.value.tax) * 100
-  return Math.min(percentage, 100) // 最大不超过100%
+  return Math.min(parseFloat(percentage.toFixed(2)), 100) // 最大不超过100%，保留两位小数
 })
 
 const getCurrentOwnerOrganization = (organization) => {
@@ -482,7 +489,7 @@ const fetchPayments = async () => {
     const response = await getPaymentList({
       transactionUUID: transactionUUID.value,
       pageNumber: 1,
-      pageSize: 100
+      pageSize: 1000
     })
     payments.value = response.paymentList || []
   } catch (error) {
