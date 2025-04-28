@@ -1,10 +1,12 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 	"grets_server/constants"
 	"grets_server/dao"
 	"grets_server/db/models"
+	blockDTO "grets_server/dto/block_dto"
 	realtyDto "grets_server/dto/realty_dto"
 	userDto "grets_server/dto/user_dto"
 	"grets_server/pkg/blockchain"
@@ -61,7 +63,7 @@ func NewUserService(userDAO *dao.UserDAO) UserService {
 // GetBalanceByCitizenIDHashAndOrganization 根据身份证号和组织获取用户余额
 func (s *userService) GetBalanceByCitizenIDHashAndOrganization(citizenID, organization string) (float64, error) {
 	// 调用链码查询余额
-	contract, err := blockchain.GetContract(organization)
+	contract, err := blockchain.GetMainContract(organization)
 	if err != nil {
 		return 0, fmt.Errorf("获取合约失败: %v", err)
 	}
@@ -127,9 +129,28 @@ func (s *userService) Register(req *userDto.RegisterDTO) error {
 	cacheKey := cache.UserPrefix + "id:" + req.CitizenID + ":org:" + req.Organization
 	s.cacheService.Remove(cacheKey)
 	// 首先检查用户是否已存在（使用CitizenID和Organization）
-	contract, err := blockchain.GetContract(req.Organization)
+	mainContract, err := blockchain.GetMainContract(req.Organization)
 	if err != nil {
 		return fmt.Errorf("获取合约失败: %v", err)
+	}
+
+	channelInfoBytes, err := mainContract.EvaluateTransaction(
+		"GetChannelInfoByRegionCode",
+		req.CitizenID[:2], // 身份证前2位
+	)
+	if err != nil {
+		return fmt.Errorf("获取通道信息失败: %v", err)
+	}
+
+	var channelInfo blockDTO.ChannelInfo
+	err = json.Unmarshal(channelInfoBytes, &channelInfo)
+	if err != nil {
+		return fmt.Errorf("解析通道信息失败: %v", err)
+	}
+
+	contract, err := blockchain.GetSubContract(channelInfo.ChannelName, req.Organization)
+	if err != nil {
+		return fmt.Errorf("获取子通道合约失败: %v", err)
 	}
 
 	userPublic, _ := contract.EvaluateTransaction(
@@ -213,7 +234,7 @@ func (s *userService) GetUserByCitizenIDAndOrganization(citizenID, organization 
 	}
 
 	// 调用链码查询余额
-	contract, err := blockchain.GetContract(organization)
+	contract, err := blockchain.GetMainContract(organization)
 	if err != nil {
 		return nil, fmt.Errorf("获取合约失败: %v", err)
 	}
@@ -261,7 +282,7 @@ func (s *userService) UpdateUser(req *userDto.UpdateUserDTO) error {
 	cacheKey := cache.UserPrefix + "id:" + req.CitizenID + ":org:" + req.Organization
 	s.cacheService.Remove(cacheKey)
 
-	contract, err := blockchain.GetContract(req.Organization)
+	contract, err := blockchain.GetMainContract(req.Organization)
 	if err != nil {
 		return fmt.Errorf("获取合约失败: %v", err)
 	}

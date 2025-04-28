@@ -9,10 +9,20 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
-// 主通道的智能合约
+// MainChaincode 主通道的智能合约
 type MainChaincode struct {
 	contractapi.Contract
 }
+
+const (
+	RealtyIndexStatusActive   = "ACTIVE"
+	RealtyIndexStatusInactive = "INACTIVE"
+)
+
+const (
+	ChannelStatusActive   = "ACTIVE"
+	ChannelStatusInactive = "INACTIVE"
+)
 
 // 复合键类型
 const (
@@ -31,11 +41,11 @@ func (s *MainChaincode) InitLedger(ctx contractapi.TransactionContextInterface) 
 
 	// 初始化上海地区的通道信息
 	channelInfo := models.ChannelInfo{
-		ChannelID:     "shanghaigretschannel",
-		RegionCode:    "310",
-		RegionName:    "上海市",
+		ChannelName:   "shanghaigretschannel",
+		ProvinceCode:  "31",
+		ProvinceName:  "上海市",
 		ChainCodeName: "shanghaigretschaincode",
-		Organizations: []string{"GovernmentMSP", "BankMSP", "InvestorMSP", "AuditMSP"},
+		Organizations: []string{"GovernmentMSP", "BankMSP", "InvestorMSP", "AuditMSP", "ThirdpartyMSP"},
 		CreateTime:    timestamp.Seconds,
 		Status:        "ACTIVE",
 	}
@@ -46,7 +56,7 @@ func (s *MainChaincode) InitLedger(ctx contractapi.TransactionContextInterface) 
 	}
 
 	// 创建复合键
-	channelKey, err := ctx.GetStub().CreateCompositeKey(ChannelKeyType, []string{channelInfo.RegionCode})
+	channelKey, err := ctx.GetStub().CreateCompositeKey(ChannelKeyType, []string{channelInfo.ProvinceCode})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败: %v", err)
 	}
@@ -64,11 +74,39 @@ func (s *MainChaincode) Hello(ctx contractapi.TransactionContextInterface) strin
 	return "hello from main channel"
 }
 
+// GetChannelInfoByRegionCode 通过地区代码获取通道信息
+func (s *MainChaincode) GetChannelInfoByRegionCode(
+	ctx contractapi.TransactionContextInterface,
+	regionCode string,
+) (*models.ChannelInfo, error) {
+	channelKey, err := ctx.GetStub().CreateCompositeKey(ChannelKeyType, []string{regionCode})
+	if err != nil {
+		return nil, fmt.Errorf("创建复合键失败: %v", err)
+	}
+
+	channelBytes, err := ctx.GetStub().GetState(channelKey)
+	if err != nil {
+		return nil, fmt.Errorf("查询通道信息失败: %v", err)
+	}
+
+	if channelBytes == nil {
+		return nil, fmt.Errorf("通道不存在: %s", regionCode)
+	}
+
+	var channelInfo models.ChannelInfo
+	err = json.Unmarshal(channelBytes, &channelInfo)
+	if err != nil {
+		return nil, fmt.Errorf("解析通道信息失败: %v", err)
+	}
+
+	return &channelInfo, nil
+}
+
 // RegisterRealtyIndex 注册房产索引
 func (s *MainChaincode) RegisterRealtyIndex(
 	ctx contractapi.TransactionContextInterface,
 	realtyCertHash string,
-	regionCode string,
+	provinceCode string,
 ) error {
 	// 创建复合键
 	realtyIndexKey, err := ctx.GetStub().CreateCompositeKey(RealtyIndexKeyType, []string{realtyCertHash})
@@ -83,7 +121,7 @@ func (s *MainChaincode) RegisterRealtyIndex(
 	}
 
 	// 查询对应通道信息
-	channelKey, err := ctx.GetStub().CreateCompositeKey(ChannelKeyType, []string{regionCode})
+	channelKey, err := ctx.GetStub().CreateCompositeKey(ChannelKeyType, []string{provinceCode})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败: %v", err)
 	}
@@ -93,7 +131,7 @@ func (s *MainChaincode) RegisterRealtyIndex(
 	}
 
 	if channelBytes == nil {
-		return fmt.Errorf("通道不存在: %s", regionCode)
+		return fmt.Errorf("通道不存在: %s", provinceCode)
 	}
 
 	var channelInfo models.ChannelInfo
@@ -113,9 +151,9 @@ func (s *MainChaincode) RegisterRealtyIndex(
 
 		newIndex := models.RealtyIndex{
 			RealtyCertHash: realtyCertHash,
-			ChannelID:      channelInfo.ChannelID,
-			RegionCode:     regionCode,
-			Status:         "ACTIVE",
+			ChannelName:    channelInfo.ChannelName,
+			ProvinceCode:   provinceCode,
+			Status:         RealtyIndexStatusActive,
 			LastUpdateTime: timestamp.Seconds,
 		}
 
@@ -163,14 +201,14 @@ func (s *MainChaincode) GetRealtyIndex(
 // RegisterChannel 注册新的子通道
 func (s *MainChaincode) RegisterChannel(
 	ctx contractapi.TransactionContextInterface,
-	channelID string,
-	regionCode string,
-	regionName string,
-	chaincodeName string,
+	channelName string,
+	provinceCode string,
+	provinceName string,
+	chainCodeName string,
 	organizations []string,
 ) error {
 	// 检查通道是否已注册
-	channelKey, err := ctx.GetStub().CreateCompositeKey(ChannelKeyType, []string{channelID})
+	channelKey, err := ctx.GetStub().CreateCompositeKey(ChannelKeyType, []string{channelName})
 	if err != nil {
 		return fmt.Errorf("创建复合键失败: %v", err)
 	}
@@ -180,7 +218,7 @@ func (s *MainChaincode) RegisterChannel(
 	}
 
 	if channelBytes != nil {
-		return fmt.Errorf("通道已经存在: %s", channelID)
+		return fmt.Errorf("通道已经存在: %s", channelName)
 	}
 
 	timestamp, err := ctx.GetStub().GetTxTimestamp()
@@ -190,13 +228,13 @@ func (s *MainChaincode) RegisterChannel(
 
 	// 创建新通道信息
 	channelInfo := models.ChannelInfo{
-		ChannelID:     channelID,
-		RegionCode:    regionCode,
-		RegionName:    regionName,
-		ChainCodeName: chaincodeName,
+		ChannelName:   channelName,
+		ProvinceCode:  provinceCode,
+		ProvinceName:  provinceName,
+		ChainCodeName: chainCodeName,
 		Organizations: organizations,
 		CreateTime:    timestamp.Seconds,
-		Status:        "ACTIVE",
+		Status:        ChannelStatusActive,
 	}
 
 	channelInfoJSON, err := json.Marshal(channelInfo)
@@ -215,9 +253,9 @@ func (s *MainChaincode) RegisterChannel(
 // GetChannelInfo 获取通道信息
 func (s *MainChaincode) GetChannelInfo(
 	ctx contractapi.TransactionContextInterface,
-	channelID string,
+	channelName string,
 ) (*models.ChannelInfo, error) {
-	channelKey, err := ctx.GetStub().CreateCompositeKey(ChannelKeyType, []string{channelID})
+	channelKey, err := ctx.GetStub().CreateCompositeKey(ChannelKeyType, []string{channelName})
 	if err != nil {
 		return nil, fmt.Errorf("创建复合键失败: %v", err)
 	}
@@ -227,7 +265,7 @@ func (s *MainChaincode) GetChannelInfo(
 	}
 
 	if channelBytes == nil {
-		return nil, fmt.Errorf("通道不存在: %s", channelID)
+		return nil, fmt.Errorf("通道不存在: %s", channelName)
 	}
 
 	var channelInfo models.ChannelInfo
@@ -272,9 +310,9 @@ func (s *MainChaincode) QueryAllChannels(
 // QueryRealtyIndicesByRegion 查询特定地区的房产索引
 func (s *MainChaincode) QueryRealtyIndicesByRegion(
 	ctx contractapi.TransactionContextInterface,
-	regionCode string,
+	provinceCode string,
 ) ([]*models.RealtyIndex, error) {
-	query := fmt.Sprintf(`{"selector":{"regionCode":"%s"}}`, regionCode)
+	query := fmt.Sprintf(`{"selector":{"provinceCode":"%s"}}`, provinceCode)
 
 	resultsIterator, err := ctx.GetStub().GetQueryResult(query)
 	if err != nil {

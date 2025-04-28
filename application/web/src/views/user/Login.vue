@@ -31,7 +31,6 @@
         <el-input
           v-model="loginForm.citizenID"
           v-if="loginForm.organization"
-          :disabled="loginForm.organization !== 'investor'"
           placeholder="请输入身份证号"
           prefix-icon="User"
           autocomplete="citizenID"
@@ -157,18 +156,17 @@ const loginRules = reactive<FormRules>({
   ]
 })
 
-// 监听组织变化，非投资者时重置余额
-watch(() => loginForm.organization, (newVal) => {
-  if (newVal !== 'investor') {
-    // 对非投资者组织，设置固定身份证号
-    if (newVal) {
-      const orgName = newVal.charAt(0).toUpperCase() + newVal.slice(1);
-      loginForm.citizenID = `${orgName}Default`;
-    }
-  }else{
-    loginForm.citizenID = ''
-  }
-})
+// watch(() => loginForm.organization, (newVal) => {
+//   if (newVal !== 'investor') {
+//     // 对非投资者组织，设置固定身份证号
+//     if (newVal) {
+//       const orgName = newVal.charAt(0).toUpperCase() + newVal.slice(1);
+//       loginForm.citizenID = `${orgName}Default`;
+//     }
+//   }else{
+//     loginForm.citizenID = ''
+//   }
+// })
 
 if (localStorage.getItem('token') !== null) {
   router.push({ path: '/' })

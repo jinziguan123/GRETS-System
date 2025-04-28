@@ -70,7 +70,7 @@ func (s *paymentService) PayForTransaction(dto *paymentDto.PayForTransactionDTO)
 	paymentUUID := uuid.New().String()
 
 	// 调用链码支付交易
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+	contract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 	if err != nil {
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
@@ -114,7 +114,7 @@ func (s *paymentService) CreatePayment(req *paymentDto.CreatePaymentDTO) error {
 
 	paymentUUID := uuid.New().String()
 	// 调用链码创建支付
-	contract, err := blockchain.GetContract(constants.BankOrganization)
+	contract, err := blockchain.GetMainContract(constants.BankOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
@@ -247,7 +247,7 @@ func (s *paymentService) QueryPaymentList(dto *paymentDto.QueryPaymentDTO) ([]*p
 // VerifyPayment 验证支付
 func (s *paymentService) VerifyPayment(id string) error {
 	// 调用链码验证支付
-	contract, err := blockchain.GetContract(constants.BankOrganization)
+	contract, err := blockchain.GetMainContract(constants.BankOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
@@ -264,7 +264,7 @@ func (s *paymentService) VerifyPayment(id string) error {
 // CompletePayment 完成支付
 func (s *paymentService) CompletePayment(id string) error {
 	// 调用链码完成支付
-	contract, err := blockchain.GetContract(constants.BankOrganization)
+	contract, err := blockchain.GetMainContract(constants.BankOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)

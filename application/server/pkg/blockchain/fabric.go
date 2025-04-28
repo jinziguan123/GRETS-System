@@ -76,7 +76,9 @@ func InitFabricClient() error {
 
 		for i := 0; i < len(config.GlobalConfig.Fabric.SubChannelName); i++ {
 			subNetwork := gw.GetNetwork(config.GlobalConfig.Fabric.SubChannelName[i])
-			subContracts[config.GlobalConfig.Fabric.SubChannelName[i]] = make(map[string]*client.Contract)
+			if subContracts[config.GlobalConfig.Fabric.SubChannelName[i]] == nil {
+				subContracts[config.GlobalConfig.Fabric.SubChannelName[i]] = make(map[string]*client.Contract)
+			}
 			subContracts[config.GlobalConfig.Fabric.SubChannelName[i]][orgName] = subNetwork.GetContract(config.GlobalConfig.Fabric.SubChainCodeName[i])
 			if err := addSubNetwork(config.GlobalConfig.Fabric.SubChannelName[i], orgName, subNetwork); err != nil {
 				return fmt.Errorf("添加子通道网络到区块链监听器失败: %v", err)
@@ -89,9 +91,18 @@ func InitFabricClient() error {
 	return nil
 }
 
-// GetContract 获取指定组织的合约客户端
-func GetContract(orgName string) (*client.Contract, error) {
+// GetMainContract 获取主通道的指定组织的合约客户端
+func GetMainContract(orgName string) (*client.Contract, error) {
 	contract, ok := mainContracts[orgName]
+	if !ok {
+		return nil, fmt.Errorf("组织[%s]合约客户端不存在", orgName)
+	}
+	return contract, nil
+}
+
+// GetSubContract 获取子通道的指定组织的合约客户端
+func GetSubContract(subChannelName string, orgName string) (*client.Contract, error) {
+	contract, ok := subContracts[subChannelName][orgName]
 	if !ok {
 		return nil, fmt.Errorf("组织[%s]合约客户端不存在", orgName)
 	}

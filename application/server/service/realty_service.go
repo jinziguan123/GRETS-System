@@ -7,6 +7,7 @@ import (
 	"grets_server/constants"
 	"grets_server/dao"
 	"grets_server/db/models"
+	blockDto "grets_server/dto/block_dto"
 	realtyDto "grets_server/dto/realty_dto"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/cache"
@@ -38,8 +39,23 @@ type RealtyService interface {
 	QueryRealtyByOrganizationAndCitizenID(organization string, citizenID string) ([]*realtyDto.RealtyDTO, error)
 }
 
+// realtyService 房产服务实现
+type realtyService struct {
+	realtyDAO    *dao.RealEstateDAO
+	cacheService cache.CacheService
+}
+
+// NewRealtyService 创建房产服务实例
+func NewRealtyService(realtyDAO *dao.RealEstateDAO) RealtyService {
+	return &realtyService{
+		realtyDAO:    realtyDAO,
+		cacheService: cache.GetCacheService(),
+	}
+}
+
 func (r *realtyService) QueryRealtyByOrganizationAndCitizenID(organization string, citizenID string) ([]*realtyDto.RealtyDTO, error) {
-	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
+	// todo
+	contract, err := blockchain.GetMainContract(constants.GovernmentOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return nil, fmt.Errorf("获取合约失败: %v", err)
@@ -138,20 +154,6 @@ func (r *realtyService) GetRealtyByRealtyCert(realtyCert string) (*realtyDto.Rea
 	return realtyDTO, nil
 }
 
-// realtyService 房产服务实现
-type realtyService struct {
-	realtyDAO    *dao.RealEstateDAO
-	cacheService cache.CacheService
-}
-
-// NewRealtyService 创建房产服务实例
-func NewRealtyService(realtyDAO *dao.RealEstateDAO) RealtyService {
-	return &realtyService{
-		realtyDAO:    realtyDAO,
-		cacheService: cache.GetCacheService(),
-	}
-}
-
 func (s *realtyService) GetRealtyByRealtyCertHash(realtyCertHash string) (*realtyDto.RealtyDTO, error) {
 	// 构造缓存键
 	cacheKey := cache.RealtyPrefix + "hash:" + realtyCertHash
@@ -170,21 +172,49 @@ func (s *realtyService) GetRealtyByRealtyCertHash(realtyCertHash string) (*realt
 	}
 
 	// 调用链码查询房产信息
-	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
+	mainContract, err := blockchain.GetMainContract(constants.GovernmentOrganization)
 	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return nil, fmt.Errorf("获取合约失败: %v", err)
+		utils.Log.Error(fmt.Sprintf("获取主通道合约失败: %v", err))
+		return nil, fmt.Errorf("获取主通道合约失败: %v", err)
 	}
 
-	resultBytes, err := contract.EvaluateTransaction(
-		"QueryRealty",
-		realty.RealtyCertHash,
+	// 将房产地区转化为地区代码
+	region, err := dao.NewRegionDAO().GetRegionByProvince(realty.Province)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取地区代码失败: %v", err))
+		return nil, fmt.Errorf("获取地区代码失败: %v", err)
+	}
+
+	channelInfoBytes, err := mainContract.EvaluateTransaction(
+		"GetChannelInfoByRegionCode",
+		region.ProvinceCode,
 	)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("查询房产信息失败: %v", err))
 		return nil, fmt.Errorf("查询房产信息失败: %v", err)
 	}
 
+	var channelInfo blockDto.ChannelInfo
+	if err := json.Unmarshal(channelInfoBytes, &channelInfo); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析房产信息失败: %v", err))
+		return nil, fmt.Errorf("解析房产信息失败: %v", err)
+	}
+
+	// 调用子通道链码查询房产信息
+	subContract, err := blockchain.GetSubContract(channelInfo.ChannelName, constants.GovernmentOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取子通道合约失败: %v", err))
+		return nil, fmt.Errorf("获取子通道合约失败: %v", err)
+	}
+
+	resultBytes, err := subContract.EvaluateTransaction(
+		"QueryRealty",
+		realtyCertHash,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询房产信息失败: %v", err))
+		return nil, fmt.Errorf("查询房产信息失败: %v", err)
+	}
 	var blockchainResult realtyDto.RealtyDTO
 	if err := json.Unmarshal(resultBytes, &blockchainResult); err != nil {
 		utils.Log.Error(fmt.Sprintf("解析房产信息失败: %v", err))
@@ -242,12 +272,61 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 	s.cacheService.Remove(cache.RealtyPrefix + "hash:" + utils.GenerateHash(req.RealtyCert))
 
 	// 调用链码创建房产
-	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
+	mainContract, err := blockchain.GetMainContract(constants.GovernmentOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
 
+	// 先查询父通道有没有已经创建的房产索引
+	realtyIndexBytes, _ := mainContract.EvaluateTransaction(
+		"GetRealtyIndex",
+		utils.GenerateHash(req.RealtyCert),
+	)
+	if realtyIndexBytes != nil {
+		utils.Log.Info(fmt.Sprintf("房产索引已存在: %v", realtyIndexBytes))
+		return fmt.Errorf("房产索引已存在，请修改房产信息")
+	}
+
+	// 将房产地区转化为地区代码
+	region, err := dao.NewRegionDAO().GetRegionByProvince(req.Province)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取地区代码失败: %v", err))
+		return fmt.Errorf("获取地区代码失败: %v", err)
+	}
+
+	// 调用主通道创建房产索引
+	_, err = mainContract.SubmitTransaction(
+		"RegisterRealtyIndex",
+		utils.GenerateHash(req.RealtyCert),
+		region.ProvinceCode,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("创建房产索引失败: %v", err))
+		return fmt.Errorf("该地区未加入GRETS系统")
+	}
+	// 获取通道信息
+	channelInfoBytes, err := mainContract.EvaluateTransaction(
+		"GetChannelInfoByRegionCode",
+		region.ProvinceCode,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询通道信息失败: %v", err))
+		return fmt.Errorf("查询通道信息失败: %v", err)
+	}
+
+	var channelInfo blockDto.ChannelInfo
+	if err := json.Unmarshal(channelInfoBytes, &channelInfo); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析通道信息失败: %v", err))
+		return fmt.Errorf("解析通道信息失败: %v", err)
+	}
+
+	// 调用子通道链码创建房产
+	subContract, err := blockchain.GetSubContract(channelInfo.ChannelName, constants.GovernmentOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取子通道合约失败: %v", err))
+		return fmt.Errorf("获取子通道合约失败: %v", err)
+	}
 	// 将字符串数组序列化为JSON字符串
 	previousOwnersJSON, err := json.Marshal(req.PreviousOwnersCitizenIDList)
 	if err != nil {
@@ -257,7 +336,7 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 
 	// 调用智能合约创建房产
 	options := client.WithEndorsingOrganizations("GovernmentMSP", "InvestorMSP", "BankMSP", "AuditMSP")
-	_, err = contract.Submit(
+	_, err = subContract.Submit(
 		"CreateRealty",
 		client.WithBytesArguments(
 			[]byte(utils.GenerateHash(req.RealtyCert)),
@@ -325,7 +404,7 @@ func (s *realtyService) GetRealtyByID(id string) (*realtyDto.RealtyDTO, error) {
 	}
 
 	// 调用链码查询房产信息
-	contract, err := blockchain.GetContract(constants.GovernmentOrganization)
+	contract, err := blockchain.GetMainContract(constants.GovernmentOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return nil, fmt.Errorf("获取合约失败: %v", err)
@@ -527,14 +606,41 @@ func (s *realtyService) UpdateRealty(req *realtyDto.UpdateRealtyDTO) error {
 	// 如果房产的类型、状态发生变化，则需要调用链码更新
 	if req.RealtyType != "" || req.Status != "" {
 		// 调用链码更新房产
-		contract, err := blockchain.GetContract(constants.GovernmentOrganization)
+		mainContract, err := blockchain.GetMainContract(constants.GovernmentOrganization)
 		if err != nil {
 			utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 			return fmt.Errorf("获取合约失败: %v", err)
 		}
 
+		// 查看是否存在房产索引
+		realtyIndexBytes, err := mainContract.EvaluateTransaction(
+			"GetRealtyIndex",
+			utils.GenerateHash(req.RealtyCert),
+		)
+		if err != nil {
+			utils.Log.Error(fmt.Sprintf("查询房产索引失败: %v", err))
+			return fmt.Errorf("查询房产索引失败: %v", err)
+		}
+		if realtyIndexBytes == nil {
+			utils.Log.Error(fmt.Sprintf("房产索引不存在: %v", err))
+			return fmt.Errorf("房产索引不存在")
+		}
+
+		var realtyIndex blockDto.RealtyIndex
+		if err := json.Unmarshal(realtyIndexBytes, &realtyIndex); err != nil {
+			utils.Log.Error(fmt.Sprintf("解析房产索引失败: %v", err))
+			return fmt.Errorf("解析房产索引失败: %v", err)
+		}
+
+		// 调用子通道链码更新房产
+		subContract, err := blockchain.GetSubContract(realtyIndex.ChannelName, constants.GovernmentOrganization)
+		if err != nil {
+			utils.Log.Error(fmt.Sprintf("获取子通道合约失败: %v", err))
+			return fmt.Errorf("获取子通道合约失败: %v", err)
+		}
+
 		// 先获取currentOwnerCitizenIDHash和previousOwnersCitizenIDHashListJSON
-		resultBytes, err := contract.EvaluateTransaction(
+		resultBytes, err := subContract.EvaluateTransaction(
 			"QueryRealty",
 			utils.GenerateHash(req.RealtyCert),
 		)
@@ -557,7 +663,7 @@ func (s *realtyService) UpdateRealty(req *realtyDto.UpdateRealtyDTO) error {
 		}
 
 		options := client.WithEndorsingOrganizations("GovernmentMSP", "InvestorMSP", "BankMSP", "AuditMSP")
-		_, err = contract.Submit(
+		_, err = subContract.Submit(
 			"UpdateRealty",
 			client.WithBytesArguments(
 				[]byte(utils.GenerateHash(req.RealtyCert)),
