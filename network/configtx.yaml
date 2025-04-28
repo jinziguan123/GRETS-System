@@ -257,7 +257,7 @@ Profiles:
                     - *Audit
                     - *Investor
     # 父链通道配置
-    GretsChannel:
+    MainChannel:
         <<: *ChannelDefaults
         # 所属联盟
         Consortium: GretsConsortium
@@ -273,8 +273,8 @@ Profiles:
             Capabilities:
                 <<: *ApplicationCapabilities
     
-    # 子链1: 产权交易通道
-    RealtyTransferChannel:
+    # 子链: 上海地区通道
+    ShanghaiGretsChannel:
         <<: *ChannelDefaults
         Consortium: GretsConsortium
         Application:
@@ -284,32 +284,6 @@ Profiles:
                 - *Investor   # 投资者
                 - *Bank       # 银行
                 - *Audit      # 审计部门
-            Capabilities:
-                <<: *ApplicationCapabilities
-    
-    # 子链2: 支付跟踪通道
-    PaymentLogsChannel:
-        <<: *ChannelDefaults
-        Consortium: GretsConsortium
-        Application:
-            <<: *ApplicationDefaults
-            Organizations:
-                - *Government # 政府部门
-                - *Bank      # 银行
-                - *Investor  # 投资者
-            Capabilities:
-                <<: *ApplicationCapabilities
-    
-    # 子链3: 审计跟踪通道
-    AuditLogsChannel:
-        <<: *ChannelDefaults
-        Consortium: GretsConsortium
-        Application:
-            <<: *ApplicationDefaults
-            Organizations:
-                - *Government # 政府部门
-                - *Audit     # 审计部门
-                - *Bank      # 银行
-                - *Investor  # 投资者
+                - *Thirdparty # 第三方
             Capabilities:
                 <<: *ApplicationCapabilities

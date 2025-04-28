@@ -6,6 +6,7 @@ import (
 	"encoding/asn1"
 	"encoding/json"
 	"fmt"
+	"grets_server/config"
 	"grets_server/pkg/utils"
 	"math/big"
 	"os"
@@ -55,10 +56,11 @@ type LatestBlock struct {
 type blockListener struct {
 	db *bolt.DB
 	sync.RWMutex
-	networks map[string]*client.Network
-	ctx      context.Context
-	cancel   context.CancelFunc
-	dataDir  string
+	mainNetworks map[string]*client.Network
+	subNetworks  map[string]map[string]*client.Network
+	ctx          context.Context
+	cancel       context.CancelFunc
+	dataDir      string
 }
 
 var (
@@ -112,11 +114,12 @@ func initBlockchainListener(dataDir string) error {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		listener = &blockListener{
-			networks: make(map[string]*client.Network),
-			db:       db,
-			dataDir:  dataDir,
-			ctx:      ctx,
-			cancel:   cancel,
+			mainNetworks: make(map[string]*client.Network),
+			subNetworks:  make(map[string]map[string]*client.Network),
+			db:           db,
+			dataDir:      dataDir,
+			ctx:          ctx,
+			cancel:       cancel,
 		}
 	})
 	utils.Log.Info("初始化区块链监听器完成")
@@ -129,8 +132,8 @@ func GetBlockListener() *blockListener {
 	return listener
 }
 
-// addNetwork 添加网络
-func addNetwork(orgName string, network *client.Network) error {
+// addMainNetwork 添加主通道网络
+func addMainNetwork(orgName string, network *client.Network) error {
 	if listener == nil {
 		return fmt.Errorf("区块监听器未初始化")
 	}
@@ -138,8 +141,28 @@ func addNetwork(orgName string, network *client.Network) error {
 	listener.Lock()
 	defer listener.Unlock()
 
-	listener.networks[orgName] = network
-	go listener.startBlockListener(orgName)
+	listener.mainNetworks[orgName] = network
+	go listener.startMainBlockListener(orgName)
+
+	return nil
+}
+
+// addSubNetwork 添加子通道网络
+func addSubNetwork(subChannelName string, orgName string, network *client.Network) error {
+	if listener == nil {
+		return fmt.Errorf("区块监听器未初始化")
+	}
+
+	listener.Lock()
+	defer listener.Unlock()
+
+	// 确保subChannelName对应的map已初始化
+	if listener.subNetworks[subChannelName] == nil {
+		listener.subNetworks[subChannelName] = make(map[string]*client.Network)
+	}
+
+	listener.subNetworks[subChannelName][orgName] = network
+	go listener.startSubBlockListener(subChannelName, orgName)
 
 	return nil
 }
@@ -170,16 +193,10 @@ func (l *blockListener) getLastBlockNum(orgName string) (uint64, bool) {
 	return lastBlock.BlockNum, true
 }
 
-// startBlockListener 开始监听区块
-func (l *blockListener) startBlockListener(orgName string) {
-	utils.Log.Info(fmt.Sprintf("开始监听组织[%s]的区块", orgName))
-
+// startMainNetworkListener 开始监听主通道区块
+func (l *blockListener) startMainNetworkListener(mainNetwork *client.Network, orgName string) {
 	retryCount := 0
-	network := l.networks[orgName]
-	if network == nil {
-		fmt.Printf("组织[%s]的网络未找到\n", orgName)
-		return
-	}
+
 	for {
 		lastBlockNum, exists := l.getLastBlockNum(orgName)
 		var startBlock uint64
@@ -191,7 +208,7 @@ func (l *blockListener) startBlockListener(orgName string) {
 			startBlock = lastBlockNum + 1
 		}
 
-		events, err := network.BlockEvents(l.ctx, client.WithStartBlock(startBlock))
+		events, err := mainNetwork.BlockEvents(l.ctx, client.WithStartBlock(startBlock))
 		if err != nil {
 			fmt.Printf("创建区块事件请求失败（已重试%d次）：%v\n", retryCount, err)
 			retryCount++
@@ -209,7 +226,7 @@ func (l *blockListener) startBlockListener(orgName string) {
 				return
 			case block, ok := <-events:
 				if !ok {
-					fmt.Printf("组织[%s]的区块事件监听中断（已重试%d次），准备重试...\n", orgName, retryCount)
+					fmt.Printf("通道[%s]组织[%s]的区块事件监听中断（已重试%d次），准备重试...\n", config.GlobalConfig.Fabric.MainChannelName, orgName, retryCount)
 					retryCount++
 					select {
 					case <-l.ctx.Done():
@@ -219,7 +236,62 @@ func (l *blockListener) startBlockListener(orgName string) {
 					}
 					goto RETRY
 				}
-				l.saveBlock(orgName, block)
+				l.saveBlock(config.GlobalConfig.Fabric.MainChannelName, orgName, block)
+			}
+		}
+
+	RETRY:
+		continue
+	}
+
+}
+
+// startSubNetworkListener 开始监听子通道区块
+func (l *blockListener) startSubNetworkListener(subNetwork *client.Network, orgName string, subChannelName string) {
+	utils.Log.Info(fmt.Sprintf("开始监听组织[%s]的子通道[%s]区块", orgName, subChannelName))
+
+	retryCount := 0
+
+	for {
+		lastBlockNum, exists := l.getLastBlockNum(orgName)
+		var startBlock uint64
+		if !exists {
+			// 首次启动，从0开始
+			startBlock = 0
+		} else {
+			// 已有数据，从下一个开始
+			startBlock = lastBlockNum + 1
+		}
+
+		events, err := subNetwork.BlockEvents(l.ctx, client.WithStartBlock(startBlock))
+		if err != nil {
+			fmt.Printf("创建区块事件请求失败（已重试%d次）：%v\n", retryCount, err)
+			retryCount++
+			select {
+			case <-l.ctx.Done():
+				return
+			case <-time.After(_RetryInterval):
+				continue
+			}
+		}
+
+		for {
+			select {
+			case <-l.ctx.Done():
+				return
+			case block, ok := <-events:
+				if !ok {
+					fmt.Printf("通道[%s]组织[%s]的区块事件监听中断（已重试%d次），准备重试...\n", subChannelName, orgName, retryCount)
+					retryCount++
+					select {
+					case <-l.ctx.Done():
+						return
+					case <-time.After(_RetryInterval):
+						break
+					}
+					goto RETRY
+				}
+				l.saveBlock(subChannelName, orgName, block)
 			}
 		}
 
@@ -228,8 +300,33 @@ func (l *blockListener) startBlockListener(orgName string) {
 	}
 }
 
+// startBlockListener 开始监听区块
+func (l *blockListener) startMainBlockListener(orgName string) {
+	utils.Log.Info(fmt.Sprintf("开始监听组织[%s]的区块", orgName))
+
+	mainNetwork := l.mainNetworks[orgName]
+	if mainNetwork == nil {
+		fmt.Printf("组织[%s]的主通道网络未找到\n", orgName)
+		return
+	}
+
+	go l.startMainNetworkListener(mainNetwork, orgName)
+}
+
+func (l *blockListener) startSubBlockListener(subChannelName string, orgName string) {
+	utils.Log.Info(fmt.Sprintf("开始监听组织[%s]的子通道[%s]区块", orgName, subChannelName))
+
+	subNetwork := l.subNetworks[subChannelName][orgName]
+	if subNetwork == nil {
+		fmt.Printf("组织[%s]的子通道[%s]网络未找到\n", orgName, subChannelName)
+		return
+	}
+
+	go l.startSubNetworkListener(subNetwork, orgName, subChannelName)
+}
+
 // saveBlock 保存区块
-func (l *blockListener) saveBlock(orgName string, block *common.Block) {
+func (l *blockListener) saveBlock(channelName string, orgName string, block *common.Block) {
 	if block == nil {
 		return
 	}
@@ -268,7 +365,7 @@ func (l *blockListener) saveBlock(orgName string, block *common.Block) {
 	err = l.db.Update(func(tx *bolt.Tx) error {
 		// 保存区块数据
 		_BlocksBucket := tx.Bucket([]byte(_BlocksBucket))
-		blockKey := fmt.Sprintf("%s_%d", orgName, blockNum)
+		blockKey := fmt.Sprintf("%s_%s_%d", channelName, orgName, blockNum)
 		blockJson, err := json.Marshal(blockData)
 		if err != nil {
 			return fmt.Errorf("区块数据序列化失败: %v", err)
@@ -303,12 +400,12 @@ func (l *blockListener) saveBlock(orgName string, block *common.Block) {
 }
 
 // GetBlockByNumber 根据组织名和区块号查询区块
-func (l *blockListener) GetBlockByNumber(orgName string, blockNum uint64) (*BlockData, error) {
+func (l *blockListener) GetBlockByNumber(channelName string, orgName string, blockNum uint64) (*BlockData, error) {
 	var blockData BlockData
 
 	err := l.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(_BlocksBucket))
-		blockKey := fmt.Sprintf("%s_%d", orgName, blockNum)
+		blockKey := fmt.Sprintf("%s_%s_%d", channelName, orgName, blockNum)
 		data := b.Get([]byte(blockKey))
 		if data == nil {
 			return fmt.Errorf("区块不存在")
