@@ -362,6 +362,7 @@ const fetchUserTransactions = async () => {
       pageSize: transactionQuery.pageSize,
       pageNumber: transactionQuery.pageNumber,
       buyerCitizenID: user.citizenID,
+      buyerOrganization: user.organization,
     }
     
     const response1 = await queryTransactionList(params1)
@@ -374,6 +375,7 @@ const fetchUserTransactions = async () => {
       pageSize: transactionQuery.pageSize,
       pageNumber: transactionQuery.pageNumber,
       sellerCitizenID: user.citizenID,
+      sellerOrganization: user.organization,
     }
 
     const response2 = await queryTransactionList(params2)

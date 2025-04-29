@@ -38,6 +38,10 @@ func (dao *TransactionDAO) QueryTransactionList(
 				query = query.Where("status = ?", v)
 			} else if field == "transaction_uuid" {
 				query = query.Where("transaction_uuid = ?", v)
+			} else if field == "buyer_organization" {
+				query = query.Where("buyer_organization = ?", v)
+			} else if field == "seller_organization" {
+				query = query.Where("seller_organization = ?", v)
 			}
 		}
 	}

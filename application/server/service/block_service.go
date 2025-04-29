@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"grets_server/config"
 	"grets_server/constants"
 	"grets_server/dao"
@@ -47,6 +48,15 @@ func (b *blockService) QueryBlockList(queryBlockDTO blockDto.QueryBlockDTO) (*bl
 		return blocks[i].SaveTime.After(blocks[j].SaveTime)
 	})
 
+	if queryBlockDTO.BlockHash != "" {
+		for _, block := range blocks {
+			if block.BlockHash == queryBlockDTO.BlockHash {
+				blocks = []*blockchain.BlockData{block}
+				break
+			}
+		}
+	}
+
 	if queryBlockDTO.ProvinceName != "" {
 		filteredBlocks, err := filterBlocksByProvince(blocks, queryBlockDTO.ProvinceName)
 		if err != nil {
@@ -61,7 +71,7 @@ func (b *blockService) QueryBlockList(queryBlockDTO blockDto.QueryBlockDTO) (*bl
 	startIndex := (queryBlockDTO.PageNumber - 1) * queryBlockDTO.PageSize
 	endIndex := startIndex + queryBlockDTO.PageSize
 	if endIndex > len(blocks) {
-		endIndex = len(blocks) + 1
+		endIndex = len(blocks)
 	}
 	blocks = blocks[startIndex:endIndex]
 
@@ -92,7 +102,7 @@ func filterBlocksByProvince(blocks []*blockchain.BlockData, provinceName string)
 		region.ProvinceCode,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s未开通GRETS服务", provinceName)
 	}
 	var channelInfo blockDto.ChannelInfo
 	err = json.Unmarshal(channelInfoBytes, &channelInfo)

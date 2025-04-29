@@ -2,6 +2,7 @@ package block_dto
 
 // QueryBlockDTO 查询区块列表
 type QueryBlockDTO struct {
+	BlockHash    string `json:"blockHash"`
 	ProvinceName string `json:"provinceName"`
 	Organization string `json:"organization"`
 	PageSize     int    `json:"pageSize"`

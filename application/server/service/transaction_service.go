@@ -286,6 +286,12 @@ func (s *transactionService) QueryTransactionList(dto *transactionDto.QueryTrans
 	if dto.Status != "" {
 		conditions["status"] = dto.Status
 	}
+	if dto.BuyerOrganization != "" {
+		conditions["buyer_organization"] = dto.BuyerOrganization
+	}
+	if dto.SellerOrganization != "" {
+		conditions["seller_organization"] = dto.SellerOrganization
+	}
 
 	// 设置默认分页参数
 	pageSize := 10
