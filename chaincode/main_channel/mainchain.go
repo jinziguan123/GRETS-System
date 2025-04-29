@@ -24,10 +24,16 @@ const (
 	ChannelStatusInactive = "INACTIVE"
 )
 
+const (
+	TransactionIndexStatusActive   = "ACTIVE"
+	TransactionIndexStatusInactive = "INACTIVE"
+)
+
 // 复合键类型
 const (
-	ChannelKeyType     = "channel"
-	RealtyIndexKeyType = "realtyIndex"
+	ChannelKeyType          = "channel"
+	RealtyIndexKeyType      = "realtyIndex"
+	TransactionIndexKeyType = "transactionIndex"
 )
 
 // InitLedger 初始化账本
@@ -193,6 +199,92 @@ func (s *MainChaincode) GetRealtyIndex(
 	err = json.Unmarshal(indexBytes, &index)
 	if err != nil {
 		return nil, fmt.Errorf("解析索引失败: %v", err)
+	}
+
+	return &index, nil
+}
+
+// RegisterTransactionIndex 注册交易索引
+func (s *MainChaincode) RegisterTransactionIndex(
+	ctx contractapi.TransactionContextInterface,
+	transactionUUID string,
+	realtyCertHash string,
+) error {
+	// 创建复合键
+	transactionIndexKey, err := ctx.GetStub().CreateCompositeKey(TransactionIndexKeyType, []string{transactionUUID})
+	if err != nil {
+		return fmt.Errorf("创建复合键失败: %v", err)
+	}
+
+	// 检查该交易是否已注册
+	indexBytes, err := ctx.GetStub().GetState(transactionIndexKey)
+	if err != nil {
+		return fmt.Errorf("查询交易索引失败: %v", err)
+	}
+
+	if indexBytes != nil {
+		return fmt.Errorf("交易索引已存在: %s", transactionUUID)
+	} else {
+		// 创建新索引
+		timestamp, err := ctx.GetStub().GetTxTimestamp()
+		if err != nil {
+			return fmt.Errorf("获取当前时间失败: %v", err)
+		}
+
+		// 查询房产索引
+		realtyIndex, err := s.GetRealtyIndex(ctx, realtyCertHash)
+		if err != nil {
+			return fmt.Errorf("查询房产索引失败: %v", err)
+		}
+
+		newIndex := models.TransactionIndex{
+			TransactionUUID: transactionUUID,
+			RealtyCertHash:  realtyCertHash,
+			ChannelName:     realtyIndex.ChannelName,
+			Status:          TransactionIndexStatusActive,
+			CreateTime:      timestamp.Seconds,
+		}
+
+		newIndexJSON, err := json.Marshal(newIndex)
+		if err != nil {
+			return fmt.Errorf("转换新索引到JSON失败: %v", err)
+		}
+
+		err = ctx.GetStub().PutState(transactionIndexKey, newIndexJSON)
+		if err != nil {
+			return fmt.Errorf("存储新交易索引失败: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// GetTransactionIndex 查询交易索引
+func (s *MainChaincode) GetTransactionIndex(
+	ctx contractapi.TransactionContextInterface,
+	transactionUUID string,
+) (*models.TransactionIndex, error) {
+	indexKey, err := ctx.GetStub().CreateCompositeKey(TransactionIndexKeyType, []string{transactionUUID})
+	if err != nil {
+		return nil, fmt.Errorf("创建复合键失败: %v", err)
+	}
+	indexBytes, err := ctx.GetStub().GetState(indexKey)
+	if err != nil {
+		return nil, fmt.Errorf("查询交易索引失败: %v", err)
+	}
+
+	if indexBytes == nil {
+		return nil, fmt.Errorf("交易索引不存在: %s", transactionUUID)
+	}
+
+	var index models.TransactionIndex
+	err = json.Unmarshal(indexBytes, &index)
+	if err != nil {
+		return nil, fmt.Errorf("解析索引失败: %v", err)
+	}
+
+	if index.Status == TransactionIndexStatusInactive {
+		return nil, fmt.Errorf("交易索引已失效: %s", transactionUUID)
 	}
 
 	return &index, nil

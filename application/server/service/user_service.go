@@ -63,12 +63,32 @@ func NewUserService(userDAO *dao.UserDAO) UserService {
 // GetBalanceByCitizenIDHashAndOrganization 根据身份证号和组织获取用户余额
 func (s *userService) GetBalanceByCitizenIDHashAndOrganization(citizenID, organization string) (float64, error) {
 	// 调用链码查询余额
-	contract, err := blockchain.GetMainContract(organization)
+	mainContract, err := blockchain.GetMainContract(organization)
 	if err != nil {
 		return 0, fmt.Errorf("获取合约失败: %v", err)
 	}
 
-	balanceBytes, err := contract.EvaluateTransaction(
+	// 通过身份证获取子通道合约
+	channelInfoBytes, err := mainContract.EvaluateTransaction(
+		"GetChannelInfoByRegionCode",
+		citizenID[:2], // 身份证前2位
+	)
+	if err != nil {
+		return 0, fmt.Errorf("获取通道信息失败: %v", err)
+	}
+
+	var channelInfo blockDTO.ChannelInfo
+	err = json.Unmarshal(channelInfoBytes, &channelInfo)
+	if err != nil {
+		return 0, fmt.Errorf("解析通道信息失败: %v", err)
+	}
+
+	subContract, err := blockchain.GetSubContract(channelInfo.ChannelName, organization)
+	if err != nil {
+		return 0, fmt.Errorf("获取子通道合约失败: %v", err)
+	}
+
+	balanceBytes, err := subContract.EvaluateTransaction(
 		"GetBalanceByCitizenIDHashAndOrganization",
 		utils.GenerateHash(citizenID),
 		organization,
@@ -129,6 +149,16 @@ func (s *userService) Register(req *userDto.RegisterDTO) error {
 	cacheKey := cache.UserPrefix + "id:" + req.CitizenID + ":org:" + req.Organization
 	s.cacheService.Remove(cacheKey)
 	// 首先检查用户是否已存在（使用CitizenID和Organization）
+
+	// 检查用户是否已存在
+	existingUser, err := s.userDAO.GetUserByCitizenID(req.CitizenID, req.Organization)
+	if err != nil {
+		return fmt.Errorf("查询用户失败: %v", err)
+	}
+	if existingUser != nil {
+		return fmt.Errorf("用户已存在")
+	}
+
 	mainContract, err := blockchain.GetMainContract(req.Organization)
 	if err != nil {
 		return fmt.Errorf("获取合约失败: %v", err)
@@ -234,17 +264,42 @@ func (s *userService) GetUserByCitizenIDAndOrganization(citizenID, organization 
 	}
 
 	// 调用链码查询余额
-	contract, err := blockchain.GetMainContract(organization)
+	mainContract, err := blockchain.GetMainContract(organization)
 	if err != nil {
 		return nil, fmt.Errorf("获取合约失败: %v", err)
 	}
 
-	_, err = contract.EvaluateTransaction(
+	// 通过身份证获取子通道合约
+	channelInfoBytes, err := mainContract.EvaluateTransaction(
+		"GetChannelInfoByRegionCode",
+		citizenID[:2], // 身份证前2位
+	)
+	if err != nil {
+		return nil, fmt.Errorf("获取通道信息失败: %v", err)
+	}
+
+	var channelInfo blockDTO.ChannelInfo
+	err = json.Unmarshal(channelInfoBytes, &channelInfo)
+	if err != nil {
+		return nil, fmt.Errorf("解析通道信息失败: %v", err)
+	}
+
+	subContract, err := blockchain.GetSubContract(channelInfo.ChannelName, organization)
+	if err != nil {
+		return nil, fmt.Errorf("获取子通道合约失败: %v", err)
+	}
+
+	balanceBytes, err := subContract.EvaluateTransaction(
 		"GetBalance",
 		utils.GenerateHash(citizenID),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("查询余额失败: %v", err)
+	}
+
+	balance, err := strconv.ParseFloat(string(balanceBytes), 64)
+	if err != nil {
+		return nil, fmt.Errorf("解析余额失败: %v", err)
 	}
 
 	// 转换为DTO
@@ -259,6 +314,7 @@ func (s *userService) GetUserByCitizenIDAndOrganization(citizenID, organization 
 		CreateTime:   user.CreateTime,
 		UpdateTime:   user.UpdateTime,
 		Status:       user.Status,
+		Balance:      balance,
 	}
 
 	// 将用户信息缓存，过期时间设为10分钟

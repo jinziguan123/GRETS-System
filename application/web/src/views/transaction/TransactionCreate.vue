@@ -16,7 +16,7 @@
         status-icon
       >
         <el-form-item label="房产证号" prop="realtyCert">
-          <el-input v-model="transactionForm.realtyCert" placeholder="请输入房产证号" :disabled="!!realtyId"></el-input>
+          <el-input v-model="transactionForm.realtyCert" placeholder="请输入房产证号" disabled></el-input>
         </el-form-item>
         
         <el-form-item label="买方身份证" prop="buyerCitizenID">

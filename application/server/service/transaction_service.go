@@ -68,6 +68,19 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
+
+	// 创建交易索引
+	_, err = mainContract.SubmitTransaction(
+		"RegisterTransactionIndex",
+		transactionUUID,
+		realtyCertHash,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("创建交易索引失败: %v", err))
+		return fmt.Errorf("创建交易索引失败: %v", err)
+	}
+
+	// 查询房产索引
 	realtyIndexBytes, err := mainContract.EvaluateTransaction(
 		"GetRealtyIndex",
 		realtyCertHash,
@@ -190,12 +203,34 @@ func (s *transactionService) GetTransactionByTransactionUUID(transactionUUID str
 	}
 
 	// 调用链码查询交易
-	contract, err := blockchain.GetMainContract(constants.InvestorOrganization)
+	mainContract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return nil, fmt.Errorf("获取合约失败: %v", err)
 	}
-	transactionBytes, err := contract.EvaluateTransaction(
+
+	transactionIndexBytes, err := mainContract.EvaluateTransaction(
+		"GetTransactionIndex",
+		transactionUUID,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询交易索引失败: %v", err))
+		return nil, fmt.Errorf("查询交易索引失败: %v", err)
+	}
+
+	var transactionIndex blockDto.TransactionIndex
+	if err := json.Unmarshal(transactionIndexBytes, &transactionIndex); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析交易索引失败: %v", err))
+		return nil, fmt.Errorf("解析交易索引失败: %v", err)
+	}
+
+	subContract, err := blockchain.GetSubContract(transactionIndex.ChannelName, constants.InvestorOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取子通道合约失败: %v", err))
+		return nil, fmt.Errorf("获取子通道合约失败: %v", err)
+	}
+
+	transactionBytes, err := subContract.EvaluateTransaction(
 		"QueryTransaction",
 		transactionUUID,
 	)
@@ -305,13 +340,33 @@ func (s *transactionService) UpdateTransaction(req *transactionDto.UpdateTransac
 	s.cacheService.Remove(cache.TransactionPrefix + "uuid:" + req.TransactionUUID)
 
 	// 调用链码更新交易
-	contract, err := blockchain.GetMainContract(constants.InvestorOrganization)
+	mainContract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
+	transactionIndexBytes, err := mainContract.EvaluateTransaction(
+		"GetTransactionIndex",
+		req.TransactionUUID,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询交易索引失败: %v", err))
+		return fmt.Errorf("查询交易索引失败: %v", err)
+	}
 
-	_, err = contract.SubmitTransaction(
+	var transactionIndex blockDto.TransactionIndex
+	if err := json.Unmarshal(transactionIndexBytes, &transactionIndex); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析交易索引失败: %v", err))
+		return fmt.Errorf("解析交易索引失败: %v", err)
+	}
+
+	subContract, err := blockchain.GetSubContract(transactionIndex.ChannelName, constants.InvestorOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取子通道合约失败: %v", err))
+		return fmt.Errorf("获取子通道合约失败: %v", err)
+	}
+
+	_, err = subContract.SubmitTransaction(
 		"UpdateTransaction",
 		req.TransactionUUID,
 		req.Status,
@@ -345,12 +400,30 @@ func (s *transactionService) CompleteTransaction(completeTransactionDTO *transac
 	s.cacheService.Remove(cache.TransactionPrefix + "uuid:" + completeTransactionDTO.TransactionUUID)
 
 	// 调用链码完成交易
-	contract, err := blockchain.GetMainContract(constants.InvestorOrganization)
+	mainContract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
-	_, err = contract.SubmitTransaction(
+	transactionIndexBytes, err := mainContract.EvaluateTransaction(
+		"GetTransactionIndex",
+		completeTransactionDTO.TransactionUUID,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询交易索引失败: %v", err))
+		return fmt.Errorf("查询交易索引失败: %v", err)
+	}
+	var transactionIndex blockDto.TransactionIndex
+	if err := json.Unmarshal(transactionIndexBytes, &transactionIndex); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析交易索引失败: %v", err))
+		return fmt.Errorf("解析交易索引失败: %v", err)
+	}
+	subContract, err := blockchain.GetSubContract(transactionIndex.ChannelName, constants.InvestorOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取子通道合约失败: %v", err))
+		return fmt.Errorf("获取子通道合约失败: %v", err)
+	}
+	_, err = subContract.SubmitTransaction(
 		"CompleteTransaction",
 		completeTransactionDTO.TransactionUUID,
 	)

@@ -44,6 +44,7 @@ type BlockData struct {
 	TxCount     int       `json:"txCount"`
 	SaveTime    time.Time `json:"saveTime"`
 	Data        [][]byte  `json:"data"`
+	ChannelName string    `json:"channelName"`
 }
 
 // LatestBlock 最新区块信息
@@ -359,6 +360,7 @@ func (l *blockListener) saveBlock(channelName string, orgName string, block *com
 		TxCount:     len(block.GetData().GetData()),
 		SaveTime:    channelHeader.Timestamp.AsTime(),
 		Data:        block.GetData().GetData(),
+		ChannelName: channelName,
 	}
 
 	// 事务保存区块链
@@ -429,8 +431,8 @@ type BlockQueryResult struct {
 	HasMore  bool         `json:"hasMore"`  // 是否还有更多数据
 }
 
-// GetBlocksByOrg 分页查询组织的区块列表（按区块号降序）
-func (l *blockListener) GetBlocksByOrg(orgName string, pageNum int, pageSize int) (*BlockQueryResult, error) {
+// GetBlocksByChannelAndOrg 分页查询组织的区块列表（按区块号降序）
+func (l *blockListener) GetBlocksByChannelAndOrg(channelName string, orgName string, pageNum int, pageSize int) (*BlockQueryResult, error) {
 	if pageNum <= 0 {
 		pageNum = 1
 	}
@@ -480,7 +482,7 @@ func (l *blockListener) GetBlocksByOrg(orgName string, pageNum int, pageSize int
 		// 收集区块数据
 		blocks := make([]*BlockData, 0, pageSize)
 		for i := endIndex - 1; i >= startIndex; i-- {
-			blockKey := fmt.Sprintf("%s_%d", orgName, i)
+			blockKey := fmt.Sprintf("%s_%s_%d", channelName, orgName, i)
 			data := b.Get([]byte(blockKey))
 			if data != nil {
 				var block BlockData
@@ -500,6 +502,60 @@ func (l *blockListener) GetBlocksByOrg(orgName string, pageNum int, pageSize int
 	}
 
 	return &result, nil
+}
+
+// GetAllBlocksByChannelAndOrg 获取所有区块
+func (l *blockListener) GetAllBlocksByChannelAndOrg(channelName string, orgName string) ([]*BlockData, error) {
+	var result []*BlockData
+
+	err := l.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(_BlocksBucket))
+		if b == nil {
+			return fmt.Errorf("区块bucket不存在")
+		}
+
+		// 获取组织的最新区块号
+		_LatestBucket := tx.Bucket([]byte(_LatestBucket))
+		if _LatestBucket == nil {
+			return fmt.Errorf("latest_blocks bucket不存在")
+		}
+
+		var latestBlock LatestBlock
+		latestData := _LatestBucket.Get([]byte(orgName))
+		if latestData == nil {
+			return fmt.Errorf("组织[%s]没有区块数据", orgName)
+		}
+		if err := json.Unmarshal(latestData, &latestBlock); err != nil {
+			return fmt.Errorf("最新区块信息反序列化失败: %v", err)
+		}
+
+		// 计算总记录数
+		total := int(latestBlock.BlockNum) + 1
+
+		// 收集区块数据
+		blocks := make([]*BlockData, 0, total)
+		for i := total - 1; i >= 0; i-- {
+			blockKey := fmt.Sprintf("%s_%s_%d", channelName, orgName, i)
+			data := b.Get([]byte(blockKey))
+			if data != nil {
+				var block BlockData
+				if err := json.Unmarshal(data, &block); err != nil {
+					return fmt.Errorf("区块数据反序列化失败: %v", err)
+				}
+				blocks = append(blocks, &block)
+			}
+		}
+
+		result = blocks
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("查询区块失败: %v", err)
+	}
+
+	return result, nil
 }
 
 func (l *blockListener) GetEnvelopeListFromBlock(block *common.Block) ([]*common.Envelope, error) {

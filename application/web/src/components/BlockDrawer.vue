@@ -143,6 +143,7 @@ export default defineComponent({
         }
         
         const response = await queryBlockList(params)
+        console.log(response)
         blockList.value = response.blocks
         pagination.total = response.total
       } catch (error) {

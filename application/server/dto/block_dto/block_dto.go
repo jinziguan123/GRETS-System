@@ -2,6 +2,7 @@ package block_dto
 
 // QueryBlockDTO 查询区块列表
 type QueryBlockDTO struct {
+	ProvinceName string `json:"provinceName"`
 	Organization string `json:"organization"`
 	PageSize     int    `json:"pageSize"`
 	PageNumber   int    `json:"pageNumber"`
@@ -25,4 +26,13 @@ type RealtyIndex struct {
 	LastUpdateTime int64  `json:"lastUpdateTime"` // 最后更新时间
 	Status         string `json:"status"`         // 房产状态
 	ProvinceCode   string `json:"provinceCode"`   // 省份代码
+}
+
+// TransactionIndex 交易索引模型
+type TransactionIndex struct {
+	TransactionUUID string `json:"transactionUUID"` // 交易哈希
+	ChannelName     string `json:"channelName"`     // 所在子通道名
+	RealtyCertHash  string `json:"realtyCertHash"`  // 房产ID哈希
+	Status          string `json:"status"`          // 状态
+	CreateTime      int64  `json:"createTime"`      // 创建时间
 }
