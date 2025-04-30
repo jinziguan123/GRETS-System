@@ -169,13 +169,10 @@ func (s *SmartContract) GetBalanceByCitizenIDHashAndOrganization(ctx contractapi
 func (s *SmartContract) UpdateUser(ctx contractapi.TransactionContextInterface,
 	citizenIDHash string,
 	organization string,
-	name string,
 	phone string,
 	email string,
-	passwordHash string,
-	status string,
 ) error {
-	key, err := s.createCompositeKey(ctx, constances.DocTypeUser, []string{citizenIDHash}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeUser, []string{citizenIDHash, organization}...)
 	if err != nil {
 		return fmt.Errorf("[UpdateUser] 创建复合键失败: %v", err)
 	}
@@ -211,20 +208,11 @@ func (s *SmartContract) UpdateUser(ctx contractapi.TransactionContextInterface,
 	}
 
 	// 更新用户数据
-	if len(name) > 0 {
-		userPublic.Name = name
-	}
 	if len(phone) > 0 {
 		userPrivate.Phone = phone
 	}
 	if len(email) > 0 {
 		userPrivate.Email = email
-	}
-	if len(passwordHash) > 0 {
-		userPrivate.PasswordHash = passwordHash
-	}
-	if len(status) > 0 {
-		userPublic.Status = status
 	}
 	now, err := ctx.GetStub().GetTxTimestamp()
 	if err != nil {

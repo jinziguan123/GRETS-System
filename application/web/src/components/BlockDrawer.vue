@@ -219,8 +219,6 @@ const fetchBlockList = async () => {
     blockList.value = response.blocks || []
     pagination.total = response.total || 0
   } catch (error) {
-    console.error('获取区块列表失败:', error)
-    ElMessage.error('获取区块列表失败')
     blockList.value = []
     pagination.total = 0
   } finally {

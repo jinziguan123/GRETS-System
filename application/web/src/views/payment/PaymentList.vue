@@ -260,11 +260,8 @@ const getStatusType = (status: string): string => {
 
 const getPaymentTypeTag = (type: string): string => {
   const tagMap = {
-    'fullpayment': '',
-    'loan': 'primary',
-    'installment': 'warning',
-    'cash': 'success',
-    'transfer': 'info'
+    'TRANSFER': 'primary',
+    'TAX': 'danger',
   };
   return tagMap[type] || '';
 };

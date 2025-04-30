@@ -449,6 +449,18 @@ func (s *transactionService) CompleteTransaction(completeTransactionDTO *transac
 	s.cacheService.Remove(cache.RealtyPrefix + "cert:" + transaction.RealtyCertHash)
 	s.cacheService.Remove(cache.RealtyPrefix + "hash:" + transaction.RealtyCertHash)
 
+	// 调用主通道链码修改房产信息
+	_, err = mainContract.SubmitTransaction(
+		"UpdateRealtyIndex",
+		transaction.RealtyCertHash,
+		transaction.BuyerCitizenIDHash,
+		transaction.BuyerOrganization,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("修改房产信息失败: %v", err))
+		return fmt.Errorf("修改房产信息失败: %v", err)
+	}
+
 	// 修改房产信息
 	realtyModel, err := dao.NewRealEstateDAO().GetRealtyByRealtyCertHash(transaction.RealtyCertHash)
 	if err != nil {

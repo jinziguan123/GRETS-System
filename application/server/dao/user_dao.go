@@ -65,6 +65,9 @@ func (dao *UserDAO) GetUserByCitizenID(citizenID, organization string) (*models.
 func (dao *UserDAO) GetUserByCredentials(citizenID, password, organization string) (*models.User, error) {
 	var user models.User
 	if err := dao.mysqlDB.First(&user, "citizen_id = ? AND password_hash = ? AND organization = ?", citizenID, password, organization).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("用户名或密码错误: %v", err)
 	}
 	return &user, nil

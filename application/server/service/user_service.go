@@ -114,9 +114,8 @@ func (s *userService) Login(req *userDto.LoginDTO) (*userDto.UserDTO, string, er
 		log.Printf("Failed to login: %v", err)
 		return nil, "", fmt.Errorf("登录失败: %v", err)
 	}
-
 	if user == nil {
-		return nil, "", fmt.Errorf("用户名或密码错误")
+		return nil, "", fmt.Errorf("用户不存在")
 	}
 
 	// 生成JWT令牌
@@ -338,30 +337,57 @@ func (s *userService) UpdateUser(req *userDto.UpdateUserDTO) error {
 	cacheKey := cache.UserPrefix + "id:" + req.CitizenID + ":org:" + req.Organization
 	s.cacheService.Remove(cacheKey)
 
-	contract, err := blockchain.GetMainContract(req.Organization)
+	mainContract, err := blockchain.GetMainContract(req.Organization)
 	if err != nil {
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
 
-	_, err = contract.SubmitTransaction(
+	channelInfoBytes, err := mainContract.EvaluateTransaction(
+		"GetChannelInfoByRegionCode",
+		req.CitizenID[:2], // 身份证前2位
+	)
+	if err != nil {
+		return fmt.Errorf("获取通道信息失败: %v", err)
+	}
+
+	var channelInfo blockDTO.ChannelInfo
+	err = json.Unmarshal(channelInfoBytes, &channelInfo)
+	if err != nil {
+		return fmt.Errorf("解析通道信息失败: %v", err)
+	}
+
+	subContract, err := blockchain.GetSubContract(channelInfo.ChannelName, req.Organization)
+	if err != nil {
+		return fmt.Errorf("获取子通道合约失败: %v", err)
+	}
+
+	_, err = subContract.SubmitTransaction(
 		"UpdateUser",
 		utils.GenerateHash(req.CitizenID),
 		req.Organization,
-		req.Name,
 		req.Phone,
 		req.Email,
-		utils.GenerateHash(req.Password),
-		req.Status,
 	)
 	if err != nil {
 		return fmt.Errorf("调用链码[UpdateUser]失败: %v", err)
 	}
 
 	// 更新本地数据库
-	user.Name = req.Name
-	user.Phone = req.Phone
-	user.Email = req.Email
-	user.Status = req.Status
+	if req.Name != "" {
+		user.Name = req.Name
+	}
+	if req.Phone != "" {
+		user.Phone = req.Phone
+	}
+	if req.Email != "" {
+		user.Email = req.Email
+	}
+	if req.Status != "" {
+		user.Status = req.Status
+	}
+	if req.Password != "" {
+		user.PasswordHash = utils.GenerateHash(req.Password)
+	}
 	user.UpdateTime = time.Now()
 	if err := s.userDAO.UpdateUser(user); err != nil {
 		return fmt.Errorf("更新用户失败: %v", err)

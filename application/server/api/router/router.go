@@ -67,10 +67,10 @@ func SetupRouter() *gin.Engine {
 			// 获取用户详情
 			users.GET("/:id", controller.GetUserByID)
 			// 更新用户信息
-			users.POST("/:id", controller.UpdateUser)
+			users.POST("/updateUserInfo", controller.UpdateUser)
 			// 获取用户房产
 			users.GET("/:id/realty", controller.GetUserRealty)
-			//
+			// 获取用户资产
 			users.GET("/getBalance", controller.GetBalanceByCitizenIDHashAndOrganization)
 		}
 

@@ -385,7 +385,7 @@ const canCancelTransaction = computed(() => {
 
   // 任何角色在交易未完成前均可取消
   return ['PENDING', 'IN_PROGRESS'].includes(transactionInfo.value.status) &&
-      (isBuyer.value || userInfo.value.organization === 'government')
+      (isSeller.value || userInfo.value.organization === 'government')
 })
 
 // 判断是否可以同意交易

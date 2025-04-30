@@ -156,14 +156,6 @@ func (c *UserController) UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	// 获取用户ID
-	id := ctx.Param("id")
-	if id == "" {
-		utils.ResponseError(ctx, constants.ParamError, "用户ID不能为空")
-		return
-	}
-	req.CitizenID = id
-
 	// 调用服务层更新用户
 	if err := c.userService.UpdateUser(&req); err != nil {
 		utils.ResponseError(ctx, constants.ServiceError, err.Error())

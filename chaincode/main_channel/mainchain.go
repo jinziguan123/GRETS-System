@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"mainchain/models"
+	"mainchain/tools"
 
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
@@ -58,18 +59,18 @@ func (s *MainChaincode) InitLedger(ctx contractapi.TransactionContextInterface) 
 
 	channelInfoJSON, err := json.Marshal(channelInfo)
 	if err != nil {
-		return fmt.Errorf("转换通道信息到JSON失败: %v", err)
+		return fmt.Errorf("[InitLedger]转换通道信息到JSON失败: %v", err)
 	}
 
 	// 创建复合键
 	channelKey, err := ctx.GetStub().CreateCompositeKey(ChannelKeyType, []string{channelInfo.ProvinceCode})
 	if err != nil {
-		return fmt.Errorf("创建复合键失败: %v", err)
+		return fmt.Errorf("[InitLedger]创建复合键失败: %v", err)
 	}
 
 	err = ctx.GetStub().PutState(channelKey, channelInfoJSON)
 	if err != nil {
-		return fmt.Errorf("存储通道信息失败: %v", err)
+		return fmt.Errorf("[InitLedger]存储通道信息失败: %v", err)
 	}
 
 	return nil
@@ -87,22 +88,22 @@ func (s *MainChaincode) GetChannelInfoByRegionCode(
 ) (*models.ChannelInfo, error) {
 	channelKey, err := ctx.GetStub().CreateCompositeKey(ChannelKeyType, []string{regionCode})
 	if err != nil {
-		return nil, fmt.Errorf("创建复合键失败: %v", err)
+		return nil, fmt.Errorf("[GetChannelInfoByRegionCode]创建复合键失败: %v", err)
 	}
 
 	channelBytes, err := ctx.GetStub().GetState(channelKey)
 	if err != nil {
-		return nil, fmt.Errorf("查询通道信息失败: %v", err)
+		return nil, fmt.Errorf("[GetChannelInfoByRegionCode]查询通道信息失败: %v", err)
 	}
 
 	if channelBytes == nil {
-		return nil, fmt.Errorf("通道不存在: %s", regionCode)
+		return nil, fmt.Errorf("[GetChannelInfoByRegionCode]通道不存在: %s", regionCode)
 	}
 
 	var channelInfo models.ChannelInfo
 	err = json.Unmarshal(channelBytes, &channelInfo)
 	if err != nil {
-		return nil, fmt.Errorf("解析通道信息失败: %v", err)
+		return nil, fmt.Errorf("[GetChannelInfoByRegionCode]解析通道信息失败: %v", err)
 	}
 
 	return &channelInfo, nil
@@ -117,61 +118,106 @@ func (s *MainChaincode) RegisterRealtyIndex(
 	// 创建复合键
 	realtyIndexKey, err := ctx.GetStub().CreateCompositeKey(RealtyIndexKeyType, []string{realtyCertHash})
 	if err != nil {
-		return fmt.Errorf("创建复合键失败: %v", err)
+		return fmt.Errorf("[RegisterRealtyIndex]创建复合键失败: %v", err)
 	}
 
 	// 检查该房产是否已注册
 	indexBytes, err := ctx.GetStub().GetState(realtyIndexKey)
 	if err != nil {
-		return fmt.Errorf("查询房产索引失败: %v", err)
+		return fmt.Errorf("[RegisterRealtyIndex]查询房产索引失败: %v", err)
 	}
 
 	// 查询对应通道信息
 	channelKey, err := ctx.GetStub().CreateCompositeKey(ChannelKeyType, []string{provinceCode})
 	if err != nil {
-		return fmt.Errorf("创建复合键失败: %v", err)
+		return fmt.Errorf("[RegisterRealtyIndex]创建复合键失败: %v", err)
 	}
 	channelBytes, err := ctx.GetStub().GetState(channelKey)
 	if err != nil {
-		return fmt.Errorf("查询通道信息失败: %v", err)
+		return fmt.Errorf("[RegisterRealtyIndex]查询通道信息失败: %v", err)
 	}
 
 	if channelBytes == nil {
-		return fmt.Errorf("通道不存在: %s", provinceCode)
+		return fmt.Errorf("[RegisterRealtyIndex]通道不存在: %s", provinceCode)
 	}
 
 	var channelInfo models.ChannelInfo
 	err = json.Unmarshal(channelBytes, &channelInfo)
 	if err != nil {
-		return fmt.Errorf("解析通道信息失败: %v", err)
+		return fmt.Errorf("[RegisterRealtyIndex]解析通道信息失败: %v", err)
 	}
 
 	if indexBytes != nil {
-		return fmt.Errorf("房产索引已存在: %s", realtyCertHash)
+		return fmt.Errorf("[RegisterRealtyIndex]房产索引已存在: %s", realtyCertHash)
 	} else {
 		// 创建新索引
 		timestamp, err := ctx.GetStub().GetTxTimestamp()
 		if err != nil {
-			return fmt.Errorf("获取当前时间失败: %v", err)
+			return fmt.Errorf("[RegisterRealtyIndex]获取当前时间失败: %v", err)
 		}
 
 		newIndex := models.RealtyIndex{
-			RealtyCertHash: realtyCertHash,
-			ChannelName:    channelInfo.ChannelName,
-			ProvinceCode:   provinceCode,
-			Status:         RealtyIndexStatusActive,
-			LastUpdateTime: timestamp.Seconds,
+			RealtyCertHash:            realtyCertHash,
+			ChannelName:               channelInfo.ChannelName,
+			ProvinceCode:              provinceCode,
+			Status:                    RealtyIndexStatusActive,
+			LastUpdateTime:            timestamp.Seconds,
+			CurrentOwnerCitizenIDHash: tools.GenerateHash("GovernmentDefault"),
+			CurrentOwnerOrganization:  "government",
 		}
 
 		newIndexJSON, err := json.Marshal(newIndex)
 		if err != nil {
-			return fmt.Errorf("转换新索引到JSON失败: %v", err)
+			return fmt.Errorf("[RegisterRealtyIndex]转换新索引到JSON失败: %v", err)
 		}
 
 		err = ctx.GetStub().PutState(realtyIndexKey, newIndexJSON)
 		if err != nil {
-			return fmt.Errorf("存储新房产索引失败: %v", err)
+			return fmt.Errorf("[RegisterRealtyIndex]存储新房产索引失败: %v", err)
 		}
+	}
+
+	return nil
+}
+
+// UpdateRealtyIndex 更新房产索引
+func (s *MainChaincode) UpdateRealtyIndex(
+	ctx contractapi.TransactionContextInterface,
+	realtyCertHash string,
+	citizenIDHash string,
+	organization string,
+) error {
+	indexKey, err := ctx.GetStub().CreateCompositeKey(RealtyIndexKeyType, []string{realtyCertHash})
+	if err != nil {
+		return fmt.Errorf("[UpdateRealtyIndex]创建复合键失败: %v", err)
+	}
+
+	indexBytes, err := ctx.GetStub().GetState(indexKey)
+	if err != nil {
+		return fmt.Errorf("[UpdateRealtyIndex]查询房产索引失败: %v", err)
+	}
+
+	if indexBytes == nil {
+		return fmt.Errorf("[UpdateRealtyIndex]房产索引不存在: %s", realtyCertHash)
+	}
+
+	var index models.RealtyIndex
+	err = json.Unmarshal(indexBytes, &index)
+	if err != nil {
+		return fmt.Errorf("[UpdateRealtyIndex]解析房产索引失败: %v", err)
+	}
+
+	index.CurrentOwnerCitizenIDHash = citizenIDHash
+	index.CurrentOwnerOrganization = organization
+
+	indexJSON, err := json.Marshal(index)
+	if err != nil {
+		return fmt.Errorf("[UpdateRealtyIndex]转换房产索引到JSON失败: %v", err)
+	}
+
+	err = ctx.GetStub().PutState(indexKey, indexJSON)
+	if err != nil {
+		return fmt.Errorf("[UpdateRealtyIndex]存储房产索引失败: %v", err)
 	}
 
 	return nil
@@ -184,21 +230,21 @@ func (s *MainChaincode) GetRealtyIndex(
 ) (*models.RealtyIndex, error) {
 	indexKey, err := ctx.GetStub().CreateCompositeKey(RealtyIndexKeyType, []string{realtyCertHash})
 	if err != nil {
-		return nil, fmt.Errorf("创建复合键失败: %v", err)
+		return nil, fmt.Errorf("[GetRealtyIndex]创建复合键失败: %v", err)
 	}
 	indexBytes, err := ctx.GetStub().GetState(indexKey)
 	if err != nil {
-		return nil, fmt.Errorf("查询房产索引失败: %v", err)
+		return nil, fmt.Errorf("[GetRealtyIndex]查询房产索引失败: %v", err)
 	}
 
 	if indexBytes == nil {
-		return nil, fmt.Errorf("房产索引不存在: %s", realtyCertHash)
+		return nil, fmt.Errorf("[GetRealtyIndex]房产索引不存在: %s", realtyCertHash)
 	}
 
 	var index models.RealtyIndex
 	err = json.Unmarshal(indexBytes, &index)
 	if err != nil {
-		return nil, fmt.Errorf("解析索引失败: %v", err)
+		return nil, fmt.Errorf("[GetRealtyIndex]解析索引失败: %v", err)
 	}
 
 	return &index, nil
@@ -213,28 +259,28 @@ func (s *MainChaincode) RegisterTransactionIndex(
 	// 创建复合键
 	transactionIndexKey, err := ctx.GetStub().CreateCompositeKey(TransactionIndexKeyType, []string{transactionUUID})
 	if err != nil {
-		return fmt.Errorf("创建复合键失败: %v", err)
+		return fmt.Errorf("[RegisterTransactionIndex]创建复合键失败: %v", err)
 	}
 
 	// 检查该交易是否已注册
 	indexBytes, err := ctx.GetStub().GetState(transactionIndexKey)
 	if err != nil {
-		return fmt.Errorf("查询交易索引失败: %v", err)
+		return fmt.Errorf("[RegisterTransactionIndex]查询交易索引失败: %v", err)
 	}
 
 	if indexBytes != nil {
-		return fmt.Errorf("交易索引已存在: %s", transactionUUID)
+		return fmt.Errorf("[RegisterTransactionIndex]交易索引已存在: %s", transactionUUID)
 	} else {
 		// 创建新索引
 		timestamp, err := ctx.GetStub().GetTxTimestamp()
 		if err != nil {
-			return fmt.Errorf("获取当前时间失败: %v", err)
+			return fmt.Errorf("[RegisterTransactionIndex]获取当前时间失败: %v", err)
 		}
 
 		// 查询房产索引
 		realtyIndex, err := s.GetRealtyIndex(ctx, realtyCertHash)
 		if err != nil {
-			return fmt.Errorf("查询房产索引失败: %v", err)
+			return fmt.Errorf("[RegisterTransactionIndex]查询房产索引失败: %v", err)
 		}
 
 		newIndex := models.TransactionIndex{
@@ -247,12 +293,12 @@ func (s *MainChaincode) RegisterTransactionIndex(
 
 		newIndexJSON, err := json.Marshal(newIndex)
 		if err != nil {
-			return fmt.Errorf("转换新索引到JSON失败: %v", err)
+			return fmt.Errorf("[RegisterTransactionIndex]转换新索引到JSON失败: %v", err)
 		}
 
 		err = ctx.GetStub().PutState(transactionIndexKey, newIndexJSON)
 		if err != nil {
-			return fmt.Errorf("存储新交易索引失败: %v", err)
+			return fmt.Errorf("[RegisterTransactionIndex]存储新交易索引失败: %v", err)
 		}
 	}
 
@@ -266,25 +312,25 @@ func (s *MainChaincode) GetTransactionIndex(
 ) (*models.TransactionIndex, error) {
 	indexKey, err := ctx.GetStub().CreateCompositeKey(TransactionIndexKeyType, []string{transactionUUID})
 	if err != nil {
-		return nil, fmt.Errorf("创建复合键失败: %v", err)
+		return nil, fmt.Errorf("[GetTransactionIndex]创建复合键失败: %v", err)
 	}
 	indexBytes, err := ctx.GetStub().GetState(indexKey)
 	if err != nil {
-		return nil, fmt.Errorf("查询交易索引失败: %v", err)
+		return nil, fmt.Errorf("[GetTransactionIndex]查询交易索引失败: %v", err)
 	}
 
 	if indexBytes == nil {
-		return nil, fmt.Errorf("交易索引不存在: %s", transactionUUID)
+		return nil, fmt.Errorf("[GetTransactionIndex]交易索引不存在: %s", transactionUUID)
 	}
 
 	var index models.TransactionIndex
 	err = json.Unmarshal(indexBytes, &index)
 	if err != nil {
-		return nil, fmt.Errorf("解析索引失败: %v", err)
+		return nil, fmt.Errorf("[GetTransactionIndex]解析索引失败: %v", err)
 	}
 
 	if index.Status == TransactionIndexStatusInactive {
-		return nil, fmt.Errorf("交易索引已失效: %s", transactionUUID)
+		return nil, fmt.Errorf("[GetTransactionIndex]交易索引已失效: %s", transactionUUID)
 	}
 
 	return &index, nil
@@ -302,20 +348,20 @@ func (s *MainChaincode) RegisterChannel(
 	// 检查通道是否已注册
 	channelKey, err := ctx.GetStub().CreateCompositeKey(ChannelKeyType, []string{channelName})
 	if err != nil {
-		return fmt.Errorf("创建复合键失败: %v", err)
+		return fmt.Errorf("[RegisterChannel]创建复合键失败: %v", err)
 	}
 	channelBytes, err := ctx.GetStub().GetState(channelKey)
 	if err != nil {
-		return fmt.Errorf("查询通道信息失败: %v", err)
+		return fmt.Errorf("[RegisterChannel]查询通道信息失败: %v", err)
 	}
 
 	if channelBytes != nil {
-		return fmt.Errorf("通道已经存在: %s", channelName)
+		return fmt.Errorf("[RegisterChannel]通道已经存在: %s", channelName)
 	}
 
 	timestamp, err := ctx.GetStub().GetTxTimestamp()
 	if err != nil {
-		return fmt.Errorf("获取当前时间失败: %v", err)
+		return fmt.Errorf("[RegisterChannel]获取当前时间失败: %v", err)
 	}
 
 	// 创建新通道信息
@@ -331,12 +377,12 @@ func (s *MainChaincode) RegisterChannel(
 
 	channelInfoJSON, err := json.Marshal(channelInfo)
 	if err != nil {
-		return fmt.Errorf("转换通道信息到JSON失败: %v", err)
+		return fmt.Errorf("[RegisterChannel]转换通道信息到JSON失败: %v", err)
 	}
 
 	err = ctx.GetStub().PutState(channelKey, channelInfoJSON)
 	if err != nil {
-		return fmt.Errorf("存储通道信息失败: %v", err)
+		return fmt.Errorf("[RegisterChannel]存储通道信息失败: %v", err)
 	}
 
 	return nil
@@ -349,21 +395,21 @@ func (s *MainChaincode) GetChannelInfo(
 ) (*models.ChannelInfo, error) {
 	channelKey, err := ctx.GetStub().CreateCompositeKey(ChannelKeyType, []string{channelName})
 	if err != nil {
-		return nil, fmt.Errorf("创建复合键失败: %v", err)
+		return nil, fmt.Errorf("[GetChannelInfo]创建复合键失败: %v", err)
 	}
 	channelBytes, err := ctx.GetStub().GetState(channelKey)
 	if err != nil {
-		return nil, fmt.Errorf("查询通道信息失败: %v", err)
+		return nil, fmt.Errorf("[GetChannelInfo]查询通道信息失败: %v", err)
 	}
 
 	if channelBytes == nil {
-		return nil, fmt.Errorf("通道不存在: %s", channelName)
+		return nil, fmt.Errorf("[GetChannelInfo]通道不存在: %s", channelName)
 	}
 
 	var channelInfo models.ChannelInfo
 	err = json.Unmarshal(channelBytes, &channelInfo)
 	if err != nil {
-		return nil, fmt.Errorf("解析通道信息失败: %v", err)
+		return nil, fmt.Errorf("[GetChannelInfo]解析通道信息失败: %v", err)
 	}
 
 	return &channelInfo, nil
@@ -375,7 +421,7 @@ func (s *MainChaincode) QueryAllChannels(
 ) ([]*models.ChannelInfo, error) {
 	resultsIterator, err := ctx.GetStub().GetStateByRange(ChannelKeyType+"_", ChannelKeyType+"~")
 	if err != nil {
-		return nil, fmt.Errorf("查询通道失败: %v", err)
+		return nil, fmt.Errorf("[QueryAllChannels]查询通道失败: %v", err)
 	}
 	defer resultsIterator.Close()
 
@@ -384,19 +430,58 @@ func (s *MainChaincode) QueryAllChannels(
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
-			return nil, fmt.Errorf("获取通道信息失败: %v", err)
+			return nil, fmt.Errorf("[QueryAllChannels]获取通道信息失败: %v", err)
 		}
 
 		var channelInfo models.ChannelInfo
 		err = json.Unmarshal(queryResponse.Value, &channelInfo)
 		if err != nil {
-			return nil, fmt.Errorf("解析通道信息失败: %v", err)
+			return nil, fmt.Errorf("[QueryAllChannels]解析通道信息失败: %v", err)
 		}
 
 		channels = append(channels, &channelInfo)
 	}
 
 	return channels, nil
+}
+
+// QueryRealtyIndexByConditions 查询满足条件的房产索引
+func (s *MainChaincode) QueryRealtyIndexByConditions(
+	ctx contractapi.TransactionContextInterface,
+	conditionsJSON string,
+) ([]*models.RealtyIndex, error) {
+	conditions := make(map[string]interface{})
+	err := json.Unmarshal([]byte(conditionsJSON), &conditions)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryRealtyIndexByConditions]解析条件失败: %v", err)
+	}
+
+	queryString := tools.BuildQueryString(conditions)
+
+	resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
+	if err != nil {
+		return nil, fmt.Errorf("[QueryRealtyIndexByConditions]查询索引失败: %v", err)
+	}
+	defer resultsIterator.Close()
+
+	var realtyIndices []*models.RealtyIndex
+
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return nil, fmt.Errorf("[QueryRealtyIndexByConditions]获取索引失败: %v", err)
+		}
+
+		var realtyIndex models.RealtyIndex
+		err = json.Unmarshal(queryResponse.Value, &realtyIndex)
+		if err != nil {
+			return nil, fmt.Errorf("[QueryRealtyIndexByConditions]解析索引失败: %v", err)
+		}
+
+		realtyIndices = append(realtyIndices, &realtyIndex)
+	}
+
+	return realtyIndices, nil
 }
 
 // QueryRealtyIndicesByRegion 查询特定地区的房产索引
@@ -408,7 +493,7 @@ func (s *MainChaincode) QueryRealtyIndicesByRegion(
 
 	resultsIterator, err := ctx.GetStub().GetQueryResult(query)
 	if err != nil {
-		return nil, fmt.Errorf("查询索引失败: %v", err)
+		return nil, fmt.Errorf("[QueryRealtyIndicesByRegion]查询索引失败: %v", err)
 	}
 	defer resultsIterator.Close()
 
@@ -417,7 +502,7 @@ func (s *MainChaincode) QueryRealtyIndicesByRegion(
 	for resultsIterator.HasNext() {
 		queryResponse, err := resultsIterator.Next()
 		if err != nil {
-			return nil, fmt.Errorf("获取索引失败: %v", err)
+			return nil, fmt.Errorf("[QueryRealtyIndicesByRegion]获取索引失败: %v", err)
 		}
 
 		// 只处理索引记录
@@ -425,7 +510,7 @@ func (s *MainChaincode) QueryRealtyIndicesByRegion(
 			var index models.RealtyIndex
 			err = json.Unmarshal(queryResponse.Value, &index)
 			if err != nil {
-				return nil, fmt.Errorf("解析索引失败: %v", err)
+				return nil, fmt.Errorf("[QueryRealtyIndicesByRegion]解析索引失败: %v", err)
 			}
 
 			indices = append(indices, &index)

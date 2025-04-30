@@ -54,53 +54,52 @@ func NewRealtyService(realtyDAO *dao.RealEstateDAO) RealtyService {
 }
 
 func (r *realtyService) QueryRealtyByOrganizationAndCitizenID(organization string, citizenID string) ([]*realtyDto.RealtyDTO, error) {
-	// todo
-	contract, err := blockchain.GetMainContract(constants.GovernmentOrganization)
+	mainContract, err := blockchain.GetMainContract(constants.GovernmentOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return nil, fmt.Errorf("获取合约失败: %v", err)
 	}
 
-	resultBytes, err := contract.EvaluateTransaction(
-		"QueryRealtyByOrganizationAndCitizenIDHash",
-		organization,
-		utils.GenerateHash(citizenID),
+	if organization == constants.GovernmentOrganization {
+		citizenID = "GovernmentDefault"
+	}
+
+	// 创建房产查询条件
+	var conditions = map[string]interface{}{
+		"currentOwnerOrganization":  organization,
+		"currentOwnerCitizenIDHash": utils.GenerateHash(citizenID),
+	}
+	conditionsJSON, err := json.Marshal(conditions)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("序列化查询条件失败: %v", err))
+		return nil, fmt.Errorf("序列化查询条件失败: %v", err)
+	}
+
+	realtyIndicesBytes, err := mainContract.EvaluateTransaction(
+		"QueryRealtyIndexByConditions",
+		string(conditionsJSON),
 	)
 	if err != nil {
-		utils.Log.Error(fmt.Sprintf("查询房产失败: %v", err))
-		return nil, fmt.Errorf("查询房产失败: %v", err)
+		utils.Log.Error(fmt.Sprintf("查询房产索引失败: %v", err))
+		return nil, fmt.Errorf("查询房产索引失败: %v", err)
+	}
+	if realtyIndicesBytes == nil {
+		return []*realtyDto.RealtyDTO{}, nil
+	}
+
+	var realtyIndices []*blockDto.RealtyIndex
+	if err := json.Unmarshal(realtyIndicesBytes, &realtyIndices); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析房产索引失败: %v", err))
+		return nil, fmt.Errorf("解析房产索引失败: %v", err)
 	}
 
 	var realtyList []*realtyDto.RealtyDTO
-	if err := json.Unmarshal(resultBytes, &realtyList); err != nil {
-		utils.Log.Error(fmt.Sprintf("解析房产失败: %v", err))
-		return nil, fmt.Errorf("解析房产失败: %v", err)
-	}
-
-	// 根据查询到的房产信息，获取房产的详细信息
-	for _, realty := range realtyList {
-		realtyDetail, err := r.GetRealtyByRealtyCertHash(realty.RealtyCertHash)
+	for _, realtyIndex := range realtyIndices {
+		realty, err := r.GetRealtyByRealtyCertHash(realtyIndex.RealtyCertHash)
 		if err != nil {
 			return nil, fmt.Errorf("查询房产失败: %v", err)
 		}
-		realty.Price = realtyDetail.Price
-		realty.Area = realtyDetail.Area
-		realty.Status = realtyDetail.Status
-		realty.Description = realtyDetail.Description
-		realty.Images = realtyDetail.Images
-		realty.HouseType = realtyDetail.HouseType
-		realty.Province = realtyDetail.Province
-		realty.City = realtyDetail.City
-		realty.District = realtyDetail.District
-		realty.Street = realtyDetail.Street
-		realty.Community = realtyDetail.Community
-		realty.Unit = realtyDetail.Unit
-		realty.Floor = realtyDetail.Floor
-		realty.Room = realtyDetail.Room
-		realty.IsNewHouse = realtyDetail.IsNewHouse
-		realty.CreateTime = realtyDetail.CreateTime
-		realty.LastUpdateTime = realtyDetail.LastUpdateTime
-		realty.RelContractUUID = realtyDetail.RelContractUUID
+		realtyList = append(realtyList, realty)
 	}
 
 	return realtyList, nil

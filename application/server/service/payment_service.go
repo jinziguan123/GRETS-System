@@ -98,6 +98,17 @@ func (s *paymentService) PayForTransaction(dto *paymentDto.PayForTransactionDTO)
 		return fmt.Errorf("获取子通道合约失败: %v", err)
 	}
 
+	// 如果是新房或者税费，则收款人为GovernmentDefault
+	var receiverCitizenIDHash string
+	if dto.ReceiverOrganization == constants.GovernmentOrganization || dto.PaymentType == constants.PaymentTypeTax {
+		receiverCitizenIDHash = utils.GenerateHash("GovernmentDefault")
+		if dto.PaymentType == constants.PaymentTypeTax {
+			dto.ReceiverOrganization = constants.GovernmentOrganization
+		}
+	} else {
+		receiverCitizenIDHash = dto.ReceiverCitizenIDHash
+	}
+
 	_, err = subContract.SubmitTransaction(
 		"PayForTransaction",
 		dto.TransactionUUID,
@@ -106,7 +117,7 @@ func (s *paymentService) PayForTransaction(dto *paymentDto.PayForTransactionDTO)
 		fmt.Sprintf("%.2f", dto.Amount),
 		utils.GenerateHash(dto.PayerCitizenID),
 		dto.PayerOrganization,
-		dto.ReceiverCitizenIDHash,
+		receiverCitizenIDHash,
 		dto.ReceiverOrganization,
 	)
 	if err != nil {
@@ -121,7 +132,7 @@ func (s *paymentService) PayForTransaction(dto *paymentDto.PayForTransactionDTO)
 		Amount:                dto.Amount,
 		PayerCitizenIDHash:    utils.GenerateHash(dto.PayerCitizenID),
 		PayerOrganization:     dto.PayerOrganization,
-		ReceiverCitizenIDHash: dto.ReceiverCitizenIDHash,
+		ReceiverCitizenIDHash: receiverCitizenIDHash,
 		ReceiverOrganization:  dto.ReceiverOrganization,
 		CreateTime:            time.Now(),
 		Remarks:               dto.Remarks,
