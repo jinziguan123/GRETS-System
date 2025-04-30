@@ -27,15 +27,11 @@ type OrganizationConfig struct {
 }
 
 type Fabric struct {
-	ChannelName               string                        `mapstructure:"channelName"`
-	ChainCodeName             string                        `mapstructure:"chainCodeName"`
-	RealtyTransferChannelName string                        `mapstructure:"realtyTransferChannelName"`
-	RealtyTransferChainCode   string                        `mapstructure:"realtyTransferChainCode"`
-	PaymentLogsChannelName    string                        `mapstructure:"paymentLogsChannelName"`
-	PaymentLogsChainCode      string                        `mapstructure:"paymentLogsChainCode"`
-	AuditLogsChannelName      string                        `mapstructure:"auditLogsChannelName"`
-	AuditLogsChainCode        string                        `mapstructure:"auditLogsChainCode"`
-	Organizations             map[string]OrganizationConfig `mapstructure:"organizations"`
+	MainChannelName   string                        `mapstructure:"mainChannelName"`
+	MainChainCodeName string                        `mapstructure:"mainChainCodeName"`
+	SubChannelName    []string                      `mapstructure:"subChannelName"`
+	SubChainCodeName  []string                      `mapstructure:"subChainCodeName"`
+	Organizations     map[string]OrganizationConfig `mapstructure:"organizations"`
 }
 
 type Log struct {

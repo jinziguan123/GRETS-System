@@ -2,8 +2,8 @@
 
 ###########################################
 # 政府房产交易系统(GRETS)网络启动脚本
-# 版本: 1.0
-# 描述: 自动部署五组织区块链网络
+# 版本: 2.0
+# 描述: 自动部署主子通道架构的区块链网络
 # 依赖:
 #   - docker & docker-compose
 ###########################################
@@ -15,11 +15,9 @@ set -u  # 使用未定义的变量时报错
 export PATH=${PWD}/../bin:${PWD}:$PATH
 export FABRIC_CFG_PATH=${PWD}/../config
 
-# 父链与子链通道配置
-export PARENT_CHANNEL_NAME=gretschannel
-export REALTY_CHANNEL_NAME=realtytransferchannel
-export PAYMENT_CHANNEL_NAME=paymentlogschannel
-export AUDIT_CHANNEL_NAME=auditlogschannel
+# 主子通道配置
+export MAIN_CHANNEL_NAME=mainchannel
+export SUB_CHANNEL_NAME=shanghaigretschannel
 
 ###########################################
 # 配置参数
@@ -48,28 +46,20 @@ CONFIG_PATH="${HYPERLEDGER_PATH}/config"
 CRYPTO_PATH="${HYPERLEDGER_PATH}/crypto-config"
 
 # 通道和链码配置
-# 父链配置
-ParentChainName="${PARENT_CHANNEL_NAME}"
-ParentChainCodeName="gretschaincode"
+# 主通道配置
+MainChannelName="${MAIN_CHANNEL_NAME}"
+MainChainCodeName="mainchaincode"
 
-# 子链配置
-RealtyChainName="${REALTY_CHANNEL_NAME}"
-RealtyChainCodeName="realtytransfercode"
-
-PaymentChainName="${PAYMENT_CHANNEL_NAME}"
-PaymentChainCodeName="paymentlogscode"
-
-AuditChainName="${AUDIT_CHANNEL_NAME}"
-AuditChainCodeName="auditlogscode"
+# 子通道配置
+SubChannelName="${SUB_CHANNEL_NAME}"
+SubChainCodeName="shanghaigretschaincode"
 
 # 共用配置
 Version="1.0.0"
 Sequence="1"
 CHAINCODE_PATH="/opt/gopath/src/chaincode"
-CHAINCODE_PACKAGE="${CHAINCODE_PATH}/parent_chain/parentchain_${Version}.tar.gz"
-REALTY_CHAINCODE_PACKAGE="${CHAINCODE_PATH}/realty_transfer/realtychain_${Version}.tar.gz"
-PAYMENT_CHAINCODE_PACKAGE="${CHAINCODE_PATH}/payment_logs/paymentchain_${Version}.tar.gz"
-AUDIT_CHAINCODE_PACKAGE="${CHAINCODE_PATH}/audit_logs/auditchain_${Version}.tar.gz"
+MAIN_CHAINCODE_PACKAGE="${CHAINCODE_PATH}/main_channel/mainchain_${Version}.tar.gz"
+SUB_CHAINCODE_PACKAGE="${CHAINCODE_PATH}/parent_chain/parentchain_${Version}.tar.gz"
 
 # Order 配置
 ORDERER1_ADDRESS="orderer1.${DOMAIN}:7050"
@@ -315,100 +305,66 @@ main() {
     show_progress 5 "创建排序通道创世区块" $start_time
     execute_with_timer "创建创世区块" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsOrdererGenesis -outputBlock ${CONFIG_PATH}/genesis.block -channelID firstchannel\"" || handle_error "生成创世区块和通道配置"
 
-    # 生成父链和子链的通道配置事务
+    # 生成主通道和子通道的通道配置事务
     show_progress 6 "生成通道配置事务" $start_time
     
-    # 父链通道配置
-    execute_with_timer "生成父链通道配置" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputCreateChannelTx ${CONFIG_PATH}/$ParentChainName.tx -channelID $ParentChainName\""
+    # 主通道配置
+    execute_with_timer "生成主通道配置" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile MainChannel -outputCreateChannelTx ${CONFIG_PATH}/$MainChannelName.tx -channelID $MainChannelName\""
     
-    # 子链通道配置
-    execute_with_timer "生成产权交易子链通道配置" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile RealtyTransferChannel -outputCreateChannelTx ${CONFIG_PATH}/$RealtyChainName.tx -channelID $RealtyChainName\""
-    
-    execute_with_timer "生成支付跟踪子链通道配置" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile PaymentLogsChannel -outputCreateChannelTx ${CONFIG_PATH}/$PaymentChainName.tx -channelID $PaymentChainName\""
-    
-    execute_with_timer "生成审计跟踪子链通道配置" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile AuditLogsChannel -outputCreateChannelTx ${CONFIG_PATH}/$AuditChainName.tx -channelID $AuditChainName\""
+    # 子通道配置
+    execute_with_timer "生成上海地区子通道配置" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile ShanghaiGretsChannel -outputCreateChannelTx ${CONFIG_PATH}/$SubChannelName.tx -channelID $SubChannelName\""
 
     # 定义组织锚节点
     show_progress 7 "定义组织锚节点" $start_time
-    execute_with_timer "定义Government锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/GovernmentAnchor.tx -channelID $ParentChainName -asOrg Government\""
-    execute_with_timer "定义Audit锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/AuditAnchor.tx -channelID $ParentChainName -asOrg Audit\""
-    execute_with_timer "定义Bank锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/BankAnchor.tx -channelID $ParentChainName -asOrg Bank\""
-    execute_with_timer "定义Thirdparty锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/ThirdpartyAnchor.tx -channelID $ParentChainName -asOrg Thirdparty\""
-    execute_with_timer "定义Investor锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile GretsChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/InvestorAnchor.tx -channelID $ParentChainName -asOrg Investor\""
+    execute_with_timer "定义Government锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile MainChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/GovernmentAnchor.tx -channelID $MainChannelName -asOrg Government\""
+    execute_with_timer "定义Audit锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile MainChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/AuditAnchor.tx -channelID $MainChannelName -asOrg Audit\""
+    execute_with_timer "定义Bank锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile MainChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/BankAnchor.tx -channelID $MainChannelName -asOrg Bank\""
+    execute_with_timer "定义Thirdparty锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile MainChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/ThirdpartyAnchor.tx -channelID $MainChannelName -asOrg Thirdparty\""
+    execute_with_timer "定义Investor锚节点" "$CLI_CMD \"configtxgen -configPath ${HYPERLEDGER_PATH} -profile MainChannel -outputAnchorPeersUpdate ${CONFIG_PATH}/InvestorAnchor.tx -channelID $MainChannelName -asOrg Investor\""
 
     # 启动所有节点
     show_progress 8 "启动所有节点" $start_time
     execute_with_timer "启动节点" "docker-compose up -d"
     wait_for_completion "等待节点启动（${NETWORK_STARTUP_WAIT}秒）" $NETWORK_STARTUP_WAIT
 
-    # 创建父链和子链通道
+    # 创建主通道和子通道
     show_progress 9 "创建通道" $start_time
     
-    # 使用政府组织创建所有通道
+    # 使用政府组织创建通道
     local org_cap="Government"
     local OrgPeerCli="${org_cap}Peer0Cli"
     local cli_value=$(eval echo "\$${OrgPeerCli}")
     
-    # 创建父链通道
-    execute_with_timer "创建父链通道" "$CLI_CMD \"${cli_value} peer channel create --outputBlock ${CONFIG_PATH}/$ParentChainName.block -o $ORDERER1_ADDRESS -c $ParentChainName -f ${CONFIG_PATH}/$ParentChainName.tx --tls --cafile $ORDERER1_CA\""
+    # 创建主通道
+    execute_with_timer "创建主通道" "$CLI_CMD \"${cli_value} peer channel create --outputBlock ${CONFIG_PATH}/$MainChannelName.block -o $ORDERER1_ADDRESS -c $MainChannelName -f ${CONFIG_PATH}/$MainChannelName.tx --tls --cafile $ORDERER1_CA\""
     
-    # 创建产权交易子链通道
-    execute_with_timer "创建产权交易子链通道" "$CLI_CMD \"${cli_value} peer channel create --outputBlock ${CONFIG_PATH}/$RealtyChainName.block -o $ORDERER1_ADDRESS -c $RealtyChainName -f ${CONFIG_PATH}/$RealtyChainName.tx --tls --cafile $ORDERER1_CA\""
-    
-    # 创建支付跟踪子链通道
-    execute_with_timer "创建支付跟踪子链通道" "$CLI_CMD \"${cli_value} peer channel create --outputBlock ${CONFIG_PATH}/$PaymentChainName.block -o $ORDERER1_ADDRESS -c $PaymentChainName -f ${CONFIG_PATH}/$PaymentChainName.tx --tls --cafile $ORDERER1_CA\""
-    
-    # 创建审计跟踪子链通道
-    execute_with_timer "创建审计跟踪子链通道" "$CLI_CMD \"${cli_value} peer channel create --outputBlock ${CONFIG_PATH}/$AuditChainName.block -o $ORDERER1_ADDRESS -c $AuditChainName -f ${CONFIG_PATH}/$AuditChainName.tx --tls --cafile $ORDERER1_CA\""
+    # 创建上海地区子通道
+    execute_with_timer "创建上海地区子通道" "$CLI_CMD \"${cli_value} peer channel create --outputBlock ${CONFIG_PATH}/$SubChannelName.block -o $ORDERER1_ADDRESS -c $SubChannelName -f ${CONFIG_PATH}/$SubChannelName.tx --tls --cafile $ORDERER1_CA\""
 
-    # 节点加入通道 - 基于父子链结构
+    # 节点加入通道 - 基于主子通道结构
     show_progress 10 "节点加入通道" $start_time
     
-    # 所有组织加入父链通道
-    log_info "组织加入父链通道"
+    # 所有组织加入主通道
+    log_info "组织加入主通道"
     for org in ${OrganizationList[@]}; do
         for ((i=0; i < $peerNumber; i++)); do
             local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
             local OrgPeerCli="${org_cap}Peer${i}Cli"
             local cli_value=$(eval echo "\$${OrgPeerCli}")
             
-            execute_with_timer "${org_cap}Peer${i}加入父链通道" "$CLI_CMD \"${cli_value} peer channel join -b ${CONFIG_PATH}/$ParentChainName.block\""
+            execute_with_timer "${org_cap}Peer${i}加入主通道" "$CLI_CMD \"${cli_value} peer channel join -b ${CONFIG_PATH}/$MainChannelName.block\""
         done
     done
     
-    # 相关组织加入产权交易子链通道
-    log_info "组织加入产权交易子链通道"
-    for org in "government" "investor" "bank" "audit"; do
+    # 相关组织加入上海地区子通道
+    log_info "组织加入上海地区子通道"
+    for org in ${OrganizationList[@]}; do
         for ((i=0; i < $peerNumber; i++)); do
             local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
             local OrgPeerCli="${org_cap}Peer${i}Cli"
             local cli_value=$(eval echo "\$${OrgPeerCli}")
             
-            execute_with_timer "${org_cap}Peer${i}加入产权交易子链通道" "$CLI_CMD \"${cli_value} peer channel join -b ${CONFIG_PATH}/$RealtyChainName.block\""
-        done
-    done
-    
-    # 相关组织加入支付跟踪子链通道
-    log_info "组织加入支付跟踪子链通道"
-    for org in "government" "bank" "investor"; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            
-            execute_with_timer "${org_cap}Peer${i}加入支付跟踪子链通道" "$CLI_CMD \"${cli_value} peer channel join -b ${CONFIG_PATH}/$PaymentChainName.block\""
-        done
-    done
-    
-    # 相关组织加入审计跟踪子链通道
-    log_info "组织加入审计跟踪子链通道"
-    for org in "government" "audit" "bank" "investor"; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            
-            execute_with_timer "${org_cap}Peer${i}加入审计跟踪子链通道" "$CLI_CMD \"${cli_value} peer channel join -b ${CONFIG_PATH}/$AuditChainName.block\""
+            execute_with_timer "${org_cap}Peer${i}加入上海地区子通道" "$CLI_CMD \"${cli_value} peer channel join -b ${CONFIG_PATH}/$SubChannelName.block\""
         done
     done
 
@@ -420,158 +376,87 @@ main() {
             local OrgPeerCli="${org_cap}Peer${i}Cli"
             local cli_value=$(eval echo "\$${OrgPeerCli}")
             
-            execute_with_timer "更新${org_cap}锚节点" "$CLI_CMD \"${cli_value} peer channel update -o $ORDERER1_ADDRESS -c $ParentChainName -f ${CONFIG_PATH}/${org_cap}Anchor.tx --tls --cafile $ORDERER1_CA\""
+            execute_with_timer "更新${org_cap}锚节点" "$CLI_CMD \"${cli_value} peer channel update -o $ORDERER1_ADDRESS -c $MainChannelName -f ${CONFIG_PATH}/${org_cap}Anchor.tx --tls --cafile $ORDERER1_CA\""
         done
     done
 
-    # 打包父链和子链链码
+    # 打包主通道和子通道链码
     show_progress 12 "打包链码" $start_time
     
-    # 打包父链链码
-    execute_with_timer "打包父链链码" "$CLI_CMD \"peer lifecycle chaincode package ${CHAINCODE_PACKAGE} --path ${CHAINCODE_PATH}/parent_chain --lang golang --label parentchain_${Version}\""
+    # 打包主通道链码
+    execute_with_timer "打包主通道链码" "$CLI_CMD \"peer lifecycle chaincode package ${MAIN_CHAINCODE_PACKAGE} --path ${CHAINCODE_PATH}/main_channel --lang golang --label mainchain_${Version}\""
     
-    # 打包产权交易子链链码
-    execute_with_timer "打包产权交易子链链码" "$CLI_CMD \"peer lifecycle chaincode package ${REALTY_CHAINCODE_PACKAGE} --path ${CHAINCODE_PATH}/realty_transfer --lang golang --label realtychain_${Version}\""
-    
-    # 打包支付跟踪子链链码
-    execute_with_timer "打包支付跟踪子链链码" "$CLI_CMD \"peer lifecycle chaincode package ${PAYMENT_CHAINCODE_PACKAGE} --path ${CHAINCODE_PATH}/payment_logs --lang golang --label paymentchain_${Version}\""
-    
-    # 打包审计跟踪子链链码
-    execute_with_timer "打包审计跟踪子链链码" "$CLI_CMD \"peer lifecycle chaincode package ${AUDIT_CHAINCODE_PACKAGE} --path ${CHAINCODE_PATH}/audit_logs --lang golang --label auditchain_${Version}\""
+    # 打包子通道链码 (使用parent_chain的链码)
+    execute_with_timer "打包子通道链码" "$CLI_CMD \"peer lifecycle chaincode package ${SUB_CHAINCODE_PACKAGE} --path ${CHAINCODE_PATH}/parent_chain --lang golang --label parentchain_${Version}\""
 
-    # 安装父链和子链链码
+    # 安装主通道和子通道链码
     show_progress 13 "安装链码" $start_time
     
-    # 所有组织安装父链链码
-    log_info "所有组织安装父链链码"
+    # 所有组织安装主通道链码
+    log_info "所有组织安装主通道链码"
     for org in ${OrganizationList[@]}; do
         for ((i=0; i < $peerNumber; i++)); do
             local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
             local OrgPeerCli="${org_cap}Peer${i}Cli"
             local cli_value=$(eval echo "\$${OrgPeerCli}")
             
-            execute_with_timer "${org_cap}Peer${i}安装父链链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode install ${CHAINCODE_PACKAGE}\""
+            execute_with_timer "${org_cap}Peer${i}安装主通道链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode install ${MAIN_CHAINCODE_PACKAGE}\""
         done
     done
     
-    # 相关组织安装产权交易子链链码
-    log_info "相关组织安装产权交易子链链码"
-    for org in "government" "investor" "bank" "audit"; do
+    # 相关组织安装子通道链码
+    log_info "相关组织安装子通道链码"
+    for org in ${OrganizationList[@]}; do
         for ((i=0; i < $peerNumber; i++)); do
             local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
             local OrgPeerCli="${org_cap}Peer${i}Cli"
             local cli_value=$(eval echo "\$${OrgPeerCli}")
             
-            execute_with_timer "${org_cap}Peer${i}安装产权交易子链链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode install ${REALTY_CHAINCODE_PACKAGE}\""
-        done
-    done
-    
-    # 相关组织安装支付跟踪子链链码
-    log_info "相关组织安装支付跟踪子链链码"
-    for org in "government" "bank" "investor"; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            
-            execute_with_timer "${org_cap}Peer${i}安装支付跟踪子链链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode install ${PAYMENT_CHAINCODE_PACKAGE}\""
-        done
-    done
-    
-    # 相关组织安装审计跟踪子链链码
-    log_info "相关组织安装审计跟踪子链链码"
-    for org in "government" "audit" "investor" "bank"; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            
-            execute_with_timer "${org_cap}Peer${i}安装审计跟踪子链链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode install ${AUDIT_CHAINCODE_PACKAGE}\""
+            execute_with_timer "${org_cap}Peer${i}安装子通道链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode install ${SUB_CHAINCODE_PACKAGE}\""
         done
     done
 
-    # 批准和提交父链通道链码
+    # 批准和提交主子通道链码
     show_progress 14 "批准和提交链码" $start_time
 
-    # 处理父链通道链码
-    log_info "处理父链通道链码"
-    ParentPackageID=$($CLI_CMD "${GovernmentPeer0Cli} peer lifecycle chaincode calculatepackageid ${CHAINCODE_PACKAGE}")
-    # 批准父链通道链码
+    # 处理主通道链码
+    log_info "处理主通道链码"
+    MainPackageID=$($CLI_CMD "${GovernmentPeer0Cli} peer lifecycle chaincode calculatepackageid ${MAIN_CHAINCODE_PACKAGE}")
+    # 批准主通道链码
     for org in ${OrganizationList[@]}; do
         for ((i=0; i < $peerNumber; i++)); do
             local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
             local OrgPeerCli="${org_cap}Peer${i}Cli"
             local cli_value=$(eval echo "\$${OrgPeerCli}")
             
-            execute_with_timer "${org_cap}批准父链通道链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode approveformyorg -o $ORDERER1_ADDRESS --channelID $ParentChainName --name $ParentChainCodeName --version $Version --package-id $ParentPackageID --sequence $Sequence --collections-config ${CHAINCODE_PATH}/parent_chain/collections_config.json --tls --cafile $ORDERER1_CA --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
+            execute_with_timer "${org_cap}批准主通道链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode approveformyorg -o $ORDERER1_ADDRESS --channelID $MainChannelName --name $MainChainCodeName --version $Version --package-id $MainPackageID --sequence $Sequence --collections-config ${CHAINCODE_PATH}/main_channel/collections_config.json --tls --cafile $ORDERER1_CA --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
         done
     done
 
-    # 提交父链通道链码
-    execute_with_timer "提交父链通道链码定义" "$CLI_CMD \"${GovernmentPeer0Cli} peer lifecycle chaincode commit -o $ORDERER1_ADDRESS --channelID $ParentChainName --name $ParentChainCodeName --version $Version --sequence $Sequence --collections-config ${CHAINCODE_PATH}/parent_chain/collections_config.json --tls --cafile $ORDERER1_CA \
+    # 提交主通道链码
+    execute_with_timer "提交主通道链码定义" "$CLI_CMD \"${GovernmentPeer0Cli} peer lifecycle chaincode commit -o $ORDERER1_ADDRESS --channelID $MainChannelName --name $MainChainCodeName --version $Version --sequence $Sequence --collections-config ${CHAINCODE_PATH}/main_channel/collections_config.json --tls --cafile $ORDERER1_CA \
     --peerAddresses $GOVERNMENT_PEER0_ADDRESS --tlsRootCertFiles $GOVERNMENT_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $THIRDPARTY_PEER0_ADDRESS --tlsRootCertFiles $THIRDPARTY_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $INVESTOR_PEER0_ADDRESS --tlsRootCertFiles $INVESTOR_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
 
-    # 处理产权交易子链通道链码
-    log_info "处理产权交易子链通道链码"
-    RealtyPackageID=$($CLI_CMD "${GovernmentPeer0Cli} peer lifecycle chaincode calculatepackageid ${REALTY_CHAINCODE_PACKAGE}")
-    # 批准产权交易子链通道链码
-    for org in "government" "investor" "bank" "audit"; do
+    # 处理子通道链码
+    log_info "处理子通道链码"
+    SubPackageID=$($CLI_CMD "${GovernmentPeer0Cli} peer lifecycle chaincode calculatepackageid ${SUB_CHAINCODE_PACKAGE}")
+    # 批准子通道链码
+    for org in ${OrganizationList[@]}; do
         for ((i=0; i < $peerNumber; i++)); do
             local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
             local OrgPeerCli="${org_cap}Peer${i}Cli"
             local cli_value=$(eval echo "\$${OrgPeerCli}")
             
-            execute_with_timer "${org_cap}批准产权交易子链通道链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode approveformyorg -o $ORDERER1_ADDRESS --channelID $RealtyChainName --name $RealtyChainCodeName --version $Version --package-id $RealtyPackageID --sequence $Sequence --collections-config ${CHAINCODE_PATH}/realty_transfer/collections_config.json --tls --cafile $ORDERER1_CA --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
+            execute_with_timer "${org_cap}批准子通道链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode approveformyorg -o $ORDERER1_ADDRESS --channelID $SubChannelName --name $SubChainCodeName --version $Version --package-id $SubPackageID --sequence $Sequence --collections-config ${CHAINCODE_PATH}/parent_chain/collections_config.json --tls --cafile $ORDERER1_CA --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
         done
     done
 
-    # 提交产权交易子链通道链码
-    execute_with_timer "提交产权交易子链通道链码定义" "$CLI_CMD \"${GovernmentPeer0Cli} peer lifecycle chaincode commit -o $ORDERER1_ADDRESS --channelID $RealtyChainName --name $RealtyChainCodeName --version $Version --sequence $Sequence --collections-config ${CHAINCODE_PATH}/realty_transfer/collections_config.json --tls --cafile $ORDERER1_CA \
-    --peerAddresses $GOVERNMENT_PEER0_ADDRESS --tlsRootCertFiles $GOVERNMENT_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $INVESTOR_PEER0_ADDRESS --tlsRootCertFiles $INVESTOR_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
-
-    # 处理支付跟踪子链通道链码
-    log_info "处理支付跟踪子链通道链码"
-    PaymentPackageID=$($CLI_CMD "${GovernmentPeer0Cli} peer lifecycle chaincode calculatepackageid ${PAYMENT_CHAINCODE_PACKAGE}")
-    # 批准支付跟踪子链通道链码
-    for org in "government" "bank" "investor"; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            
-            execute_with_timer "${org_cap}批准支付跟踪子链通道链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode approveformyorg -o $ORDERER1_ADDRESS --channelID $PaymentChainName --name $PaymentChainCodeName --version $Version --package-id $PaymentPackageID --sequence $Sequence --collections-config ${CHAINCODE_PATH}/payment_logs/collections_config.json --tls --cafile $ORDERER1_CA --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
-        done
-    done
-
-    # 提交支付跟踪子链通道链码
-    execute_with_timer "提交支付跟踪子链通道链码定义" "$CLI_CMD \"${GovernmentPeer0Cli} peer lifecycle chaincode commit -o $ORDERER1_ADDRESS --channelID $PaymentChainName --name $PaymentChainCodeName --version $Version --sequence $Sequence --collections-config ${CHAINCODE_PATH}/payment_logs/collections_config.json --tls --cafile $ORDERER1_CA \
-    --peerAddresses $GOVERNMENT_PEER0_ADDRESS --tlsRootCertFiles $GOVERNMENT_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $INVESTOR_PEER0_ADDRESS --tlsRootCertFiles $INVESTOR_PEER0_TLS_ROOTCERT_FILE --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
-
-    # 处理审计跟踪子链通道链码
-    log_info "处理审计跟踪子链通道链码"
-    AuditPackageID=$($CLI_CMD "${GovernmentPeer0Cli} peer lifecycle chaincode calculatepackageid ${AUDIT_CHAINCODE_PACKAGE}")
-    # 批准审计跟踪子链通道链码
-    for org in "government" "audit" "investor" "bank"; do
-        for ((i=0; i < $peerNumber; i++)); do
-            local org_cap="$(tr '[:lower:]' '[:upper:]' <<< ${org:0:1})${org:1}"
-            local OrgPeerCli="${org_cap}Peer${i}Cli"
-            local cli_value=$(eval echo "\$${OrgPeerCli}")
-            
-            execute_with_timer "${org_cap}批准审计跟踪子链通道链码" "$CLI_CMD \"${cli_value} peer lifecycle chaincode approveformyorg -o $ORDERER1_ADDRESS --channelID $AuditChainName --name $AuditChainCodeName --version $Version --package-id $AuditPackageID --sequence $Sequence --collections-config ${CHAINCODE_PATH}/audit_logs/collections_config.json --tls --cafile $ORDERER1_CA --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
-        done
-    done
-
-    # 提交审计跟踪子链通道链码
-    execute_with_timer "提交审计跟踪子链通道链码定义" "$CLI_CMD \"${GovernmentPeer0Cli} peer lifecycle chaincode commit -o $ORDERER1_ADDRESS --channelID $AuditChainName --name $AuditChainCodeName --version $Version --sequence $Sequence --collections-config ${CHAINCODE_PATH}/audit_logs/collections_config.json --tls --cafile $ORDERER1_CA \
+    # 提交子通道链码
+    execute_with_timer "提交子通道链码定义" "$CLI_CMD \"${GovernmentPeer0Cli} peer lifecycle chaincode commit -o $ORDERER1_ADDRESS --channelID $SubChannelName --name $SubChainCodeName --version $Version --sequence $Sequence --collections-config ${CHAINCODE_PATH}/parent_chain/collections_config.json --tls --cafile $ORDERER1_CA \
     --peerAddresses $GOVERNMENT_PEER0_ADDRESS --tlsRootCertFiles $GOVERNMENT_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $INVESTOR_PEER0_ADDRESS --tlsRootCertFiles $INVESTOR_PEER0_TLS_ROOTCERT_FILE \
@@ -580,8 +465,8 @@ main() {
     # 初始化并验证所有链码
     show_progress 16 "初始化并验证所有链码" $start_time
 
-    # 初始化父链通道链码
-    execute_with_timer "初始化父链通道链码" "$CLI_CMD \"$GovernmentPeer0Cli peer chaincode invoke -o $ORDERER1_ADDRESS -C $ParentChainName -n $ParentChainCodeName \
+    # 初始化主通道链码
+    execute_with_timer "初始化主通道链码" "$CLI_CMD \"$GovernmentPeer0Cli peer chaincode invoke -o $ORDERER1_ADDRESS -C $MainChannelName -n $MainChainCodeName \
     -c '{\\\"function\\\":\\\"InitLedger\\\",\\\"Args\\\":[]}' --tls --cafile $ORDERER1_CA \
     --peerAddresses $GOVERNMENT_PEER0_ADDRESS --tlsRootCertFiles $GOVERNMENT_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $THIRDPARTY_PEER0_ADDRESS --tlsRootCertFiles $THIRDPARTY_PEER0_TLS_ROOTCERT_FILE \
@@ -589,25 +474,11 @@ main() {
     --peerAddresses $INVESTOR_PEER0_ADDRESS --tlsRootCertFiles $INVESTOR_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
 
-    # 初始化产权交易子链通道链码
-    execute_with_timer "初始化产权交易子链通道链码" "$CLI_CMD \"$GovernmentPeer0Cli peer chaincode invoke -o $ORDERER1_ADDRESS -C $RealtyChainName -n $RealtyChainCodeName \
+    # 初始化子通道链码
+    execute_with_timer "初始化子通道链码" "$CLI_CMD \"$GovernmentPeer0Cli peer chaincode invoke -o $ORDERER1_ADDRESS -C $SubChannelName -n $SubChainCodeName \
     -c '{\\\"function\\\":\\\"InitLedger\\\",\\\"Args\\\":[]}' --tls --cafile $ORDERER1_CA \
     --peerAddresses $GOVERNMENT_PEER0_ADDRESS --tlsRootCertFiles $GOVERNMENT_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $INVESTOR_PEER0_ADDRESS --tlsRootCertFiles $INVESTOR_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
-
-    # 初始化支付跟踪子链通道链码
-    execute_with_timer "初始化支付跟踪子链通道链码" "$CLI_CMD \"$GovernmentPeer0Cli peer chaincode invoke -o $ORDERER1_ADDRESS -C $PaymentChainName -n $PaymentChainCodeName \
-    -c '{\\\"function\\\":\\\"InitLedger\\\",\\\"Args\\\":[]}' --tls --cafile $ORDERER1_CA \
-    --peerAddresses $GOVERNMENT_PEER0_ADDRESS --tlsRootCertFiles $GOVERNMENT_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
-    --peerAddresses $INVESTOR_PEER0_ADDRESS --tlsRootCertFiles $INVESTOR_PEER0_TLS_ROOTCERT_FILE --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
-
-    # 初始化审计跟踪子链通道链码
-    execute_with_timer "初始化审计跟踪子链通道链码" "$CLI_CMD \"$GovernmentPeer0Cli peer chaincode invoke -o $ORDERER1_ADDRESS -C $AuditChainName -n $AuditChainCodeName \
-    -c '{\\\"function\\\":\\\"InitLedger\\\",\\\"Args\\\":[]}' --tls --cafile $ORDERER1_CA \
-    --peerAddresses $GOVERNMENT_PEER0_ADDRESS --tlsRootCertFiles $GOVERNMENT_PEER0_TLS_ROOTCERT_FILE \
+    --peerAddresses $THIRDPARTY_PEER0_ADDRESS --tlsRootCertFiles $THIRDPARTY_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $BANK_PEER0_ADDRESS --tlsRootCertFiles $BANK_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $INVESTOR_PEER0_ADDRESS --tlsRootCertFiles $INVESTOR_PEER0_TLS_ROOTCERT_FILE \
     --peerAddresses $AUDIT_PEER0_ADDRESS --tlsRootCertFiles $AUDIT_PEER0_TLS_ROOTCERT_FILE --waitForEvent --waitForEventTimeout ${PEER_OPERATION_TIMEOUT}\""
@@ -615,35 +486,21 @@ main() {
     wait_for_completion "等待链码初始化（${CHAINCODE_INIT_WAIT}秒）" $CHAINCODE_INIT_WAIT
 
     # 验证所有通道链码
-    if $CLI_CMD "$GovernmentPeer0Cli peer chaincode query -C $ParentChainName -n $ParentChainCodeName -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello"; then
-        log_success "父链通道链码验证成功"
+    if $CLI_CMD "$GovernmentPeer0Cli peer chaincode query -C $MainChannelName -n $MainChainCodeName -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello"; then
+        log_success "主通道链码验证成功"
     else
-        log_error "父链通道链码验证失败"
+        log_error "主通道链码验证失败"
     fi
 
-    if $CLI_CMD "$GovernmentPeer0Cli peer chaincode query -C $RealtyChainName -n $RealtyChainCodeName -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello"; then
-        log_success "产权交易子链通道链码验证成功"
+    if $CLI_CMD "$GovernmentPeer0Cli peer chaincode query -C $SubChannelName -n $SubChainCodeName -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello"; then
+        log_success "子通道链码验证成功"
     else
-        log_error "产权交易子链通道链码验证失败"
-    fi
-
-    if $CLI_CMD "$GovernmentPeer0Cli peer chaincode query -C $PaymentChainName -n $PaymentChainCodeName -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello"; then
-        log_success "支付跟踪子链通道链码验证成功"
-    else
-        log_error "支付跟踪子链通道链码验证失败"
-    fi
-
-    if $CLI_CMD "$GovernmentPeer0Cli peer chaincode query -C $AuditChainName -n $AuditChainCodeName -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello"; then
-        log_success "审计跟踪子链通道链码验证成功"
-    else
-        log_error "审计跟踪子链通道链码验证失败"
+        log_error "子通道链码验证失败"
     fi
 
     # 总体验证
-    if $CLI_CMD "$GovernmentPeer0Cli peer chaincode query -C $ParentChainName -n $ParentChainCodeName -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello" &&
-       $CLI_CMD "$GovernmentPeer0Cli peer chaincode query -C $RealtyChainName -n $RealtyChainCodeName -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello" &&
-       $CLI_CMD "$GovernmentPeer0Cli peer chaincode query -C $PaymentChainName -n $PaymentChainCodeName -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello" &&
-       $CLI_CMD "$GovernmentPeer0Cli peer chaincode query -C $AuditChainName -n $AuditChainCodeName -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello"; then
+    if $CLI_CMD "$GovernmentPeer0Cli peer chaincode query -C $MainChannelName -n $MainChainCodeName -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello" &&
+       $CLI_CMD "$GovernmentPeer0Cli peer chaincode query -C $SubChannelName -n $SubChainCodeName -c '{\"Args\":[\"Hello\"]}'" 2>&1 | grep "hello"; then
         log_success "【恭喜您！】network 部署成功，所有通道链码均已验证 (总耗时: $(time_elapsed $start_time))"
         exit 0
     fi

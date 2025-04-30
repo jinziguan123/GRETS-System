@@ -6,6 +6,7 @@ import (
 	"grets_server/constants"
 	"grets_server/dao"
 	"grets_server/db/models"
+	blockDto "grets_server/dto/block_dto"
 	contractDto "grets_server/dto/contract_dto"
 	realtyDto "grets_server/dto/realty_dto"
 	transactionDto "grets_server/dto/transaction_dto"
@@ -62,11 +63,45 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 	transactionUUID := uuid.New().String()
 
 	// 调用链码创建交易
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+	mainContract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
+
+	// 创建交易索引
+	_, err = mainContract.SubmitTransaction(
+		"RegisterTransactionIndex",
+		transactionUUID,
+		realtyCertHash,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("创建交易索引失败: %v", err))
+		return fmt.Errorf("创建交易索引失败: %v", err)
+	}
+
+	// 查询房产索引
+	realtyIndexBytes, err := mainContract.EvaluateTransaction(
+		"GetRealtyIndex",
+		realtyCertHash,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取房产索引失败: %v", err))
+		return fmt.Errorf("获取房产索引失败: %v", err)
+	}
+
+	var realtyIndex blockDto.RealtyIndex
+	if err := json.Unmarshal(realtyIndexBytes, &realtyIndex); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析房产索引失败: %v", err))
+		return fmt.Errorf("解析房产索引失败: %v", err)
+	}
+
+	subContract, err := blockchain.GetSubContract(realtyIndex.ChannelName, constants.InvestorOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取子通道合约失败: %v", err))
+		return fmt.Errorf("获取子通道合约失败: %v", err)
+	}
+
 	paymentUUIDListJSON, err := json.Marshal(req.PaymentUUIDList)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("序列化支付ID列表失败: %v", err))
@@ -83,7 +118,7 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 	}
 
 	// 查询卖家信息
-	realtyBytes, err := contract.EvaluateTransaction(
+	realtyBytes, err := subContract.EvaluateTransaction(
 		"QueryRealty",
 		realty.RealtyCertHash,
 	)
@@ -98,11 +133,11 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 		return fmt.Errorf("解析房产信息失败: %v", err)
 	}
 
-	if buyerCitizenIDHash == chaincodeRealtyResult.CurrentOwnerCitizenIDHash {
+	if buyerCitizenIDHash == chaincodeRealtyResult.CurrentOwnerCitizenIDHash && chaincodeRealtyResult.CurrentOwnerOrganization != constants.GovernmentOrganization {
 		return fmt.Errorf("买家和卖家不能为同一人")
 	}
 
-	_, err = contract.SubmitTransaction(
+	_, err = subContract.SubmitTransaction(
 		"CreateTransaction",
 		utils.GenerateHash(req.RealtyCert),
 		transactionUUID,
@@ -168,12 +203,34 @@ func (s *transactionService) GetTransactionByTransactionUUID(transactionUUID str
 	}
 
 	// 调用链码查询交易
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+	mainContract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return nil, fmt.Errorf("获取合约失败: %v", err)
 	}
-	transactionBytes, err := contract.EvaluateTransaction(
+
+	transactionIndexBytes, err := mainContract.EvaluateTransaction(
+		"GetTransactionIndex",
+		transactionUUID,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询交易索引失败: %v", err))
+		return nil, fmt.Errorf("查询交易索引失败: %v", err)
+	}
+
+	var transactionIndex blockDto.TransactionIndex
+	if err := json.Unmarshal(transactionIndexBytes, &transactionIndex); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析交易索引失败: %v", err))
+		return nil, fmt.Errorf("解析交易索引失败: %v", err)
+	}
+
+	subContract, err := blockchain.GetSubContract(transactionIndex.ChannelName, constants.InvestorOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取子通道合约失败: %v", err))
+		return nil, fmt.Errorf("获取子通道合约失败: %v", err)
+	}
+
+	transactionBytes, err := subContract.EvaluateTransaction(
 		"QueryTransaction",
 		transactionUUID,
 	)
@@ -229,6 +286,12 @@ func (s *transactionService) QueryTransactionList(dto *transactionDto.QueryTrans
 	if dto.Status != "" {
 		conditions["status"] = dto.Status
 	}
+	if dto.BuyerOrganization != "" {
+		conditions["buyer_organization"] = dto.BuyerOrganization
+	}
+	if dto.SellerOrganization != "" {
+		conditions["seller_organization"] = dto.SellerOrganization
+	}
 
 	// 设置默认分页参数
 	pageSize := 10
@@ -283,13 +346,33 @@ func (s *transactionService) UpdateTransaction(req *transactionDto.UpdateTransac
 	s.cacheService.Remove(cache.TransactionPrefix + "uuid:" + req.TransactionUUID)
 
 	// 调用链码更新交易
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+	mainContract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
+	transactionIndexBytes, err := mainContract.EvaluateTransaction(
+		"GetTransactionIndex",
+		req.TransactionUUID,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询交易索引失败: %v", err))
+		return fmt.Errorf("查询交易索引失败: %v", err)
+	}
 
-	_, err = contract.SubmitTransaction(
+	var transactionIndex blockDto.TransactionIndex
+	if err := json.Unmarshal(transactionIndexBytes, &transactionIndex); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析交易索引失败: %v", err))
+		return fmt.Errorf("解析交易索引失败: %v", err)
+	}
+
+	subContract, err := blockchain.GetSubContract(transactionIndex.ChannelName, constants.InvestorOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取子通道合约失败: %v", err))
+		return fmt.Errorf("获取子通道合约失败: %v", err)
+	}
+
+	_, err = subContract.SubmitTransaction(
 		"UpdateTransaction",
 		req.TransactionUUID,
 		req.Status,
@@ -323,12 +406,30 @@ func (s *transactionService) CompleteTransaction(completeTransactionDTO *transac
 	s.cacheService.Remove(cache.TransactionPrefix + "uuid:" + completeTransactionDTO.TransactionUUID)
 
 	// 调用链码完成交易
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+	mainContract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
-	_, err = contract.SubmitTransaction(
+	transactionIndexBytes, err := mainContract.EvaluateTransaction(
+		"GetTransactionIndex",
+		completeTransactionDTO.TransactionUUID,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询交易索引失败: %v", err))
+		return fmt.Errorf("查询交易索引失败: %v", err)
+	}
+	var transactionIndex blockDto.TransactionIndex
+	if err := json.Unmarshal(transactionIndexBytes, &transactionIndex); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析交易索引失败: %v", err))
+		return fmt.Errorf("解析交易索引失败: %v", err)
+	}
+	subContract, err := blockchain.GetSubContract(transactionIndex.ChannelName, constants.InvestorOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取子通道合约失败: %v", err))
+		return fmt.Errorf("获取子通道合约失败: %v", err)
+	}
+	_, err = subContract.SubmitTransaction(
 		"CompleteTransaction",
 		completeTransactionDTO.TransactionUUID,
 	)
@@ -347,6 +448,18 @@ func (s *transactionService) CompleteTransaction(completeTransactionDTO *transac
 	// 删除缓存
 	s.cacheService.Remove(cache.RealtyPrefix + "cert:" + transaction.RealtyCertHash)
 	s.cacheService.Remove(cache.RealtyPrefix + "hash:" + transaction.RealtyCertHash)
+
+	// 调用主通道链码修改房产信息
+	_, err = mainContract.SubmitTransaction(
+		"UpdateRealtyIndex",
+		transaction.RealtyCertHash,
+		transaction.BuyerCitizenIDHash,
+		transaction.BuyerOrganization,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("修改房产信息失败: %v", err))
+		return fmt.Errorf("修改房产信息失败: %v", err)
+	}
 
 	// 修改房产信息
 	realtyModel, err := dao.NewRealEstateDAO().GetRealtyByRealtyCertHash(transaction.RealtyCertHash)

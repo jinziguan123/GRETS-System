@@ -136,3 +136,12 @@ func (dao *ContractDAO) UpdateContractOnChainStatus(id, txID string, onChain boo
 	}
 	return nil
 }
+
+// GetContractByUUID 根据UUID获取合同
+func (dao *ContractDAO) GetContractByUUID(contractUUID string) (*models.Contract, error) {
+	var contract models.Contract
+	if err := dao.mysqlDB.First(&contract, "contract_uuid = ?", contractUUID).Error; err != nil {
+		return nil, fmt.Errorf("根据UUID查询合同失败: %v", err)
+	}
+	return &contract, nil
+}

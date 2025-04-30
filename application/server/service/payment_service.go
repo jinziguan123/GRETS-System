@@ -1,10 +1,12 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 	"grets_server/constants"
 	"grets_server/dao"
 	"grets_server/db/models"
+	block_dto "grets_server/dto/block_dto"
 	paymentDto "grets_server/dto/payment_dto"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
@@ -70,11 +72,44 @@ func (s *paymentService) PayForTransaction(dto *paymentDto.PayForTransactionDTO)
 	paymentUUID := uuid.New().String()
 
 	// 调用链码支付交易
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+	mainContract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 	if err != nil {
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
-	_, err = contract.SubmitTransaction(
+
+	// 查询交易索引
+	transactionIndex, err := mainContract.EvaluateTransaction(
+		"GetTransactionIndex",
+		dto.TransactionUUID,
+	)
+	if err != nil {
+		return fmt.Errorf("查询交易索引失败: %v", err)
+	}
+
+	var transactionIndexDTO block_dto.TransactionIndex
+	err = json.Unmarshal(transactionIndex, &transactionIndexDTO)
+	if err != nil {
+		return fmt.Errorf("解析交易索引失败: %v", err)
+	}
+
+	// 查询子通道合约
+	subContract, err := blockchain.GetSubContract(transactionIndexDTO.ChannelName, constants.InvestorOrganization)
+	if err != nil {
+		return fmt.Errorf("获取子通道合约失败: %v", err)
+	}
+
+	// 如果是新房或者税费，则收款人为GovernmentDefault
+	var receiverCitizenIDHash string
+	if dto.ReceiverOrganization == constants.GovernmentOrganization || dto.PaymentType == constants.PaymentTypeTax {
+		receiverCitizenIDHash = utils.GenerateHash("GovernmentDefault")
+		if dto.PaymentType == constants.PaymentTypeTax {
+			dto.ReceiverOrganization = constants.GovernmentOrganization
+		}
+	} else {
+		receiverCitizenIDHash = dto.ReceiverCitizenIDHash
+	}
+
+	_, err = subContract.SubmitTransaction(
 		"PayForTransaction",
 		dto.TransactionUUID,
 		paymentUUID,
@@ -82,7 +117,7 @@ func (s *paymentService) PayForTransaction(dto *paymentDto.PayForTransactionDTO)
 		fmt.Sprintf("%.2f", dto.Amount),
 		utils.GenerateHash(dto.PayerCitizenID),
 		dto.PayerOrganization,
-		dto.ReceiverCitizenIDHash,
+		receiverCitizenIDHash,
 		dto.ReceiverOrganization,
 	)
 	if err != nil {
@@ -97,7 +132,7 @@ func (s *paymentService) PayForTransaction(dto *paymentDto.PayForTransactionDTO)
 		Amount:                dto.Amount,
 		PayerCitizenIDHash:    utils.GenerateHash(dto.PayerCitizenID),
 		PayerOrganization:     dto.PayerOrganization,
-		ReceiverCitizenIDHash: dto.ReceiverCitizenIDHash,
+		ReceiverCitizenIDHash: receiverCitizenIDHash,
 		ReceiverOrganization:  dto.ReceiverOrganization,
 		CreateTime:            time.Now(),
 		Remarks:               dto.Remarks,
@@ -111,50 +146,7 @@ func (s *paymentService) PayForTransaction(dto *paymentDto.PayForTransactionDTO)
 
 // CreatePayment 创建支付
 func (s *paymentService) CreatePayment(req *paymentDto.CreatePaymentDTO) error {
-
-	paymentUUID := uuid.New().String()
-	// 调用链码创建支付
-	contract, err := blockchain.GetContract(constants.BankOrganization)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-		return fmt.Errorf("获取合约失败: %v", err)
-	}
-	_, err = contract.SubmitTransaction(
-		"CreatePayment",
-		paymentUUID,
-		fmt.Sprintf("%.2f", req.Amount),
-		req.PayerCitizenID,
-		req.PayerOrganization,
-		req.ReceiverCitizenID,
-		req.ReceiverOrganization,
-		req.PaymentType,
-	)
-
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("创建支付失败: %v", err))
-		return fmt.Errorf("创建支付失败: %v", err)
-	}
-
-	// 保存支付信息
-	err = s.paymentDAO.CreatePayment(&models.Payment{
-		PaymentUUID:           paymentUUID,
-		TransactionUUID:       "",
-		PaymentType:           req.PaymentType,
-		Amount:                req.Amount,
-		PayerCitizenIDHash:    utils.GenerateHash(req.PayerCitizenID),
-		PayerOrganization:     req.PayerOrganization,
-		ReceiverCitizenIDHash: utils.GenerateHash(req.ReceiverCitizenID),
-		ReceiverOrganization:  req.ReceiverOrganization,
-		CreateTime:            time.Now(),
-		Remarks:               req.Remarks,
-	})
-
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("保存支付信息失败: %v", err))
-		return fmt.Errorf("保存支付信息失败: %v", err)
-	}
-
-	return nil
+	panic("not implemented")
 }
 
 // GetPaymentByUUID 根据UUID获取支付信息
@@ -247,7 +239,7 @@ func (s *paymentService) QueryPaymentList(dto *paymentDto.QueryPaymentDTO) ([]*p
 // VerifyPayment 验证支付
 func (s *paymentService) VerifyPayment(id string) error {
 	// 调用链码验证支付
-	contract, err := blockchain.GetContract(constants.BankOrganization)
+	contract, err := blockchain.GetMainContract(constants.BankOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
@@ -264,7 +256,7 @@ func (s *paymentService) VerifyPayment(id string) error {
 // CompletePayment 完成支付
 func (s *paymentService) CompletePayment(id string) error {
 	// 调用链码完成支付
-	contract, err := blockchain.GetContract(constants.BankOrganization)
+	contract, err := blockchain.GetMainContract(constants.BankOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)

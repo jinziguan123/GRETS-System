@@ -38,8 +38,8 @@ export function getUserInfo(): Promise<ApiResponse<UserInfo>> {
 // 更新用户信息
 export function updateUserInfo(data: Partial<UserInfo>): Promise<ApiResponse<void>> {
   return request({
-    url: '/users/info',
-    method: 'put',
+    url: '/user/updateUserInfo',
+    method: 'post',
     data
   })
 }

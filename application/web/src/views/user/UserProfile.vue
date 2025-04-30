@@ -250,12 +250,13 @@ const submitForm = () => {
     if (valid) {
       loading.value = true
       try {
-        // 只提交电话和邮箱信息
         await updateUserInfo({
+          citizenID: userStore.user?.citizenID || '',
+          organization: userStore.user?.organization || '',
           phone: profileForm.phone,
           email: profileForm.email
         })
-        
+
         ElMessage.success('个人资料更新成功')
         
         // 更新Pinia中的用户信息
@@ -362,6 +363,7 @@ const fetchUserTransactions = async () => {
       pageSize: transactionQuery.pageSize,
       pageNumber: transactionQuery.pageNumber,
       buyerCitizenID: user.citizenID,
+      buyerOrganization: user.organization,
     }
     
     const response1 = await queryTransactionList(params1)
@@ -374,6 +376,7 @@ const fetchUserTransactions = async () => {
       pageSize: transactionQuery.pageSize,
       pageNumber: transactionQuery.pageNumber,
       sellerCitizenID: user.citizenID,
+      sellerOrganization: user.organization,
     }
 
     const response2 = await queryTransactionList(params2)
@@ -383,6 +386,12 @@ const fetchUserTransactions = async () => {
     })
 
     userTransactions.value= [...transactionList1, ...transactionList2]
+
+    // 按创建时间降序排序
+    userTransactions.value.sort((a, b) => {
+      return new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
+    })
+
     transactionTotal.value = 0
 
   } catch (error) {

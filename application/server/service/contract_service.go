@@ -6,6 +6,7 @@ import (
 	"grets_server/constants"
 	"grets_server/dao"
 	"grets_server/db/models"
+	blockDto "grets_server/dto/block_dto"
 	contractDto "grets_server/dto/contract_dto"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/utils"
@@ -48,7 +49,7 @@ func NewContractService(contractDAO *dao.ContractDAO) ContractService {
 // UpdateContractStatus 更新合同状态
 func (s *contractService) UpdateContractStatus(req *contractDto.UpdateContractStatusDTO) error {
 	// 调用链码更新合同状态
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+	contract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
@@ -94,13 +95,36 @@ func (s *contractService) CreateContract(dto *contractDto.CreateContractDTO) err
 	contractUUID := uuid.New().String()
 	docHash := utils.GenerateRandomHash()
 
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+	mainContract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
+
+	// 获取通道信息
+	channelInfoBytes, err := mainContract.EvaluateTransaction(
+		"GetChannelInfoByRegionCode",
+		dto.CreatorCitizenID[:2],
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询通道信息失败: %v", err))
+		return fmt.Errorf("查询通道信息失败: 该地区未加入GRETS系统")
+	}
+
+	var channelInfo blockDto.ChannelInfo
+	if err := json.Unmarshal(channelInfoBytes, &channelInfo); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析通道信息失败: %v", err))
+		return fmt.Errorf("解析通道信息失败: %v", err)
+	}
+
+	// 调用子通道链码创建合同
+	subContract, err := blockchain.GetSubContract(channelInfo.ChannelName, constants.InvestorOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取子通道合约失败: %v", err))
+		return fmt.Errorf("获取子通道合约失败: %v", err)
+	}
 	// 调用链码创建合同
-	_, err = contract.SubmitTransaction(
+	_, err = subContract.SubmitTransaction(
 		"CreateContract",
 		contractUUID,
 		docHash,
@@ -228,7 +252,7 @@ func (s *contractService) QueryContractList(dto *contractDto.QueryContractDTO) (
 // SignContract 签署合同
 func (s *contractService) SignContract(id string, req *contractDto.SignContractDTO) error {
 	// 调用链码签署合同
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+	contract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
@@ -249,7 +273,7 @@ func (s *contractService) SignContract(id string, req *contractDto.SignContractD
 // AuditContract 审核合同
 func (s *contractService) AuditContract(id string, req *contractDto.AuditContractDTO) error {
 	// 调用链码审核合同
-	contract, err := blockchain.GetContract(constants.InvestorOrganization)
+	contract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
@@ -276,33 +300,50 @@ func (s *contractService) AuditContract(id string, req *contractDto.AuditContrac
 func (s *contractService) UpdateContract(dto *contractDto.UpdateContractDTO) error {
 
 	// 先查询合同
-	contractModelList, count, err := s.contractDAO.QueryContractsWithPagination(
-		map[string]interface{}{
-			"contract_uuid": dto.ContractUUID,
-		},
-		1,
-		1,
-	)
+	contractModel, err := s.contractDAO.GetContractByUUID(dto.ContractUUID)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合同失败: %v", err))
 		return fmt.Errorf("获取合同失败: %v", err)
 	}
 
-	if count == 0 {
+	if contractModel == nil {
 		utils.Log.Error(fmt.Sprintf("合同不存在: %v", dto.ContractUUID))
 		return fmt.Errorf("合同不存在: %v", dto.ContractUUID)
 	}
 
 	if dto.DocHash != "" || dto.Status != "" || dto.ContractType != "" {
 		// 调用链码更新合同
-		contract, err := blockchain.GetContract(constants.InvestorOrganization)
+		mainContract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 		if err != nil {
-			utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
-			return fmt.Errorf("获取合约失败: %v", err)
+			utils.Log.Error(fmt.Sprintf("获取主通道合约失败: %v", err))
+			return fmt.Errorf("获取主通道合约失败: %v", err)
+		}
+
+		// 获取通道信息
+		channelInfoBytes, err := mainContract.EvaluateTransaction(
+			"GetChannelInfoByRegionCode",
+			contractModel.CreatorCitizenIDHash[:2],
+		)
+		if err != nil {
+			utils.Log.Error(fmt.Sprintf("查询通道信息失败: %v", err))
+			return fmt.Errorf("查询通道信息失败: %v", err)
+		}
+
+		var channelInfo blockDto.ChannelInfo
+		if err := json.Unmarshal(channelInfoBytes, &channelInfo); err != nil {
+			utils.Log.Error(fmt.Sprintf("解析通道信息失败: %v", err))
+			return fmt.Errorf("解析通道信息失败: %v", err)
+		}
+
+		// 调用子通道链码更新合同
+		subContract, err := blockchain.GetSubContract(channelInfo.ChannelName, constants.InvestorOrganization)
+		if err != nil {
+			utils.Log.Error(fmt.Sprintf("获取子通道合约失败: %v", err))
+			return fmt.Errorf("获取子通道合约失败: %v", err)
 		}
 
 		// 构建更新参数
-		_, err = contract.SubmitTransaction(
+		_, err = subContract.SubmitTransaction(
 			"UpdateContract",
 			dto.ContractUUID,
 			dto.DocHash,
@@ -317,7 +358,6 @@ func (s *contractService) UpdateContract(dto *contractDto.UpdateContractDTO) err
 	}
 
 	// 更新数据库
-	contractModel := contractModelList[0]
 	if dto.DocHash != "" {
 		contractModel.DocHash = dto.DocHash
 	}

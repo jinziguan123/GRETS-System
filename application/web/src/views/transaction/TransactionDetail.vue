@@ -197,7 +197,7 @@
         </div>
 
         <!-- 买方发起支付按钮或完成交易按钮 -->
-        <div v-if="isBuyer && transactionInfo.status === 'IN_PROGRESS'" class="payment-action section-mt">
+        <div v-if="isBuyer && transactionInfo.status === 'IN_PROGRESS' && userInfo.organization === transactionInfo.buyerOrganization" class="payment-action section-mt">
           <el-button
               v-if="paymentPercentage >= 100"
               type="success"
@@ -346,7 +346,7 @@ const isSeller = computed(() => {
   // 获取用户身份证号的SHA256哈希值
   const userCitizenIDHash = CryptoJS.SHA256(userInfo.value.citizenID).toString(CryptoJS.enc.Hex)
 
-  return userCitizenIDHash === transactionInfo.value.sellerCitizenIDHash
+  return userCitizenIDHash === transactionInfo.value.sellerCitizenIDHash && userInfo.value.organization === transactionInfo.value.sellerOrganization
 })
 
 // 判断当前用户是否为政府或审计
@@ -385,7 +385,7 @@ const canCancelTransaction = computed(() => {
 
   // 任何角色在交易未完成前均可取消
   return ['PENDING', 'IN_PROGRESS'].includes(transactionInfo.value.status) &&
-      (isBuyer.value || isSeller.value || userInfo.value.organization === 'government')
+      (isSeller.value || userInfo.value.organization === 'government')
 })
 
 // 判断是否可以同意交易

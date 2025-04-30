@@ -169,13 +169,10 @@ func (s *SmartContract) GetBalanceByCitizenIDHashAndOrganization(ctx contractapi
 func (s *SmartContract) UpdateUser(ctx contractapi.TransactionContextInterface,
 	citizenIDHash string,
 	organization string,
-	name string,
 	phone string,
 	email string,
-	passwordHash string,
-	status string,
 ) error {
-	key, err := s.createCompositeKey(ctx, constances.DocTypeUser, []string{citizenIDHash}...)
+	key, err := s.createCompositeKey(ctx, constances.DocTypeUser, []string{citizenIDHash, organization}...)
 	if err != nil {
 		return fmt.Errorf("[UpdateUser] 创建复合键失败: %v", err)
 	}
@@ -211,20 +208,11 @@ func (s *SmartContract) UpdateUser(ctx contractapi.TransactionContextInterface,
 	}
 
 	// 更新用户数据
-	if len(name) > 0 {
-		userPublic.Name = name
-	}
 	if len(phone) > 0 {
 		userPrivate.Phone = phone
 	}
 	if len(email) > 0 {
 		userPrivate.Email = email
-	}
-	if len(passwordHash) > 0 {
-		userPrivate.PasswordHash = passwordHash
-	}
-	if len(status) > 0 {
-		userPublic.Status = status
 	}
 	now, err := ctx.GetStub().GetTxTimestamp()
 	if err != nil {
@@ -1865,7 +1853,54 @@ func (s *SmartContract) QueryAuditHistory(ctx contractapi.TransactionContextInte
 
 // InitLedger 初始化账本
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
-	log.Println("初始化账本")
+	timestamp, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("获取当前时间失败: %v", err)
+	}
+
+	// 初始化一个政府的账号
+	governmentUser := models.UserPublic{
+		DocType:        constances.DocTypeUser,
+		CitizenID:      "GovernmentDefault",
+		Name:           "政府",
+		Role:           "user",
+		Organization:   "government",
+		Status:         constances.UserStatusActive,
+		CreateTime:     timestamp.AsTime(),
+		LastUpdateTime: timestamp.AsTime(),
+	}
+	governmentUserJSON, err := json.Marshal(governmentUser)
+	if err != nil {
+		return fmt.Errorf("序列化政府用户信息失败: %v", err)
+	}
+	// 创建复合键
+	governmentUserKey, err := s.createCompositeKey(ctx, constances.DocTypeUser, []string{tools.GenerateHash(governmentUser.CitizenID), governmentUser.Organization}...)
+	if err != nil {
+		return fmt.Errorf("创建复合键失败: %v", err)
+	}
+	err = ctx.GetStub().PutState(governmentUserKey, governmentUserJSON)
+	if err != nil {
+		return fmt.Errorf("保存政府用户信息失败: %v", err)
+	}
+
+	// 创建私人数据
+	governmentUserPrivate := models.UserPrivate{
+		DocType:      constances.DocTypeUser,
+		CitizenID:    governmentUser.CitizenID,
+		PasswordHash: tools.GenerateHash(governmentUser.CitizenID),
+		Balance:      1000000000,
+		Phone:        "18917950920",
+		Email:        "18917950920@163.com",
+	}
+	governmentUserPrivateJSON, err := json.Marshal(governmentUserPrivate)
+	if err != nil {
+		return fmt.Errorf("序列化政府用户私人信息失败: %v", err)
+	}
+	err = ctx.GetStub().PutPrivateData(constances.UserDataCollection, governmentUserKey, governmentUserPrivateJSON)
+	if err != nil {
+		return fmt.Errorf("保存政府用户私人信息失败: %v", err)
+	}
+
 	return nil
 }
 

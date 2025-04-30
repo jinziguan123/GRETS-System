@@ -102,7 +102,7 @@
           <!-- 相关操作 -->
           <div class="actions" v-if="realty.status === 'PENDING_SALE' && hasTransactionPermission">
             <el-divider />
-            <el-button type="primary" @click="createTransaction" :disabled="isOwner">发起交易</el-button>
+            <el-button type="primary" @click="createTransaction" :disabled="isOwner && userStore.user.organization !== 'investor'">发起交易</el-button>
           </div>
         </el-card>
       </el-col>
@@ -600,7 +600,14 @@ const formatDate = (date) => {
 
 // 生成地址信息
 const generateAddress = (item) => {
-  return `${item.province || ''}${item.province ? '省' : ''}${item.city || ''}${item.city ? '市' : ''}${item.district || ''}${item.district ? '区' : ''}${item.street || ''}${item.community || ''}${item.unit || ''}${item.unit ? '单元' : ''}${item.floor || ''}${item.floor ? '楼' : ''}${item.room || ''}${item.room ? '号' : ''}`
+  // 根据省份类型决定地址格式
+  if (item.province.includes('市')) {
+    // 直辖市格式
+    return `${item.province}${item.district}区${item.street}${item.community}${item.unit}单元${item.floor}楼${item.room}号`
+  } else {
+    // 普通省份格式
+    return `${item.province}${item.city}${item.district}区${item.street}${item.community}${item.unit}单元${item.floor}楼${item.room}号`
+  }
 }
 
 // 获取房产详情
@@ -621,7 +628,7 @@ const fetchRealtyDetail = async () => {
       }))
     } else {
       // 如果没有图片，使用默认图片
-      realty.images = ['/Users/jinziguan/Pictures/孤独摇滚.jpg']
+      realty.images = ['http://localhost:8089/i/2025/04/28/680f3098ac95a.png']
     }
   } catch (error) {
     console.error('获取房产详情失败:', error)

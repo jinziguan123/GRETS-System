@@ -1,0 +1,50 @@
+[
+    {
+        "name": "mainCollectionGovernment",
+        "policy": "OR('GovernmentMSP.member')",
+        "requiredPeerCount": 0,
+        "maxPeerCount": 3,
+        "blockToLive": 0,
+        "memberOnlyRead": true,
+        "memberOnlyWrite": true,
+        "endorsementPolicy": {
+            "signaturePolicy": "OR('GovernmentMSP.member')"
+        }
+    },
+    {
+        "name": "mainCollectionAudit",
+        "policy": "OR('AuditMSP.member')",
+        "requiredPeerCount": 0,
+        "maxPeerCount": 3,
+        "blockToLive": 0,
+        "memberOnlyRead": true,
+        "memberOnlyWrite": true,
+        "endorsementPolicy": {
+            "signaturePolicy": "OR('AuditMSP.member')"
+        }
+    },
+    {
+        "name": "mainCollectionBank",
+        "policy": "OR('BankMSP.member')",
+        "requiredPeerCount": 0,
+        "maxPeerCount": 3,
+        "blockToLive": 0,
+        "memberOnlyRead": true,
+        "memberOnlyWrite": true,
+        "endorsementPolicy": {
+            "signaturePolicy": "OR('BankMSP.member')"
+        }
+    },
+    {
+        "name": "mainCollectionInvestor",
+        "policy": "OR('InvestorMSP.member')",
+        "requiredPeerCount": 0,
+        "maxPeerCount": 3,
+        "blockToLive": 0,
+        "memberOnlyRead": true,
+        "memberOnlyWrite": true,
+        "endorsementPolicy": {
+            "signaturePolicy": "OR('InvestorMSP.member')"
+        }
+    }
+] 

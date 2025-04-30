@@ -43,7 +43,6 @@
           v-model="registerForm.citizenID"
           placeholder="请输入身份证号"
           prefix-icon="User"
-          :disabled="registerForm.organization !== 'investor'"
         />
       </el-form-item>
 
@@ -257,18 +256,18 @@ const organizations = [
 ]
 
 // 监听组织变化，非投资者时重置余额
-watch(() => registerForm.organization, (newVal) => {
-  if (newVal !== 'investor') {
-    registerForm.balance = undefined
-    // 对非投资者组织，设置固定身份证号
-    if (newVal) {
-      const orgName = newVal.charAt(0).toUpperCase() + newVal.slice(1);
-      registerForm.citizenID = `${orgName}Default`;
-    }
-  }else{
-    registerForm.citizenID = ''
-  }
-})
+// watch(() => registerForm.organization, (newVal) => {
+//   if (newVal !== 'investor') {
+//     registerForm.balance = undefined
+//     // 对非投资者组织，设置固定身份证号
+//     if (newVal) {
+//       const orgName = newVal.charAt(0).toUpperCase() + newVal.slice(1);
+//       registerForm.citizenID = `${orgName}Default`;
+//     }
+//   }else{
+//     registerForm.citizenID = ''
+//   }
+// })
 
 // 验证密码是否一致
 const validatePass = (rule, value, callback) => {
