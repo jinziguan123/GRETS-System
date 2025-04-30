@@ -61,7 +61,9 @@ export function completeTransaction(data: {
 // 交易条件查询
 export function queryTransactionList(data: {
   buyerCitizenID?: string
+  buyerOrganization?: string
   sellerCitizenID?: string
+  sellerOrganization?: string
   realtyCert?: string
   status?: string
   pageSize: number

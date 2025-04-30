@@ -131,12 +131,16 @@
           </div>
           <el-dropdown trigger="click">
             <span class="user-dropdown">
-              <el-avatar :size="32" :icon="UserFilled"></el-avatar>
+              <el-badge :is-dot="hasPendingTransactions" class="notification-badge">
+                <el-avatar :size="32" :icon="UserFilled"></el-avatar>
+              </el-badge>
               <el-icon class="el-icon--right"><arrow-down /></el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item @click="router.push('/user/profile')">个人信息</el-dropdown-item>
+                <el-badge :is-dot="hasPendingTransactions" class="notification-badge">
+                  <el-dropdown-item @click="router.push('/user/profile')">个人信息</el-dropdown-item>
+                </el-badge>
 <!--                <el-dropdown-item @click="router.push('/change-password')">修改密码</el-dropdown-item>-->
                 <el-dropdown-item divided @click="logout">退出登录</el-dropdown-item>
               </el-dropdown-menu>
@@ -155,6 +159,7 @@
 
 <script setup lang="ts">
 // import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import MainContent from '@/components/MainContent.vue'
@@ -172,6 +177,7 @@ import {
   DataAnalysis,
   UserFilled
 } from '@element-plus/icons-vue'
+import { queryTransactionList } from '@/api/transaction'
 
 const route = useRoute()
 const router = useRouter()
@@ -180,6 +186,31 @@ const userStore = useUserStore()
 // 用户信息
 const username = computed(() => userStore.user?.name || '')
 const userOrganization = computed(() => userStore.user?.organization || '')
+
+// 待处理交易状态（有则显示小红点）
+const hasPendingTransactions = ref(false)
+
+// 获取待处理交易数据
+const fetchPendingTransactions = async () => {
+  try {
+    // 这里应该调用相应的API获取待处理交易
+    const response = await queryTransactionList({
+      status: 'PENDING',
+      sellerCitizenID: userStore.user?.citizenID,
+      sellerOrganization: userStore.user?.organization,
+      pageSize: 1000,
+      pageNumber: 1
+    })
+    hasPendingTransactions.value = response.transactions.length > 0
+  } catch (error) {
+    console.error('获取待处理交易失败:', error)
+  }
+}
+
+// 组件挂载时获取待处理交易
+onMounted(() => {
+  fetchPendingTransactions()
+})
 
 // 组织名称和样式
 const organizationName = computed(() => {
@@ -363,5 +394,11 @@ const getOrganizationTagType = (org: string): 'success' | 'warning' | 'danger' |
   .main-container {
     margin-left: 0;
   }
+}
+
+/* 消息通知小红点样式 */
+.notification-badge :deep(.el-badge__content.is-dot) {
+  right: 5px;
+  top: 5px;
 }
 </style> 
