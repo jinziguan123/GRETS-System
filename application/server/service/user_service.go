@@ -109,13 +109,17 @@ func (s *userService) GetBalanceByCitizenIDHashAndOrganization(citizenID, organi
 func (s *userService) Login(req *userDto.LoginDTO) (*userDto.UserDTO, string, error) {
 	// 不缓存登录结果，因为需要验证密码
 	// 从本地数据库查询用户
-	user, err := s.userDAO.GetUserByCredentials(req.CitizenID, utils.GenerateHash(req.Password), req.Organization)
+	user, err := s.userDAO.GetUserByCredentials(req.CitizenID, req.Organization)
 	if err != nil {
 		log.Printf("Failed to login: %v", err)
 		return nil, "", fmt.Errorf("登录失败: %v", err)
 	}
 	if user == nil {
 		return nil, "", fmt.Errorf("用户不存在")
+	}
+
+	if user.PasswordHash != utils.GenerateHash(req.Password) {
+		return nil, "", fmt.Errorf("密码错误")
 	}
 
 	// 生成JWT令牌

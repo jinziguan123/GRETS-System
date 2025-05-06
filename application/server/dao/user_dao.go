@@ -1,6 +1,7 @@
 package dao
 
 import (
+	"errors"
 	"fmt"
 	"grets_server/db"
 	"grets_server/db/models"
@@ -62,13 +63,13 @@ func (dao *UserDAO) GetUserByCitizenID(citizenID, organization string) (*models.
 }
 
 // GetUserByCredentials 根据身份证号、密码和组织获取用户（用于登录验证）
-func (dao *UserDAO) GetUserByCredentials(citizenID, password, organization string) (*models.User, error) {
+func (dao *UserDAO) GetUserByCredentials(citizenID, organization string) (*models.User, error) {
 	var user models.User
-	if err := dao.mysqlDB.First(&user, "citizen_id = ? AND password_hash = ? AND organization = ?", citizenID, password, organization).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+	if err := dao.mysqlDB.First(&user, "citizen_id = ? AND organization = ?", citizenID, organization).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("用户名或密码错误: %v", err)
+		return nil, fmt.Errorf("用户名不存在: %v", err)
 	}
 	return &user, nil
 }
