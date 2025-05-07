@@ -53,8 +53,8 @@
       <!-- 记住我选项 -->
       <el-form-item>
         <div class="login-options">
-          <el-checkbox v-model="loginForm.remember">记住我</el-checkbox>
-          <el-button type="text" @click="forgotPassword">忘记密码？</el-button>
+<!--          <el-checkbox v-model="loginForm.remember">记住我</el-checkbox>-->
+<!--          <el-button type="text" @click="forgotPassword">忘记密码？</el-button>-->
         </div>
       </el-form-item>
       

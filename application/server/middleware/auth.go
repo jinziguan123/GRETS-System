@@ -20,7 +20,7 @@ func JWTAuth() gin.HandlerFunc {
 		// 解析并验证Token
 		claims, err := utils.ParseToken(authHeader)
 		if err != nil {
-			utils.ResponseUnauthorized(c, "认证令牌无效: "+err.Error())
+			utils.ResponseUnauthorized(c, "认证令牌无效，请重新登录")
 			c.Abort()
 			return
 		}
