@@ -26,6 +26,8 @@ type TransactionService interface {
 	QueryTransactionList(query *transactionDto.QueryTransactionListDTO) ([]*transactionDto.TransactionDTO, int, error)
 	CompleteTransaction(completeTransactionDTO *transactionDto.CompleteTransactionDTO) error
 	UpdateTransaction(dto *transactionDto.UpdateTransactionDTO) error
+	// QueryTransactionStatistics 返回总交易量、总交易额、平均单价、税收总额
+	QueryTransactionStatistics(query *transactionDto.QueryTransactionStatisticsDTO) (int, float64, float64, float64, []*transactionDto.TransactionDTO, error)
 }
 
 // transactionService 交易服务实现
@@ -475,4 +477,118 @@ func (s *transactionService) CompleteTransaction(completeTransactionDTO *transac
 	})
 
 	return nil
+}
+
+// QueryTransactionStatistics 查询交易统计
+// 返回总交易量、总交易额、平均单价、税收总额
+func (s *transactionService) QueryTransactionStatistics(query *transactionDto.QueryTransactionStatisticsDTO) (
+	int,
+	float64,
+	float64,
+	float64,
+	[]*transactionDto.TransactionDTO,
+	error,
+) {
+	// 解析日期
+	startDate, err := time.Parse("2006-01-02", query.StartDate)
+	if err != nil {
+		return 0, 0, 0, 0, nil, fmt.Errorf("解析开始日期失败: %v", err)
+	}
+	endDate, err := time.Parse("2006-01-02", query.EndDate)
+	if err != nil {
+		return 0, 0, 0, 0, nil, fmt.Errorf("解析结束日期失败: %v", err)
+	}
+
+	// 查询交易列表
+	transactions, err := s.txDAO.QueryTransactionListByStatusAndTimeRange(
+		[]string{constants.TxStatusInProcess, constants.TxStatusCompleted},
+		startDate,
+		endDate,
+	)
+	if err != nil {
+		return 0, 0, 0, 0, nil, fmt.Errorf("查询交易列表失败: %v", err)
+	}
+
+	// 计算总交易量
+	totalTransactions := len(transactions)
+
+	transactionUUIDList := make([]string, 0, len(transactions))
+	for _, transaction := range transactions {
+		transactionUUIDList = append(transactionUUIDList, transaction.TransactionUUID)
+	}
+
+	// 根据transactionUUID获取支付列表
+	paymentList, err := dao.NewPaymentDAO().GetPaymentListByTransactionUUIDList(transactionUUIDList)
+	if err != nil {
+		return 0, 0, 0, 0, nil, fmt.Errorf("获取支付列表失败: %v", err)
+	}
+
+	// 计算总交易额、平均单价、税收总额
+	totalAmount := 0.0
+	averagePrice := 0.0
+	totalTax := 0.0
+	for _, payment := range paymentList {
+		if payment.PaymentType == constants.PaymentTypeTax {
+			totalTax += payment.Amount
+		} else {
+			totalAmount += payment.Amount
+		}
+	}
+
+	if totalTransactions > 0 {
+		averagePrice = totalAmount / float64(totalTransactions)
+	} else {
+		averagePrice = 0
+	}
+
+	// 将transactions转换为transactionDTO
+	transactionDTOList := make([]*transactionDto.TransactionDTO, 0, len(transactions))
+	for _, transaction := range transactions {
+		// 调用链码查看交易信息
+		mainContract, err := blockchain.GetMainContract(constants.InvestorOrganization)
+		if err != nil {
+			return 0, 0, 0, 0, nil, fmt.Errorf("获取合约失败: %v", err)
+		}
+		transactionIndexBytes, err := mainContract.EvaluateTransaction(
+			"GetTransactionIndex",
+			transaction.TransactionUUID,
+		)
+		if err != nil {
+			return 0, 0, 0, 0, nil, fmt.Errorf("查询交易索引失败: %v", err)
+		}
+		var transactionIndex blockDto.TransactionIndex
+		if err := json.Unmarshal(transactionIndexBytes, &transactionIndex); err != nil {
+			return 0, 0, 0, 0, nil, fmt.Errorf("解析交易索引失败: %v", err)
+		}
+		subContract, err := blockchain.GetSubContract(transactionIndex.ChannelName, constants.InvestorOrganization)
+		if err != nil {
+			return 0, 0, 0, 0, nil, fmt.Errorf("获取子通道合约失败: %v", err)
+		}
+		transactionBytes, err := subContract.EvaluateTransaction(
+			"QueryTransaction",
+			transaction.TransactionUUID,
+		)
+		if err != nil {
+			return 0, 0, 0, 0, nil, fmt.Errorf("查询交易失败: %v", err)
+		}
+		var chaincodeTransactionResult transactionDto.TransactionDTO
+		if err := json.Unmarshal(transactionBytes, &chaincodeTransactionResult); err != nil {
+			return 0, 0, 0, 0, nil, fmt.Errorf("解析交易失败: %v", err)
+		}
+		transactionDTOList = append(transactionDTOList, &transactionDto.TransactionDTO{
+			TransactionUUID:     transaction.TransactionUUID,
+			RealtyCertHash:      transaction.RealtyCertHash,
+			SellerCitizenIDHash: transaction.SellerCitizenIDHash,
+			SellerOrganization:  transaction.SellerOrganization,
+			BuyerCitizenIDHash:  transaction.BuyerCitizenIDHash,
+			BuyerOrganization:   transaction.BuyerOrganization,
+			Status:              transaction.Status,
+			CreateTime:          transaction.CreateTime,
+			UpdateTime:          transaction.UpdateTime,
+			Price:               chaincodeTransactionResult.Price,
+			Tax:                 chaincodeTransactionResult.Tax,
+		})
+	}
+
+	return totalTransactions, totalAmount, averagePrice, totalTax, transactionDTOList, nil
 }

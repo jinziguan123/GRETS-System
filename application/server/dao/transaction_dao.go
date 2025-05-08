@@ -75,6 +75,15 @@ func (dao *TransactionDAO) CompleteTransaction(transactionUUID string) error {
 	return nil
 }
 
+// 根据交易状态和时间范围查询交易列表
+func (dao *TransactionDAO) QueryTransactionListByStatusAndTimeRange(status []string, startDate time.Time, endDate time.Time) ([]*models.Transaction, error) {
+	var transactions []*models.Transaction
+	if err := dao.mysqlDB.Where("status IN ? AND create_time BETWEEN ? AND ?", status, startDate, endDate).Find(&transactions).Error; err != nil {
+		return nil, fmt.Errorf("查询交易列表失败: %v", err)
+	}
+	return transactions, nil
+}
+
 // 创建新的TransactionDAO实例
 func NewTransactionDAO() *TransactionDAO {
 	return &TransactionDAO{

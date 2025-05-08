@@ -153,6 +153,31 @@ func (c *TransactionController) CompleteTransaction(ctx *gin.Context) {
 	utils.ResponseSuccess(ctx, "交易完成成功", nil)
 }
 
+// QueryTransactionStatistics 查询交易统计
+func (c *TransactionController) QueryTransactionStatistics(ctx *gin.Context) {
+	// 绑定请求参数
+	var req transactionDto.QueryTransactionStatisticsDTO
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		utils.ResponseError(ctx, constants.ParamError, "参数错误: "+err.Error())
+		return
+	}
+
+	// 调用服务层查询交易统计
+	totalTransactions, totalAmount, averagePrice, totalTax, transactionDTOList, err := c.transactionService.QueryTransactionStatistics(&req)
+	if err != nil {
+		utils.ResponseError(ctx, constants.ServiceError, err.Error())
+		return
+	}
+
+	utils.ResponseSuccess(ctx, "查询交易统计成功", gin.H{
+		"totalTransactions":  totalTransactions,
+		"totalAmount":        totalAmount,
+		"averagePrice":       averagePrice,
+		"totalTax":           totalTax,
+		"transactionDTOList": transactionDTOList,
+	})
+}
+
 // 创建全局交易控制器实例
 var GlobalTxController *TransactionController
 
@@ -184,4 +209,8 @@ func UpdateTransaction(c *gin.Context) {
 
 func CompleteTransaction(c *gin.Context) {
 	GlobalTxController.CompleteTransaction(c)
+}
+
+func QueryTransactionStatistics(c *gin.Context) {
+	GlobalTxController.QueryTransactionStatistics(c)
 }

@@ -61,3 +61,10 @@ type UpdateTransactionDTO struct {
 	TransactionUUID string `json:"transactionUUID"` // 交易ID
 	Status          string `json:"status"`          // 交易状态
 }
+
+// QueryTransactionStatisticsDTO 查询交易统计请求
+type QueryTransactionStatisticsDTO struct {
+	StartDate string `json:"startDate"` // 开始日期
+	EndDate   string `json:"endDate"`   // 结束日期
+	District  string `json:"district"`  // 区域
+}

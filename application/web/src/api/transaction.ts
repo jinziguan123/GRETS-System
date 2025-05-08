@@ -76,6 +76,19 @@ export function queryTransactionList(data: {
   })
 }
 
+// 查询交易统计数据
+export function queryTransactionStatistics(data: {
+  startDate?: string
+  endDate?: string
+  district?: string
+}) {
+  return request({
+    url: '/transactions/queryTransactionStatistics',
+    method: 'post',
+    data
+  })
+}
+
 export function updateTransaction(data: {
   transactionUUID: string,
   status: string

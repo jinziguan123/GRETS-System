@@ -23,6 +23,14 @@ func (dao *PaymentDAO) GetPaymentByUUID(paymentUUID string) (*models.Payment, er
 	return &payment, nil
 }
 
+func (dao *PaymentDAO) GetPaymentListByTransactionUUIDList(transactionUUIDList []string) ([]*models.Payment, error) {
+	var payments []*models.Payment
+	if err := dao.mysqlDB.Where("transaction_uuid IN ?", transactionUUIDList).Find(&payments).Error; err != nil {
+		return nil, fmt.Errorf("根据transactionUUID查询支付记录失败: %v", err)
+	}
+	return payments, nil
+}
+
 // 创建新的PaymentDAO实例
 func NewPaymentDAO() *PaymentDAO {
 	return &PaymentDAO{

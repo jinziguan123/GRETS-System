@@ -203,7 +203,7 @@
           <el-table-column type="index" width="50" />
           <el-table-column prop="title" label="房产信息" min-width="200">
             <template #default="scope">
-              <div>{{ scope.row.district }} | {{ scope.row.title }}</div>
+              <div>{{ scope.row.title }}</div>
               <div class="property-meta">{{ scope.row.roomType }} | {{ scope.row.area }}㎡</div>
             </template>
           </el-table-column>
@@ -240,6 +240,9 @@ import { ElMessage } from 'element-plus'
 import { QuestionFilled, CaretTop, CaretBottom } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import dayjs from 'dayjs'
+// 导入API函数
+import { queryTransactionStatistics } from '@/api/transaction'
+import { queryRealtyList } from '@/api/realty'
 
 const router = useRouter()
 
@@ -270,6 +273,10 @@ const districtChartType = ref('count')
 // 排行榜类型
 const rankingType = ref('amount')
 const rankingData = ref([])
+
+// 实际数据存储
+const transactionData = ref([])
+const realtyData = ref([])
 
 // 地区选项
 const districtOptions = [
@@ -319,7 +326,17 @@ const setDefaultDateRange = (range) => {
       dateRange.value = [now.startOf('month').toDate(), now.endOf('month').toDate()]
       break
     case 'quarter':
-      dateRange.value = [now.startOf('quarter').toDate(), now.endOf('quarter').toDate()]
+      // 这里由于startOf不兼容quarter，所以需要根据当前月份匹配对应季度
+      // 计算季度开始日期
+      const quarter = Math.floor(now.month() / 3) + 1
+      const startMonth = (quarter - 1) * 3; // 季度开始月份（0-11）
+      const startDate = dayjs(`${now.year()}-${startMonth + 1}-01`);
+
+      // 计算季度结束日期
+      const endMonth = startMonth + 2; // 季度结束月份（0-11）
+      const lastDayOfEndMonth = startDate.endOf('month').date(); // 获取该月最后一天
+      const endDate = dayjs(`${now.year()}-${endMonth + 1}-${lastDayOfEndMonth}`);
+      dateRange.value = [startDate.toDate(), endDate.toDate()]
       break
     case 'year':
       dateRange.value = [now.startOf('year').toDate(), now.endOf('year').toDate()]
@@ -347,72 +364,153 @@ const resetFilters = () => {
   fetchData()
 }
 
+// 生成地址信息
+const generateAddress = (item) => {
+  // 根据省份类型决定地址格式
+  if (item.province.includes('市')) {
+    // 直辖市格式
+    return `${item.province}${item.district}区${item.street}${item.community}${item.unit}单元${item.floor}楼${item.room}号`
+  } else {
+    // 普通省份格式
+    return `${item.province}${item.city}${item.district}区${item.street}${item.community}${item.unit}单元${item.floor}楼${item.room}号`
+  }
+}
+
 // 获取统计数据
 const fetchData = async () => {
   loading.value = true
   
   try {
-    // 这里替换为实际的API调用
-    setTimeout(() => {
-      // 模拟数据
-      overviewData.totalTransactions = 856
-      overviewData.totalTransactionsTrend = 12.5
-      overviewData.totalAmount = 4562000000
-      overviewData.totalAmountTrend = 8.3
-      overviewData.averagePrice = 52680
-      overviewData.averagePriceTrend = 3.2
-      overviewData.totalTax = 152480000
-      overviewData.totalTaxTrend = 5.7
-      
-      // 加载排行榜数据
-      loadRankingData()
-      
-      // 绘制图表
-      nextTick(() => {
-        initCharts()
-      })
-      
-      loading.value = false
-    }, 1000)
+    // 构建日期查询参数
+    const startDate = dateRange.value && dateRange.value[0] ? dayjs(dateRange.value[0]).format('YYYY-MM-DD') : undefined
+    const endDate = dateRange.value && dateRange.value[1] ? dayjs(dateRange.value[1]).format('YYYY-MM-DD') : undefined
+    
+    // 使用单一API调用获取所有统计数据
+    const result = await queryTransactionStatistics({
+      startDate,
+      endDate,
+      district: district.value || undefined
+    })
+
+    if (!result) {
+      throw new Error('获取数据失败')
+    }
+    
+    // 从API返回结果中提取数据
+    const { 
+      totalTransactions, 
+      totalAmount, 
+      averagePrice, 
+      totalTax,
+      transactionDTOList = []
+    } = result
+    
+    // 获取房产详情以补充图表所需信息
+    const realtyResult = await queryRealtyList({
+      pageSize: 1000,
+      pageNumber: 1
+    })
+    
+    const realtyItems = realtyResult.realtyList || []
+    
+    // 获取上一时间段数据进行比较（简化实现，假设上期数据）
+    // 实际项目中，可以通过动态计算上一时间段，并重新请求API获取
+    const prevTotalTransactions = totalTransactions * 0.9  // 模拟上期数据
+    const prevTotalAmount = totalAmount * 0.93
+    const prevAveragePrice = averagePrice * 0.97
+    const prevTotalTax = totalTax * 0.95
+    
+    // 计算增长率
+    const totalTransactionsTrend = totalTransactions > 0 && prevTotalTransactions > 0 
+      ? ((totalTransactions - prevTotalTransactions) / prevTotalTransactions) * 100 
+      : 0
+    const totalAmountTrend = totalAmount > 0 && prevTotalAmount > 0 
+      ? ((totalAmount - prevTotalAmount) / prevTotalAmount) * 100 
+      : 0
+    const averagePriceTrend = averagePrice > 0 && prevAveragePrice > 0 
+      ? ((averagePrice - prevAveragePrice) / prevAveragePrice) * 100 
+      : 0
+    const totalTaxTrend = totalTax > 0 && prevTotalTax > 0 
+      ? ((totalTax - prevTotalTax) / prevTotalTax) * 100 
+      : 0
+    
+    // 更新数据概览
+    overviewData.totalTransactions = totalTransactions || 0
+    overviewData.totalTransactionsTrend = parseFloat(totalTransactionsTrend.toFixed(1))
+    overviewData.totalAmount = totalAmount || 0
+    overviewData.totalAmountTrend = parseFloat(totalAmountTrend.toFixed(1))
+    overviewData.averagePrice = parseFloat((averagePrice || 0).toFixed(2))
+    overviewData.averagePriceTrend = parseFloat(averagePriceTrend.toFixed(1))
+    overviewData.totalTax = totalTax || 0
+    overviewData.totalTaxTrend = parseFloat(totalTaxTrend.toFixed(1))
+    
+    // 存储交易数据用于图表
+    transactionData.value = transactionDTOList
+    realtyData.value = realtyItems
+    
+    // 加载排行榜数据
+    loadRankingData()
+    
+    // 绘制图表
+    nextTick(() => {
+      initCharts()
+    })
+    
   } catch (error) {
-    console.error('Failed to fetch statistics data:', error)
+    console.error('获取统计数据失败:', error)
     ElMessage.error('获取统计数据失败')
+  } finally {
     loading.value = false
   }
 }
 
+// 获取户型文本
+const getHouseTypeText = (houseType) => {
+  const houseTypeMap = {
+    'single': '一室',
+    'double': '两室',
+    'triple': '三室',
+    'multiple': '四室及以上'
+  }
+  return houseTypeMap[houseType] || houseType
+}
+
 // 加载排行榜数据
 const loadRankingData = () => {
-  // 这里替换为实际的API调用
-  const mockData = []
-  for (let i = 1; i <= 10; i++) {
-    const district = districtOptions[Math.floor(Math.random() * districtOptions.length)].value
-    const area = Math.floor(80 + Math.random() * 150)
-    const unitPrice = Math.floor(45000 + Math.random() * 20000)
-    const totalAmount = area * unitPrice
-    
-    mockData.push({
-      id: `T${String(i).padStart(3, '0')}`,
-      title: `${district}某小区${i}号楼${Math.floor(Math.random() * 30) + 1}层`,
-      district: district,
-      roomType: `${Math.floor(Math.random() * 3) + 2}室${Math.floor(Math.random() * 2) + 1}厅`,
-      area: area,
+  // 根据交易和房产数据构建排行榜数据
+  const rankingItems = transactionData.value.map(transaction => {
+    // 查找对应的房产信息
+    const realty = realtyData.value.find(r => r.realtyCertHash === transaction.realtyCertHash) || {}
+
+    // 计算单价
+    const unitPrice = realty.area && realty.area > 0 && transaction.price
+      ? transaction.price / realty.area
+      : 0
+
+    return {
+      id: transaction.transactionUUID,
+      title: generateAddress(realty),
+      roomType: getHouseTypeText(realty.houseType) || '未知户型',
+      area: realty.area || 0,
       unitPrice: unitPrice,
-      totalAmount: totalAmount,
-      transactionDate: new Date(Date.now() - Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000)
-    })
-  }
-  
+      totalAmount: transaction.price || 0,
+      transactionDate: transaction.createTime || new Date()
+    }
+  }).filter(item => item.totalAmount > 0) // 过滤无效数据
+
+  console.log(rankingItems)
+
   // 根据排行类型排序
   if (rankingType.value === 'amount') {
-    mockData.sort((a, b) => b.totalAmount - a.totalAmount)
+    rankingItems.sort((a, b) => b.totalAmount - a.totalAmount)
   } else if (rankingType.value === 'area') {
-    mockData.sort((a, b) => b.area - a.area)
+    rankingItems.sort((a, b) => b.area - a.area)
   } else if (rankingType.value === 'price') {
-    mockData.sort((a, b) => b.unitPrice - a.unitPrice)
+    rankingItems.sort((a, b) => b.unitPrice - a.unitPrice)
   }
   
-  rankingData.value = mockData
+  // 获取前10个记录
+  rankingData.value = rankingItems.slice(0, 10)
 }
 
 // 初始化图表
@@ -433,10 +531,50 @@ const initTransactionTrendChart = () => {
   
   trendChartInstance = echarts.init(transactionTrendChart.value)
   
-  // 模拟数据
-  const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
-  const countData = [120, 132, 101, 134, 90, 230, 210, 182, 191, 234, 290, 330]
-  const amountData = [2200, 2400, 1900, 2600, 1800, 4600, 4200, 3800, 3900, 4800, 5200, 6000].map(v => v * 10000)
+  // 如果没有数据，显示空图表
+  if (transactionData.value.length === 0) {
+    trendChartInstance.setOption({
+      title: {
+        text: '暂无数据',
+        left: 'center',
+        top: 'center'
+      }
+    })
+    return
+  }
+  
+  // 处理数据，按月份分组
+  const monthData = {}
+  const monthLabels = []
+  const today = dayjs()
+  
+  // 初始化最近12个月的数据
+  for (let i = 11; i >= 0; i--) {
+    const monthDate = today.subtract(i, 'month')
+    const monthKey = monthDate.format('YYYY-MM')
+    const monthLabel = monthDate.format('YYYY年M月')
+    monthData[monthKey] = { count: 0, amount: 0 }
+    monthLabels.push(monthLabel)
+  }
+  
+  // 汇总交易数据
+  transactionData.value.forEach(transaction => {
+    const date = dayjs(transaction.createTime)
+    const monthKey = date.format('YYYY-MM')
+    
+    if (monthData[monthKey]) {
+      monthData[monthKey].count += 1
+      monthData[monthKey].amount += (transaction.price || 0)
+    }
+  })
+  
+  // 提取数据数组
+  const countData = []
+  const amountData = []
+  Object.keys(monthData).sort().forEach(key => {
+    countData.push(monthData[key].count)
+    amountData.push(monthData[key].amount)
+  })
   
   const option = {
     tooltip: {
@@ -452,7 +590,7 @@ const initTransactionTrendChart = () => {
     },
     xAxis: {
       type: 'category',
-      data: months
+      data: monthLabels
     },
     yAxis: {
       type: 'value',
@@ -510,10 +648,59 @@ const initDistrictChart = () => {
   
   districtChartInstance = echarts.init(districtChart.value)
   
-  // 模拟数据
-  const districtNames = districtOptions.map(item => item.value)
-  const countData = districtNames.map(() => Math.floor(Math.random() * 100) + 20)
-  const amountData = districtNames.map(() => (Math.floor(Math.random() * 1000) + 200) * 1000000)
+  // 如果没有数据，显示空图表
+  if (transactionData.value.length === 0 || realtyData.value.length === 0) {
+    districtChartInstance.setOption({
+      title: {
+        text: '暂无数据',
+        left: 'center',
+        top: 'center'
+      }
+    })
+    return
+  }
+  
+  // 按区域分组统计
+  const districtStats = {}
+  
+  // 初始化所有区域数据
+  districtOptions.forEach(opt => {
+    districtStats[opt.value] = { count: 0, amount: 0 }
+  })
+  
+  // 统计各区域交易数据
+  transactionData.value.forEach(transaction => {
+    const realty = realtyData.value.find(r => r.realtyCert === transaction.realtyCert)
+    if (realty && realty.district && districtStats[realty.district]) {
+      districtStats[realty.district].count += 1
+      districtStats[realty.district].amount += (transaction.price || 0)
+    }
+  })
+  
+  // 提取有交易的区域数据
+  const pieData = []
+  Object.keys(districtStats).forEach(district => {
+    if (districtStats[district].count > 0) {
+      pieData.push({
+        name: district,
+        value: districtChartType.value === 'count' 
+          ? districtStats[district].count 
+          : districtStats[district].amount
+      })
+    }
+  })
+  
+  // 如果没有有效数据，显示空图表
+  if (pieData.length === 0) {
+    districtChartInstance.setOption({
+      title: {
+        text: '暂无数据',
+        left: 'center',
+        top: 'center'
+      }
+    })
+    return
+  }
   
   const option = {
     tooltip: {
@@ -557,12 +744,7 @@ const initDistrictChart = () => {
         labelLine: {
           show: false
         },
-        data: districtNames.map((name, index) => {
-          return {
-            name: name,
-            value: districtChartType.value === 'count' ? countData[index] : amountData[index]
-          }
-        })
+        data: pieData
       }
     ]
   }
@@ -590,18 +772,58 @@ const initPropertyTypeChart = () => {
   
   typeChartInstance = echarts.init(propertyTypeChart.value)
   
-  // 模拟数据
-  const typeNames = ['一室一厅', '两室一厅', '两室两厅', '三室一厅', '三室两厅', '四室两厅', '复式', '别墅']
-  const typeData = [
-    { value: 25, name: '一室一厅' },
-    { value: 85, name: '两室一厅' },
-    { value: 120, name: '两室两厅' },
-    { value: 150, name: '三室一厅' },
-    { value: 180, name: '三室两厅' },
-    { value: 90, name: '四室两厅' },
-    { value: 40, name: '复式' },
-    { value: 20, name: '别墅' }
-  ]
+  // 如果没有数据，显示空图表
+  if (transactionData.value.length === 0 || realtyData.value.length === 0) {
+    typeChartInstance.setOption({
+      title: {
+        text: '暂无数据',
+        left: 'center',
+        top: 'center'
+      }
+    })
+    return
+  }
+  
+  // 统计不同类型房产的交易数量
+  const typeStats = {}
+  
+  // 获取已完成交易的房产证号
+  const transactedRealtyCerts = transactionData.value.map(tx => tx.realtyCert)
+  
+  // 统计已交易房产的类型分布
+  const transactedRealty = realtyData.value.filter(realty => 
+    transactedRealtyCerts.includes(realty.realtyCert) && realty.houseType)
+  
+  transactedRealty.forEach(realty => {
+    const type = realty.houseType || '其他'
+    if (!typeStats[type]) {
+      typeStats[type] = 0
+    }
+    typeStats[type] += 1
+  })
+  
+  // 提取数据
+  const typeData = []
+  Object.keys(typeStats).forEach(type => {
+    if (typeStats[type] > 0) {
+      typeData.push({
+        name: type,
+        value: typeStats[type]
+      })
+    }
+  })
+  
+  // 如果没有有效数据，显示空图表
+  if (typeData.length === 0) {
+    typeChartInstance.setOption({
+      title: {
+        text: '暂无数据',
+        left: 'center',
+        top: 'center'
+      }
+    })
+    return
+  }
   
   const option = {
     tooltip: {
@@ -612,7 +834,7 @@ const initPropertyTypeChart = () => {
       orient: 'horizontal',
       bottom: 10,
       type: 'scroll',
-      data: typeNames
+      data: typeData.map(item => item.name)
     },
     series: [
       {
@@ -657,47 +879,86 @@ const initPriceHeatmapChart = () => {
   
   heatmapChartInstance = echarts.init(priceHeatmapChart.value)
   
-  // 模拟数据
-  const districts = districtOptions.map(item => item.value)
-  const roomTypes = ['一室一厅', '两室一厅', '两室两厅', '三室一厅', '三室两厅', '四室两厅', '复式', '别墅']
+  // 如果没有数据，显示空图表
+  if (transactionData.value.length === 0 || realtyData.value.length === 0) {
+    heatmapChartInstance.setOption({
+      title: {
+        text: '暂无数据',
+        left: 'center',
+        top: 'center'
+      }
+    })
+    return
+  }
   
+  // 获取有效房产数据（有区域、户型和价格信息）
+  const validRealty = realtyData.value.filter(realty => 
+    realty.district && 
+    realty.houseType && 
+    realty.price && 
+    realty.area && 
+    realty.area > 0
+  )
+  
+  // 提取所有出现的区域和户型
+  const districts = Array.from(new Set(validRealty.map(r => r.district)))
+  const roomTypes = Array.from(new Set(validRealty.map(r => r.houseType)))
+  
+  // 如果数据不足，显示空图表
+  if (districts.length === 0 || roomTypes.length === 0) {
+    heatmapChartInstance.setOption({
+      title: {
+        text: '暂无足够数据',
+        left: 'center',
+        top: 'center'
+      }
+    })
+    return
+  }
+  
+  // 计算每个区域、户型组合的平均单价
+  const priceMap = {}
+  
+  validRealty.forEach(realty => {
+    const key = `${realty.district}:${realty.houseType}`
+    if (!priceMap[key]) {
+      priceMap[key] = {
+        totalPrice: 0,
+        count: 0
+      }
+    }
+    
+    priceMap[key].totalPrice += (realty.price / realty.area)
+    priceMap[key].count += 1
+  })
+  
+  // 准备热力图数据
   const data = []
   for (let i = 0; i < districts.length; i++) {
     for (let j = 0; j < roomTypes.length; j++) {
-      // 生成不同户型在不同区域的平均单价
-      let basePrice = 45000
-      
-      // 不同区域价格差异
-      if (['静安区', '黄浦区', '徐汇区'].includes(districts[i])) {
-        basePrice += 20000
-      } else if (['长宁区', '浦东新区', '虹口区'].includes(districts[i])) {
-        basePrice += 10000
-      } else if (['松江区', '青浦区', '嘉定区'].includes(districts[i])) {
-        basePrice -= 15000
+      const key = `${districts[i]}:${roomTypes[j]}`
+      if (priceMap[key] && priceMap[key].count > 0) {
+        const avgPrice = priceMap[key].totalPrice / priceMap[key].count
+        data.push([i, j, Math.round(avgPrice)])
+      } else {
+        // 对于没有数据的区域-户型组合，使用null表示
+        data.push([i, j, null])
       }
-      
-      // 不同户型价格差异
-      if (roomTypes[j] === '别墅') {
-        basePrice += 30000
-      } else if (roomTypes[j] === '复式') {
-        basePrice += 15000
-      } else if (roomTypes[j].startsWith('四室')) {
-        basePrice += 5000
-      } else if (roomTypes[j].startsWith('一室')) {
-        basePrice -= 5000
-      }
-      
-      // 添加随机波动
-      basePrice += Math.random() * 10000 - 5000
-      
-      data.push([i, j, Math.round(basePrice)])
     }
   }
+  
+  // 计算价格范围
+  const prices = data.filter(item => item[2] !== null).map(item => item[2])
+  const minPrice = Math.min(...prices) * 0.9
+  const maxPrice = Math.max(...prices) * 1.1
   
   const option = {
     tooltip: {
       position: 'top',
       formatter: function(params) {
+        if (params.data[2] === null) {
+          return `${districts[params.data[0]]}, ${roomTypes[params.data[1]]}<br/>暂无数据`
+        }
         return `${districts[params.data[0]]}, ${roomTypes[params.data[1]]}<br/>
                 平均单价: ¥${formatNumber(params.data[2])}/㎡`
       }
@@ -721,8 +982,8 @@ const initPriceHeatmapChart = () => {
       data: roomTypes
     },
     visualMap: {
-      min: 30000,
-      max: 90000,
+      min: minPrice,
+      max: maxPrice,
       calculable: true,
       orient: 'horizontal',
       right: 'center',

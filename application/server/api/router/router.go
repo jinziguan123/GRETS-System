@@ -83,6 +83,7 @@ func SetupRouter() *gin.Engine {
 			transactions.POST("/updateTransaction", controller.UpdateTransaction)
 			transactions.GET("/:transactionUUID", controller.GetTransactionByUUID)
 			transactions.POST("/completeTransaction", controller.CompleteTransaction)
+			transactions.POST("/queryTransactionStatistics", controller.QueryTransactionStatistics)
 		}
 
 		// 房产相关接口
