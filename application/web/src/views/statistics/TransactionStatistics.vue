@@ -498,8 +498,6 @@ const loadRankingData = () => {
     }
   }).filter(item => item.totalAmount > 0) // 过滤无效数据
 
-  console.log(rankingItems)
-
   // 根据排行类型排序
   if (rankingType.value === 'amount') {
     rankingItems.sort((a, b) => b.totalAmount - a.totalAmount)

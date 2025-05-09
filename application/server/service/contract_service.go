@@ -9,6 +9,7 @@ import (
 	blockDto "grets_server/dto/block_dto"
 	contractDto "grets_server/dto/contract_dto"
 	"grets_server/pkg/blockchain"
+	"grets_server/pkg/cache"
 	"grets_server/pkg/utils"
 	"sort"
 	"time"
@@ -39,11 +40,15 @@ type ContractService interface {
 // contractService 合同服务实现
 type contractService struct {
 	contractDAO *dao.ContractDAO
+	cache       cache.CacheService
 }
 
 // NewContractService 创建合同服务实例
 func NewContractService(contractDAO *dao.ContractDAO) ContractService {
-	return &contractService{contractDAO: contractDAO}
+	return &contractService{
+		contractDAO: contractDAO,
+		cache:       cache.GetCacheService(),
+	}
 }
 
 // UpdateContractStatus 更新合同状态
@@ -162,12 +167,23 @@ func (s *contractService) CreateContract(dto *contractDto.CreateContractDTO) err
 
 // GetContractByID 根据ID获取合同信息
 func (s *contractService) GetContractByID(id string) (*contractDto.ContractDTO, error) {
+
+	// 尝试从缓存获取
+	var result contractDto.ContractDTO
+	if s.cache.Get(cache.ContractPrefix+"id:"+id, &result) {
+		utils.Log.Info(fmt.Sprintf("从缓存获取合同[%s]信息成功", id))
+		return &result, nil
+	}
+
 	// 从数据库中获取合同信息
 	contract, err := s.contractDAO.GetContractByID(id)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合同信息失败: %v", err))
 		return nil, fmt.Errorf("获取合同信息失败: %v", err)
 	}
+
+	// 创建缓存
+	s.cache.Set(cache.ContractPrefix+"id:"+id, contract, 0, 5*time.Minute)
 
 	return &contractDto.ContractDTO{
 		ID:                   contract.ID,
@@ -239,6 +255,9 @@ func (s *contractService) QueryContractList(dto *contractDto.QueryContractDTO) (
 			UpdateTime:           contract.UpdateTime,
 		}
 		result = append(result, dto)
+
+		// 创建缓存
+		s.cache.Set(cache.ContractPrefix+"uuid:"+contract.ContractUUID, dto, 0, 5*time.Minute)
 	}
 
 	// 按创建时间降序排序
@@ -301,6 +320,10 @@ func (s *contractService) UpdateContract(dto *contractDto.UpdateContractDTO) err
 
 	// 先查询合同
 	contractModel, err := s.contractDAO.GetContractByUUID(dto.ContractUUID)
+
+	// 删除缓存
+	s.cache.Remove(cache.ContractPrefix + "uuid:" + contractModel.ContractUUID)
+
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合同失败: %v", err))
 		return fmt.Errorf("获取合同失败: %v", err)
@@ -388,6 +411,14 @@ func (s *contractService) UpdateContract(dto *contractDto.UpdateContractDTO) err
 
 // GetContractByUUID 根据UUID获取合同信息
 func (s *contractService) GetContractByUUID(contractUUID string) (*contractDto.ContractDTO, error) {
+
+	// 尝试从缓存获取
+	var result contractDto.ContractDTO
+	if s.cache.Get(cache.ContractPrefix+"uuid:"+contractUUID, &result) {
+		utils.Log.Info(fmt.Sprintf("从缓存获取合同[%s]信息成功", contractUUID))
+		return &result, nil
+	}
+
 	// 从数据库中获取合同信息
 	contractList, count, err := s.contractDAO.QueryContractsWithPagination(
 		map[string]interface{}{
@@ -407,6 +438,10 @@ func (s *contractService) GetContractByUUID(contractUUID string) (*contractDto.C
 	}
 
 	contract := contractList[0]
+
+	// 创建缓存
+	s.cache.Set(cache.ContractPrefix+"uuid:"+contract.ContractUUID, contract, 0, 5*time.Minute)
+
 	return &contractDto.ContractDTO{
 		ID:                   contract.ID,
 		ContractUUID:         contract.ContractUUID,

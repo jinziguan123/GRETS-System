@@ -9,6 +9,12 @@ type QueryBlockDTO struct {
 	PageNumber   int    `json:"pageNumber"`
 }
 
+// QueryBlockTransactionDTO 查询区块交易列表
+type QueryBlockTransactionDTO struct {
+	BlockNumber uint64 `json:"blockNumber"`
+	ChannelName string `json:"channelName"`
+}
+
 // ChannelInfo 子通道信息结构
 type ChannelInfo struct {
 	ChannelName   string   `json:"channelName"`   // 通道名

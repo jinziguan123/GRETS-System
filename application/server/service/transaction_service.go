@@ -316,7 +316,7 @@ func (s *transactionService) QueryTransactionList(dto *transactionDto.QueryTrans
 	for _, tx := range transactions {
 		txDTO := &transactionDto.TransactionDTO{
 			TransactionUUID:     tx.TransactionUUID,
-			RealtyCertHash:      utils.GenerateHash(tx.RealtyCertHash),
+			RealtyCertHash:      tx.RealtyCertHash,
 			SellerCitizenIDHash: tx.SellerCitizenIDHash,
 			SellerOrganization:  tx.SellerOrganization,
 			BuyerCitizenIDHash:  tx.BuyerCitizenIDHash,
@@ -527,18 +527,13 @@ func (s *transactionService) QueryTransactionStatistics(query *transactionDto.Qu
 	totalAmount := 0.0
 	averagePrice := 0.0
 	totalTax := 0.0
+
 	for _, payment := range paymentList {
 		if payment.PaymentType == constants.PaymentTypeTax {
 			totalTax += payment.Amount
 		} else {
 			totalAmount += payment.Amount
 		}
-	}
-
-	if totalTransactions > 0 {
-		averagePrice = totalAmount / float64(totalTransactions)
-	} else {
-		averagePrice = 0
 	}
 
 	// 将transactions转换为transactionDTO
@@ -588,6 +583,18 @@ func (s *transactionService) QueryTransactionStatistics(query *transactionDto.Qu
 			Price:               chaincodeTransactionResult.Price,
 			Tax:                 chaincodeTransactionResult.Tax,
 		})
+		totalAmount += chaincodeTransactionResult.Price
+	}
+
+	if totalTransactions > 0 {
+		averagePrice = totalAmount / float64(totalTransactions)
+	} else {
+		averagePrice = 0
+	}
+
+	// 创建缓存
+	for _, transaction := range transactionDTOList {
+		s.cacheService.Set(cache.TransactionPrefix+"uuid:"+transaction.TransactionUUID, transaction, 0, 5*time.Minute)
 	}
 
 	return totalTransactions, totalAmount, averagePrice, totalTax, transactionDTOList, nil

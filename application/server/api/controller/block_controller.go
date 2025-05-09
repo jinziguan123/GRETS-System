@@ -26,6 +26,23 @@ func NewBlockController() *BlockController {
 	}
 }
 
+func (c *BlockController) QueryBlockTransactionList(ctx *gin.Context) {
+	var queryBlockTransactionDTO blockDto.QueryBlockTransactionDTO
+	if err := ctx.ShouldBindJSON(&queryBlockTransactionDTO); err != nil {
+		utils.ResponseBadRequest(ctx, err.Error())
+		return
+	}
+
+	blockTransactionList, err := c.blockService.QueryBlockTransactionList(queryBlockTransactionDTO)
+	if err != nil {
+		utils.ResponseInternalServerError(ctx, err.Error())
+		return
+	}
+	utils.ResponseSuccess(ctx, "获取区块交易列表成功", gin.H{
+		"transactionList": blockTransactionList,
+	})
+}
+
 func (c *BlockController) QueryBlockList(ctx *gin.Context) {
 	// 绑定参数
 	var queryBlockDTO blockDto.QueryBlockDTO
@@ -45,4 +62,8 @@ func (c *BlockController) QueryBlockList(ctx *gin.Context) {
 // QueryBlockList 查询区块列表
 func QueryBlockList(ctx *gin.Context) {
 	GlobalBlockController.QueryBlockList(ctx)
+}
+
+func QueryBlockTransactionList(ctx *gin.Context) {
+	GlobalBlockController.QueryBlockTransactionList(ctx)
 }

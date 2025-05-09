@@ -129,6 +129,7 @@ func SetupRouter() *gin.Engine {
 		blocks.Use(middleware.JWTAuth())
 		{
 			blocks.POST("/queryBlockList", controller.QueryBlockList)
+			blocks.POST("/queryBlockTransactionList", controller.QueryBlockTransactionList)
 		}
 
 		picture := api.Group("/picture")

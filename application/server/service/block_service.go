@@ -27,6 +27,8 @@ func NewBlockService() BlockService {
 type BlockService interface {
 	// QueryBlockList 查询区块列表
 	QueryBlockList(queryBlockDTO blockDto.QueryBlockDTO) (*blockchain.BlockQueryResult, error)
+	// QueryBlockTransactionList 查询区块交易列表
+	QueryBlockTransactionList(queryBlockTransactionDTO blockDto.QueryBlockTransactionDTO) ([]*blockchain.BlockTransactionDetail, error)
 }
 
 func (b *blockService) QueryBlockList(queryBlockDTO blockDto.QueryBlockDTO) (*blockchain.BlockQueryResult, error) {
@@ -116,4 +118,27 @@ func filterBlocksByProvince(blocks []*blockchain.BlockData, provinceName string)
 		}
 	}
 	return filteredBlocks, nil
+}
+
+func (b *blockService) QueryBlockTransactionList(queryBlockTransactionDTO blockDto.QueryBlockTransactionDTO) ([]*blockchain.BlockTransactionDetail, error) {
+	block, err := blockchain.GetBlockListener().GetBlockByNumber(
+		queryBlockTransactionDTO.ChannelName,
+		constants.GovernmentOrganization,
+		queryBlockTransactionDTO.BlockNumber,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// 从block中获取所有的交易
+	envelopeList, err := blockchain.GetBlockListener().GetEnvelopeListFromBoltBlockData(block)
+	if err != nil {
+		return nil, err
+	}
+
+	transactionDetailList, err := blockchain.GetBlockListener().GetTransactionDetailListFromEnvelopeList(envelopeList)
+	if err != nil {
+		return nil, err
+	}
+	return transactionDetailList, nil
 }

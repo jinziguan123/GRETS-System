@@ -100,6 +100,8 @@ func (r *realtyService) QueryRealtyByOrganizationAndCitizenID(organization strin
 			return nil, fmt.Errorf("查询房产失败: %v", err)
 		}
 		realtyList = append(realtyList, realty)
+		// 创建缓存
+		r.cacheService.Set(cache.RealtyPrefix+"hash:"+realtyIndex.RealtyCertHash, realty, 0, 5*time.Minute)
 	}
 
 	return realtyList, nil
@@ -154,12 +156,9 @@ func (r *realtyService) GetRealtyByRealtyCert(realtyCert string) (*realtyDto.Rea
 }
 
 func (s *realtyService) GetRealtyByRealtyCertHash(realtyCertHash string) (*realtyDto.RealtyDTO, error) {
-	// 构造缓存键
-	cacheKey := cache.RealtyPrefix + "hash:" + realtyCertHash
-
 	// 尝试从缓存获取
 	var result realtyDto.RealtyDTO
-	if s.cacheService.Get(cacheKey, &result) {
+	if s.cacheService.Get(cache.RealtyPrefix+"hash:"+realtyCertHash, &result) {
 		utils.Log.Info(fmt.Sprintf("从缓存获取房产证Hash[%s]信息成功", realtyCertHash))
 		return &result, nil
 	}
@@ -249,7 +248,7 @@ func (s *realtyService) GetRealtyByRealtyCertHash(realtyCertHash string) (*realt
 	}
 
 	// 将结果存入缓存，设置5分钟过期时间
-	s.cacheService.Set(cacheKey, realtyDTO, 0, 5*time.Minute)
+	s.cacheService.Set(cache.RealtyPrefix+"hash:"+realtyCertHash, realtyDTO, 0, 5*time.Minute)
 
 	return realtyDTO, nil
 }
@@ -386,12 +385,9 @@ func (s *realtyService) CreateRealty(req *realtyDto.CreateRealtyDTO) error {
 
 // GetRealtyByID 根据ID获取房产信息
 func (s *realtyService) GetRealtyByID(id string) (*realtyDto.RealtyDTO, error) {
-	// 构造缓存键
-	cacheKey := cache.RealtyPrefix + "id:" + id
-
 	// 尝试从缓存获取
 	var result realtyDto.RealtyDTO
-	if s.cacheService.Get(cacheKey, &result) {
+	if s.cacheService.Get(cache.RealtyPrefix+"id:"+id, &result) {
 		utils.Log.Info(fmt.Sprintf("从缓存获取房产ID[%s]信息成功", id))
 		return &result, nil
 	}
@@ -453,7 +449,7 @@ func (s *realtyService) GetRealtyByID(id string) (*realtyDto.RealtyDTO, error) {
 	}
 
 	// 将结果存入缓存，设置5分钟过期时间
-	s.cacheService.Set(cacheKey, realtyDTO, 0, 5*time.Minute)
+	s.cacheService.Set(cache.RealtyPrefix+"id:"+id, realtyDTO, 0, 5*time.Minute)
 
 	return realtyDTO, nil
 }
@@ -573,6 +569,9 @@ func (s *realtyService) QueryRealtyList(dto *realtyDto.QueryRealtyListDTO) ([]*r
 			LastUpdateTime:  realty.UpdateTime,
 		}
 		result = append(result, dto)
+
+		// 创建缓存
+		s.cacheService.Set(cache.RealtyPrefix+"hash:"+realty.RealtyCertHash, dto, 0, 5*time.Minute)
 	}
 
 	// 按创建时间降序排序
@@ -585,6 +584,9 @@ func (s *realtyService) QueryRealtyList(dto *realtyDto.QueryRealtyListDTO) ([]*r
 
 // UpdateRealty 更新房产信息
 func (s *realtyService) UpdateRealty(req *realtyDto.UpdateRealtyDTO) error {
+
+	// 删除缓存
+	s.cacheService.Remove(cache.RealtyPrefix + "hash:" + utils.GenerateHash(req.RealtyCert))
 
 	// 查询房产是否存在
 	realty, err := s.realtyDAO.GetRealtyByRealtyCert(req.RealtyCert)

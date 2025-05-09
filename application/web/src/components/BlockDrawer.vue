@@ -2,10 +2,17 @@
   <div class="block-drawer">
     <el-drawer
       v-model="visible"
-      size="50%"
+      :size="!detailVisible ? '50%' : '100%'"
       title="区块链信息查询"
       direction="rtl"
       :destroy-on-close="false"
+      :modal="!detailVisible"
+      :append-to-body="true"
+      :class="{ 'drawer-inactive': detailVisible }"
+      :with-header="true"
+      :show-close="!detailVisible"
+      :close-on-click-modal="!detailVisible"
+      :close-on-press-escape="!detailVisible"
     >
       <div class="block-drawer-container">
         <div class="search-form">
@@ -15,6 +22,7 @@
                 v-model="formState.blockHash" 
                 placeholder="输入区块哈希" 
                 clearable
+                :disabled="detailVisible"
               />
             </el-form-item>
             <el-form-item label="所属省份">
@@ -23,6 +31,7 @@
                 placeholder="选择省份" 
                 clearable
                 style="width: 200px"
+                :disabled="detailVisible"
               >
                 <el-option 
                   v-for="province in provinceList" 
@@ -33,8 +42,8 @@
               </el-select>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" @click="handleSubmit">查询</el-button>
-              <el-button @click="resetForm">重置</el-button>
+              <el-button type="primary" @click="handleSubmit" :disabled="detailVisible">查询</el-button>
+              <el-button @click="resetForm" :disabled="detailVisible">重置</el-button>
             </el-form-item>
           </el-form>
         </div>
@@ -76,6 +85,11 @@
                       <span class="label">数据哈希:</span>
                       <span class="value">{{ block.dataHash }}</span>
                     </div>
+                    <div class="action-item">
+                      <el-button type="primary" size="small" @click.stop="showBlockDetail(block)">
+                        查看区块交易
+                      </el-button>
+                    </div>
                   </div>
                 </el-collapse-item>
               </el-collapse>
@@ -90,6 +104,80 @@
                 :page-sizes="[5, 10, 20]"
                 @size-change="handleSizeChange"
               />
+            </div>
+          </template>
+        </div>
+      </div>
+    </el-drawer>
+
+    <!-- 区块交易详情抽屉 -->
+    <el-drawer
+      v-model="detailVisible"
+      size="50%"
+      title="区块交易详情"
+      direction="rtl"
+      :destroy-on-close="false"
+      :append-to-body="true"
+      :before-close="handleDetailClose"
+    >
+      <div class="block-detail-container" v-loading="detailLoading" element-loading-text="加载中...">
+        <div v-if="currentBlock" class="block-info">
+          <h3>区块基本信息</h3>
+          <div class="info-container">
+            <div class="info-item">
+              <span class="label">区块号:</span>
+              <span class="value">{{ currentBlock.blockNumber }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">通道名称:</span>
+              <span class="value">{{ currentBlock.channelName || '未知' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">区块哈希:</span>
+              <span class="value">{{ currentBlock.blockHash }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">上一区块哈希:</span>
+              <span class="value">{{ currentBlock.prevHash }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">数据哈希:</span>
+              <span class="value">{{ currentBlock.dataHash }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">创建时间:</span>
+              <span class="value">{{ formatDate(currentBlock.saveTime) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="transaction-list">
+          <h3>交易列表</h3>
+          <el-empty v-if="transactions.length === 0 && !detailLoading" description="暂无交易数据" />
+          <template v-else>
+            <div class="transaction-item" v-for="(tx, index) in transactions" :key="index">
+              <el-collapse>
+                <el-collapse-item :title="`交易ID: ${tx.transactionID}`">
+                  <div class="tx-details">
+                    <div class="tx-item">
+                      <span class="label">交易ID:</span>
+                      <span class="value">{{ tx.transactionID }}</span>
+                    </div>
+                    <div class="tx-item">
+                      <span class="label">时间戳:</span>
+                      <span class="value">{{ formatDate(tx.transactionTimestamp) }}</span>
+                    </div>
+                    <div class="tx-item">
+                      <span class="label">创建者:</span>
+                      <span class="value">{{ tx.creator || '-' }}</span>
+                    </div>
+                    <div class="tx-item">
+                      <span class="label">函数名称:</span>
+                      <span class="value">{{ tx.chainCodeFunctionName || '-' }}</span>
+                    </div>
+                  </div>
+                </el-collapse-item>
+              </el-collapse>
             </div>
           </template>
         </div>
@@ -121,7 +209,7 @@
 
 <script lang="ts" setup>
 import { ref, reactive, onMounted } from 'vue'
-import { queryBlockList } from '@/api/block'
+import { queryBlockList, queryBlockTransactionList } from '@/api/block'
 import { ElMessage } from 'element-plus'
 import { DataAnalysis } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
@@ -136,14 +224,25 @@ interface BlockInfo {
   channelName?: string
 }
 
+interface Transaction {
+  transactionID: string
+  creator: string
+  transactionTimestamp: string
+  chainCodeFunctionName: string
+}
+
 interface Province {
   provinceCode: string
   provinceName: string
 }
 
 const visible = ref(false)
+const detailVisible = ref(false)
 const loading = ref(false)
+const detailLoading = ref(false)
 const blockList = ref<BlockInfo[]>([])
+const transactions = ref<Transaction[]>([])
+const currentBlock = ref<BlockInfo | null>(null)
 
 const formState = reactive({
   blockHash: '',
@@ -204,6 +303,18 @@ const closeDrawer = () => {
   visible.value = false
 }
 
+const showBlockDetail = async (block: BlockInfo) => {
+  currentBlock.value = block
+  detailVisible.value = true
+  await fetchBlockTransactions(block)
+}
+
+const handleDetailClose = (done: () => void) => {
+  detailVisible.value = false
+  transactions.value = []
+  done()
+}
+
 const fetchBlockList = async () => {
   loading.value = true
   try {
@@ -219,10 +330,37 @@ const fetchBlockList = async () => {
     blockList.value = response.blocks || []
     pagination.total = response.total || 0
   } catch (error) {
+    console.error('获取区块列表失败:', error)
     blockList.value = []
     pagination.total = 0
   } finally {
     loading.value = false
+  }
+}
+
+const fetchBlockTransactions = async (block: BlockInfo) => {
+  if (!block.blockNumber || !block.channelName) {
+    ElMessage.warning('区块信息不完整，无法获取交易详情')
+    return
+  }
+  
+  detailLoading.value = true
+  transactions.value = []
+  
+  try {
+    const params = {
+      blockNumber: block.blockNumber,
+      channelName: block.channelName,
+      organization: userStore.organization
+    }
+    
+    const response = await queryBlockTransactionList(params)
+    transactions.value = response.transactionList || []
+  } catch (error) {
+    console.error('获取区块交易详情失败:', error)
+    ElMessage.error('获取区块交易详情失败')
+  } finally {
+    detailLoading.value = false
   }
 }
 
@@ -249,7 +387,7 @@ const handleSizeChange = (size: number) => {
   fetchBlockList()
 }
 
-const formatDate = (timestamp: number) => {
+const formatDate = (timestamp: string) => {
   if (!timestamp) return '-'
   const date = new Date(timestamp)
   return date.toLocaleString()
@@ -304,6 +442,12 @@ onMounted(() => {
   line-height: 24px;
 }
 
+.action-item {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .label {
   color: #8c8c8c;
   width: 100px;
@@ -329,5 +473,67 @@ onMounted(() => {
 
 .float-button {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 区块详情样式 */
+.block-detail-container {
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.block-info {
+  background-color: #f5f7fa;
+  padding: 16px;
+  border-radius: 4px;
+}
+
+.info-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.info-item {
+  display: flex;
+  line-height: 24px;
+}
+
+.transaction-list {
+  margin-top: 16px;
+}
+
+.transaction-item {
+  margin-bottom: 12px;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+}
+
+.tx-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+.tx-item {
+  display: flex;
+  line-height: 24px;
+}
+
+.arg-item {
+  padding: 4px 0;
+}
+
+/* 当详情抽屉打开时，原抽屉的灰色半透明效果 */
+.drawer-inactive {
+  pointer-events: none;
+}
+
+.drawer-inactive :deep(.el-drawer__body) {
+  opacity: 0.5;
+  filter: grayscale(50%);
 }
 </style> 

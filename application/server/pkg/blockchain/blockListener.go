@@ -2,9 +2,13 @@ package blockchain
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/asn1"
+	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"grets_server/config"
 	"grets_server/pkg/utils"
@@ -19,6 +23,8 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/hyperledger/fabric-gateway/pkg/client"
 	"github.com/hyperledger/fabric-protos-go-apiv2/common"
+	"github.com/hyperledger/fabric-protos-go-apiv2/msp"
+	"github.com/hyperledger/fabric-protos-go-apiv2/peer"
 )
 
 const (
@@ -431,6 +437,14 @@ type BlockQueryResult struct {
 	HasMore  bool         `json:"hasMore"`  // 是否还有更多数据
 }
 
+// BlockTransaction 区块交易
+type BlockTransactionDetail struct {
+	TransactionID         string `json:"transactionID"`         // 交易ID
+	Creator               string `json:"creator"`               // 创建者地址
+	TransactionTimestamp  string `json:"transactionTimestamp"`  // 交易时间戳
+	ChainCodeFunctionName string `json:"chainCodeFunctionName"` // 链码函数名称
+}
+
 // GetBlocksByChannelAndOrg 分页查询组织的区块列表（按区块号降序）
 func (l *blockListener) GetBlocksByChannelAndOrg(channelName string, orgName string, pageNum int, pageSize int) (*BlockQueryResult, error) {
 	if pageNum <= 0 {
@@ -570,6 +584,18 @@ func (l *blockListener) GetEnvelopeListFromBlock(block *common.Block) ([]*common
 	return envelopes, nil
 }
 
+func (l *blockListener) GetEnvelopeListFromBoltBlockData(blockData *BlockData) ([]*common.Envelope, error) {
+	var envelopes []*common.Envelope
+	for _, envBytes := range blockData.Data {
+		envelope := &common.Envelope{}
+		if err := proto.Unmarshal(envBytes, envelope); err != nil {
+			return nil, fmt.Errorf("getEnvelopeFromBlock error: %v", err)
+		}
+		envelopes = append(envelopes, envelope)
+	}
+	return envelopes, nil
+}
+
 func (l *blockListener) GetChannelHeaderFromEnvelope(env *common.Envelope) (*common.ChannelHeader, error) {
 	payload := &common.Payload{}
 	if err := proto.Unmarshal(env.Payload, payload); err != nil {
@@ -580,4 +606,90 @@ func (l *blockListener) GetChannelHeaderFromEnvelope(env *common.Envelope) (*com
 		return nil, fmt.Errorf("getChannelHeaderFromEnvelope error: %v", err)
 	}
 	return channelHeader, nil
+}
+
+func (l *blockListener) GetSignatureHeaderFromEnvelope(env *common.Envelope) (*common.SignatureHeader, error) {
+	payload := &common.Payload{}
+	if err := proto.Unmarshal(env.Payload, payload); err != nil {
+		return nil, fmt.Errorf("getSignatureHeaderFromEnvelope error: %v", err)
+	}
+	signatureHeader := &common.SignatureHeader{}
+	if err := proto.Unmarshal(payload.Header.SignatureHeader, signatureHeader); err != nil {
+		return nil, fmt.Errorf("getSignatureHeaderFromEnvelope error: %v", err)
+	}
+	return signatureHeader, nil
+}
+
+// parseCreatorCertificate 解析 PEM 编码的证书并提取用户信息
+func parseCreatorCertificate(certBytes []byte) (string, error) {
+	block, _ := pem.Decode(certBytes)
+	if block == nil || block.Type != "CERTIFICATE" {
+		return "", fmt.Errorf("failed to decode PEM block containing certificate")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse certificate: %v", err)
+	}
+
+	// 使用公钥派生地址
+	pubKey := cert.PublicKey.(*ecdsa.PublicKey).X.Bytes()
+	hash := sha256.Sum256(pubKey)
+	return hex.EncodeToString(hash[:]), nil
+}
+
+func (l *blockListener) GetTransactionDetailListFromEnvelopeList(envList []*common.Envelope) ([]*BlockTransactionDetail, error) {
+	transactionDetailList := make([]*BlockTransactionDetail, 0)
+	// 遍历envList
+	for _, env := range envList {
+		// 首先获取channelHeader来拿到交易时间和txID
+		channelHeader, err := l.GetChannelHeaderFromEnvelope(env)
+		if err != nil {
+			return nil, fmt.Errorf("获取channelHeader失败: %v", err)
+		}
+
+		signatureHeader, err := l.GetSignatureHeaderFromEnvelope(env)
+		if err != nil {
+			return nil, fmt.Errorf("获取signatureHeader失败: %v", err)
+		}
+		creator := &msp.SerializedIdentity{}
+		if err := proto.Unmarshal(signatureHeader.Creator, creator); err != nil {
+			return nil, fmt.Errorf("解析creator失败: %v", err)
+		}
+		creatorInfo, err := parseCreatorCertificate(creator.IdBytes)
+		if err != nil {
+			return nil, fmt.Errorf("解析creator证书失败: %v", err)
+		}
+
+		payload := &common.Payload{}
+		if err := proto.Unmarshal(env.Payload, payload); err != nil {
+			return nil, fmt.Errorf("解析payload失败: %v", err)
+		}
+		txPayload := &peer.Transaction{}
+		if err := proto.Unmarshal(payload.Data, txPayload); err != nil {
+			return nil, fmt.Errorf("解析TransactionAction失败: %v", err)
+		}
+		for _, action := range txPayload.Actions {
+			chaincodeActionPayload := &peer.ChaincodeActionPayload{}
+			if err := proto.Unmarshal(action.Payload, chaincodeActionPayload); err != nil {
+				return nil, fmt.Errorf("解析ChaincodeActionPayload失败: %v", err)
+			}
+			chaincodeProposalPayload := &peer.ChaincodeProposalPayload{}
+			if err := proto.Unmarshal(chaincodeActionPayload.ChaincodeProposalPayload, chaincodeProposalPayload); err != nil {
+				return nil, fmt.Errorf("解析ChaincodeProposalPayload失败: %v", err)
+			}
+			chaincodeInvocationSpec := &peer.ChaincodeInvocationSpec{}
+			if err := proto.Unmarshal(chaincodeProposalPayload.Input, chaincodeInvocationSpec); err != nil {
+				return nil, fmt.Errorf("解析ChaincodeInvocationSpec失败: %v", err)
+			}
+			transactionDetail := &BlockTransactionDetail{
+				TransactionID:         channelHeader.TxId,
+				Creator:               creatorInfo,
+				TransactionTimestamp:  channelHeader.Timestamp.AsTime().Format(time.RFC3339),
+				ChainCodeFunctionName: string(chaincodeInvocationSpec.ChaincodeSpec.Input.Args[0]),
+			}
+			transactionDetailList = append(transactionDetailList, transactionDetail)
+		}
+	}
+	return transactionDetailList, nil
 }
