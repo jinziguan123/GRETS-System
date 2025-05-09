@@ -42,6 +42,10 @@ func (dao *ContractDAO) QueryContractsWithPagination(
 			} else if field == "transaction_uuid" {
 				query = query.Where("transaction_uuid = ?", v)
 			}
+		} else if _, ok := value.(*bool); ok {
+			if field == "exclude_already_used_flag" {
+				query = query.Where("transaction_uuid = ?", "")
+			}
 		}
 	}
 

@@ -466,6 +466,7 @@ const fetchContractList = async (query) => {
     pageNumber: 1,
     creatorCitizenID: userStore.user.citizenID,
     contractUUID: query,
+    excludeAlreadyUsedFlag: true
   })
   contractList.value = response.contracts || []
 }

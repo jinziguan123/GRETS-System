@@ -27,14 +27,15 @@ type CreateContractDTO struct {
 }
 
 type QueryContractDTO struct {
-	ContractUUID     string `json:"contractUUID"`
-	DocHash          string `json:"docHash"`
-	TransactionUUID  string `json:"transactionUUID"`
-	ContractType     string `json:"contractType"`
-	CreatorCitizenID string `json:"creatorCitizenID"`
-	Status           string `json:"status"`
-	PageSize         int    `json:"pageSize"`
-	PageNumber       int    `json:"pageNumber"`
+	ContractUUID           string `json:"contractUUID"`
+	DocHash                string `json:"docHash"`
+	TransactionUUID        string `json:"transactionUUID"`
+	ContractType           string `json:"contractType"`
+	CreatorCitizenID       string `json:"creatorCitizenID"`
+	Status                 string `json:"status"`
+	PageSize               int    `json:"pageSize"`
+	PageNumber             int    `json:"pageNumber"`
+	ExcludeAlreadyUsedFlag *bool  `json:"excludeAlreadyUsedFlag"`
 }
 
 type SignContractDTO struct {

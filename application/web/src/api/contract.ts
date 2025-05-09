@@ -9,6 +9,7 @@ export function queryContractList(data: {
   status?: string
   pageSize?: number
   pageNumber?: number
+  excludeAlreadyUsedFlag?: boolean
 }) {
   return request({
     url: '/contracts/queryContractList',

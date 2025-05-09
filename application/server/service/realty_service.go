@@ -571,7 +571,7 @@ func (s *realtyService) QueryRealtyList(dto *realtyDto.QueryRealtyListDTO) ([]*r
 		result = append(result, dto)
 
 		// 创建缓存
-		s.cacheService.Set(cache.RealtyPrefix+"hash:"+realty.RealtyCertHash, dto, 0, 5*time.Minute)
+		//s.cacheService.Set(cache.RealtyPrefix+"hash:"+realty.RealtyCertHash, dto, 0, 5*time.Minute)
 	}
 
 	// 按创建时间降序排序

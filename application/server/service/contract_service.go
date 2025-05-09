@@ -223,6 +223,10 @@ func (s *contractService) QueryContractList(dto *contractDto.QueryContractDTO) (
 		conditions["transaction_uuid"] = dto.TransactionUUID
 	}
 
+	if dto.ExcludeAlreadyUsedFlag != nil {
+		conditions["exclude_already_used_flag"] = dto.ExcludeAlreadyUsedFlag
+	}
+
 	// 设置默认分页参数
 	pageSize := 10
 	pageNumber := 1
