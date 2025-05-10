@@ -31,8 +31,8 @@
           />
         </el-form-item>
         <el-form-item label="区域">
-          <el-select v-model="district" placeholder="选择区域" clearable @change="fetchData">
-            <el-option v-for="item in districtOptions" :key="item.value" :label="item.label" :value="item.value" />
+          <el-select v-model="province" placeholder="选择区域" clearable @change="fetchData">
+            <el-option v-for="item in provinceOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -252,7 +252,7 @@ const loading = ref(false)
 // 筛选条件
 const timeRange = ref('month')
 const dateRange = ref([])
-const district = ref('')
+const province = ref('')
 
 // 图表引用
 const transactionTrendChart = ref(null)
@@ -279,23 +279,23 @@ const transactionData = ref([])
 const realtyData = ref([])
 
 // 地区选项
-const districtOptions = [
-  { value: '浦东新区', label: '浦东新区' },
-  { value: '黄浦区', label: '黄浦区' },
-  { value: '徐汇区', label: '徐汇区' },
-  { value: '长宁区', label: '长宁区' },
-  { value: '静安区', label: '静安区' },
-  { value: '普陀区', label: '普陀区' },
-  { value: '虹口区', label: '虹口区' },
-  { value: '杨浦区', label: '杨浦区' },
-  { value: '闵行区', label: '闵行区' },
-  { value: '宝山区', label: '宝山区' },
-  { value: '嘉定区', label: '嘉定区' },
-  { value: '金山区', label: '金山区' },
-  { value: '松江区', label: '松江区' },
-  { value: '青浦区', label: '青浦区' },
-  { value: '奉贤区', label: '奉贤区' },
-  { value: '崇明区', label: '崇明区' }
+const provinceOptions = [
+  { value: '上海市', label: '上海市' },
+  { value: '北京市', label: '北京市' },
+  { value: '天津市', label: '天津市' },
+  { value: '重庆市', label: '重庆市' },
+  { value: '江苏省', label: '江苏省' },
+  { value: '浙江省', label: '浙江省' },
+  { value: '安徽省', label: '安徽省' },
+  { value: '福建省', label: '福建省' },
+  { value: '江西省', label: '江西省' },
+  { value: '山东省', label: '山东省' },
+  { value: '河南省', label: '河南省' },
+  { value: '湖北省', label: '湖北省' },
+  { value: '湖南省', label: '湖南省' },
+  { value: '广东省', label: '广东省' },
+  { value: '广西壮族自治区', label: '广西壮族自治区' },
+  { value: '海南省', label: '海南省' }
 ]
 
 // 数据概览
@@ -359,7 +359,7 @@ const handleDateRangeChange = () => {
 
 // 重置筛选条件
 const resetFilters = () => {
-  district.value = ''
+  province.value = ''
   setDefaultDateRange('custom')
   fetchData()
 }
@@ -389,7 +389,7 @@ const fetchData = async () => {
     const result = await queryTransactionStatistics({
       startDate,
       endDate,
-      district: district.value || undefined
+      province: province.value || undefined
     })
 
     if (!result) {
@@ -451,7 +451,7 @@ const fetchData = async () => {
     // 加载排行榜数据
     loadRankingData()
     
-    // 绘制图表
+    // 数据获取完成后，通过nextTick确保DOM已更新，然后渲染图表
     nextTick(() => {
       initCharts()
     })
@@ -470,7 +470,13 @@ const getHouseTypeText = (houseType) => {
     'single': '一室',
     'double': '两室',
     'triple': '三室',
-    'multiple': '四室及以上'
+    'multiple': '四室及以上',
+    'apartment': '公寓',
+    'villa': '别墅',
+    'office': '办公',
+    'commercial': '商铺',
+    'industrial': '工业用地',
+    'other': '其他'
   }
   return houseTypeMap[houseType] || houseType
 }
@@ -513,10 +519,13 @@ const loadRankingData = () => {
 
 // 初始化图表
 const initCharts = () => {
-  initTransactionTrendChart()
-  initDistrictChart()
-  initPropertyTypeChart()
-  initPriceHeatmapChart()
+  // 确保DOM已更新
+  nextTick(() => {
+    initTransactionTrendChart()
+    initDistrictChart()
+    initPropertyTypeChart()
+    initPriceHeatmapChart()
+  })
 }
 
 // 初始化交易趋势图表
@@ -541,38 +550,8 @@ const initTransactionTrendChart = () => {
     return
   }
   
-  // 处理数据，按月份分组
-  const monthData = {}
-  const monthLabels = []
-  const today = dayjs()
-  
-  // 初始化最近12个月的数据
-  for (let i = 11; i >= 0; i--) {
-    const monthDate = today.subtract(i, 'month')
-    const monthKey = monthDate.format('YYYY-MM')
-    const monthLabel = monthDate.format('YYYY年M月')
-    monthData[monthKey] = { count: 0, amount: 0 }
-    monthLabels.push(monthLabel)
-  }
-  
-  // 汇总交易数据
-  transactionData.value.forEach(transaction => {
-    const date = dayjs(transaction.createTime)
-    const monthKey = date.format('YYYY-MM')
-    
-    if (monthData[monthKey]) {
-      monthData[monthKey].count += 1
-      monthData[monthKey].amount += (transaction.price || 0)
-    }
-  })
-  
-  // 提取数据数组
-  const countData = []
-  const amountData = []
-  Object.keys(monthData).sort().forEach(key => {
-    countData.push(monthData[key].count)
-    amountData.push(monthData[key].amount)
-  })
+  // 根据timeRange生成不同的日期标签和数据
+  const { labels, countData, amountData } = generateChartDataByTimeRange()
   
   const option = {
     tooltip: {
@@ -588,7 +567,7 @@ const initTransactionTrendChart = () => {
     },
     xAxis: {
       type: 'category',
-      data: monthLabels
+      data: labels
     },
     yAxis: {
       type: 'value',
@@ -625,10 +604,141 @@ const initTransactionTrendChart = () => {
   
   trendChartInstance.setOption(option)
   
+  // 确保图表能够正确渲染
+  nextTick(() => {
+    if (trendChartInstance) {
+      trendChartInstance.resize()
+    }
+  })
+  
   // 窗口大小变化时重新调整图表大小
   window.addEventListener('resize', () => {
     trendChartInstance && trendChartInstance.resize()
   })
+}
+
+// 根据timeRange生成图表数据
+const generateChartDataByTimeRange = () => {
+  const today = dayjs()
+  let labels = []
+  const dataMap = {}
+  
+  // 根据不同的时间范围生成不同的标签和数据结构
+  if (timeRange.value === 'month') {
+    // 本月：显示每一天
+    const daysInMonth = today.daysInMonth()
+    const currentMonth = today.format('YYYY-MM')
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayStr = day < 10 ? `0${day}` : `${day}`
+      const dateKey = `${currentMonth}-${dayStr}`
+      const label = `${day}日`
+      labels.push(label)
+      dataMap[dateKey] = { count: 0, amount: 0 }
+    }
+    
+    // 汇总交易数据（按天）
+    transactionData.value.forEach(transaction => {
+      const date = dayjs(transaction.createTime)
+      // 只统计本月数据
+      if (date.format('YYYY-MM') === currentMonth) {
+        const dateKey = date.format('YYYY-MM-DD')
+        if (dataMap[dateKey]) {
+          dataMap[dateKey].count += 1
+          dataMap[dateKey].amount += (transaction.price || 0)
+        }
+      }
+    })
+    
+  } else if (timeRange.value === 'quarter') {
+    // 本季度：显示本季度的各个月份
+    const currentQuarter = Math.floor(today.month() / 3)
+    const startMonth = currentQuarter * 3 // 季度开始月份（0-11）
+    
+    for (let i = 0; i < 3; i++) {
+      const monthIndex = startMonth + i
+      const month = dayjs().month(monthIndex).startOf('month')
+      const monthKey = month.format('YYYY-MM')
+      const label = month.format('M月')
+      labels.push(label)
+      dataMap[monthKey] = { count: 0, amount: 0 }
+    }
+    
+    // 汇总交易数据（按月）
+    transactionData.value.forEach(transaction => {
+      const date = dayjs(transaction.createTime)
+      const monthKey = date.format('YYYY-MM')
+      if (dataMap[monthKey]) {
+        dataMap[monthKey].count += 1
+        dataMap[monthKey].amount += (transaction.price || 0)
+      }
+    })
+    
+  } else if (timeRange.value === 'year') {
+    // 本年度：显示每个月
+    const currentYear = today.format('YYYY')
+    
+    for (let month = 0; month < 12; month++) {
+      const monthDate = dayjs().year(parseInt(currentYear)).month(month).startOf('month')
+      const monthKey = monthDate.format('YYYY-MM')
+      const label = monthDate.format('M月')
+      labels.push(label)
+      dataMap[monthKey] = { count: 0, amount: 0 }
+    }
+    
+    // 汇总交易数据（按月）
+    transactionData.value.forEach(transaction => {
+      const date = dayjs(transaction.createTime)
+      // 只统计本年数据
+      if (date.format('YYYY') === currentYear) {
+        const monthKey = date.format('YYYY-MM')
+        if (dataMap[monthKey]) {
+          dataMap[monthKey].count += 1
+          dataMap[monthKey].amount += (transaction.price || 0)
+        }
+      }
+    })
+    
+  } else {
+    // 自定义时间范围或其他情况：显示所有月份
+    // 获取日期范围的起止时间
+    const startDate = dateRange.value && dateRange.value[0] ? dayjs(dateRange.value[0]) : dayjs().subtract(30, 'days')
+    const endDate = dateRange.value && dateRange.value[1] ? dayjs(dateRange.value[1]) : dayjs()
+    
+    // 计算日期范围内的月份
+    let currentDate = startDate.startOf('month')
+    while (currentDate.isBefore(endDate) || currentDate.isSame(endDate, 'month')) {
+      const monthKey = currentDate.format('YYYY-MM')
+      const label = currentDate.format('YYYY年M月')
+      labels.push(label)
+      dataMap[monthKey] = { count: 0, amount: 0 }
+      currentDate = currentDate.add(1, 'month')
+    }
+    
+    // 汇总交易数据
+    transactionData.value.forEach(transaction => {
+      const date = dayjs(transaction.createTime)
+      const monthKey = date.format('YYYY-MM')
+      if (dataMap[monthKey]) {
+        dataMap[monthKey].count += 1
+        dataMap[monthKey].amount += (transaction.price || 0)
+      }
+    })
+  }
+  
+  // 提取数据数组
+  const countData = []
+  const amountData = []
+  
+  // 根据标签顺序提取数据
+  const sortedKeys = Object.keys(dataMap).sort()
+  for (let i = 0; i < labels.length; i++) {
+    const key = sortedKeys[i]
+    countData.push(dataMap[key]?.count || 0)
+    amountData.push(dataMap[key]?.amount || 0)
+  }
+  
+  return { labels, countData, amountData }
 }
 
 // 更新交易趋势图表
@@ -659,31 +769,32 @@ const initDistrictChart = () => {
   }
   
   // 按区域分组统计
-  const districtStats = {}
+  const provinceStats = {}
   
-  // 初始化所有区域数据
-  districtOptions.forEach(opt => {
-    districtStats[opt.value] = { count: 0, amount: 0 }
+  // 初始化所有省份数据
+  provinceOptions.forEach(opt => {
+    provinceStats[opt.value] = { count: 0, amount: 0 }
   })
   
-  // 统计各区域交易数据
+  // 统计各省份交易数据
   transactionData.value.forEach(transaction => {
-    const realty = realtyData.value.find(r => r.realtyCert === transaction.realtyCert)
-    if (realty && realty.district && districtStats[realty.district]) {
-      districtStats[realty.district].count += 1
-      districtStats[realty.district].amount += (transaction.price || 0)
+    const realty = realtyData.value.find(r => r.realtyCertHash === transaction.realtyCertHash)
+    
+    if (realty && realty.province && provinceStats[realty.province]) {
+      provinceStats[realty.province].count += 1
+      provinceStats[realty.province].amount += (transaction.price || 0)
     }
-  })
+  })  
   
-  // 提取有交易的区域数据
+  // 提取有交易的省份数据
   const pieData = []
-  Object.keys(districtStats).forEach(district => {
-    if (districtStats[district].count > 0) {
+  Object.keys(provinceStats).forEach(province => {
+    if (provinceStats[province].count > 0) {
       pieData.push({
-        name: district,
+        name: province,
         value: districtChartType.value === 'count' 
-          ? districtStats[district].count 
-          : districtStats[district].amount
+          ? provinceStats[province].count 
+          : provinceStats[province].amount
       })
     }
   })
@@ -785,19 +896,35 @@ const initPropertyTypeChart = () => {
   // 统计不同类型房产的交易数量
   const typeStats = {}
   
+  // 房产类型中英文映射
+  const typeMapping = {
+    'single': '一室',
+    'double': '两室',
+    'triple': '三室',
+    'multiple': '四室及以上',
+    'apartment': '公寓',
+    'villa': '别墅',
+    'office': '办公',
+    'commercial': '商铺',
+    'industrial': '工业用地',
+    'other': '其他'
+  }
+  
   // 获取已完成交易的房产证号
-  const transactedRealtyCerts = transactionData.value.map(tx => tx.realtyCert)
+  const transactedRealtyCerts = transactionData.value.map(tx => tx.realtyCertHash)
   
   // 统计已交易房产的类型分布
   const transactedRealty = realtyData.value.filter(realty => 
-    transactedRealtyCerts.includes(realty.realtyCert) && realty.houseType)
+    transactedRealtyCerts.includes(realty.realtyCertHash) && realty.houseType)
   
   transactedRealty.forEach(realty => {
-    const type = realty.houseType || '其他'
-    if (!typeStats[type]) {
-      typeStats[type] = 0
+    const type = realty.houseType || 'other'
+    const displayType = typeMapping[type] || type
+    
+    if (!typeStats[displayType]) {
+      typeStats[displayType] = 0
     }
-    typeStats[type] += 1
+    typeStats[displayType] += 1
   })
   
   // 提取数据
@@ -889,21 +1016,38 @@ const initPriceHeatmapChart = () => {
     return
   }
   
-  // 获取有效房产数据（有区域、户型和价格信息）
+  // 房产类型中英文映射
+  const typeMapping = {
+    'single': '一室',
+    'double': '两室',
+    'triple': '三室',
+    'multiple': '四室及以上',
+    'apartment': '公寓',
+    'villa': '别墅',
+    'office': '办公',
+    'commercial': '商铺',
+    'industrial': '工业用地',
+    'other': '其他'
+  }
+  
+  // 获取有效房产数据（有省份、户型和价格信息）
   const validRealty = realtyData.value.filter(realty => 
-    realty.district && 
+    realty.province && 
     realty.houseType && 
     realty.price && 
     realty.area && 
     realty.area > 0
   )
   
-  // 提取所有出现的区域和户型
-  const districts = Array.from(new Set(validRealty.map(r => r.district)))
+  // 提取所有出现的省份和户型
+  const provinces = Array.from(new Set(validRealty.map(r => r.province)))
   const roomTypes = Array.from(new Set(validRealty.map(r => r.houseType)))
   
+  // 转换户型为中文显示
+  const roomTypeLabels = roomTypes.map(type => typeMapping[type] || type)
+  
   // 如果数据不足，显示空图表
-  if (districts.length === 0 || roomTypes.length === 0) {
+  if (provinces.length === 0 || roomTypes.length === 0) {
     heatmapChartInstance.setOption({
       title: {
         text: '暂无足够数据',
@@ -914,11 +1058,11 @@ const initPriceHeatmapChart = () => {
     return
   }
   
-  // 计算每个区域、户型组合的平均单价
+  // 计算每个省份、户型组合的平均单价
   const priceMap = {}
   
   validRealty.forEach(realty => {
-    const key = `${realty.district}:${realty.houseType}`
+    const key = `${realty.province}:${realty.houseType}`
     if (!priceMap[key]) {
       priceMap[key] = {
         totalPrice: 0,
@@ -932,14 +1076,14 @@ const initPriceHeatmapChart = () => {
   
   // 准备热力图数据
   const data = []
-  for (let i = 0; i < districts.length; i++) {
+  for (let i = 0; i < provinces.length; i++) {
     for (let j = 0; j < roomTypes.length; j++) {
-      const key = `${districts[i]}:${roomTypes[j]}`
+      const key = `${provinces[i]}:${roomTypes[j]}`
       if (priceMap[key] && priceMap[key].count > 0) {
         const avgPrice = priceMap[key].totalPrice / priceMap[key].count
         data.push([i, j, Math.round(avgPrice)])
       } else {
-        // 对于没有数据的区域-户型组合，使用null表示
+        // 对于没有数据的省份-户型组合，使用null表示
         data.push([i, j, null])
       }
     }
@@ -954,10 +1098,11 @@ const initPriceHeatmapChart = () => {
     tooltip: {
       position: 'top',
       formatter: function(params) {
+        const roomTypeLabel = roomTypeLabels[params.data[1]] || roomTypes[params.data[1]]
         if (params.data[2] === null) {
-          return `${districts[params.data[0]]}, ${roomTypes[params.data[1]]}<br/>暂无数据`
+          return `${provinces[params.data[0]]}, ${roomTypeLabel}<br/>暂无数据`
         }
-        return `${districts[params.data[0]]}, ${roomTypes[params.data[1]]}<br/>
+        return `${provinces[params.data[0]]}, ${roomTypeLabel}<br/>
                 平均单价: ¥${formatNumber(params.data[2])}/㎡`
       }
     },
@@ -969,7 +1114,7 @@ const initPriceHeatmapChart = () => {
     },
     xAxis: {
       type: 'category',
-      data: districts,
+      data: provinces,
       axisLabel: {
         interval: 0,
         rotate: 45
@@ -977,7 +1122,7 @@ const initPriceHeatmapChart = () => {
     },
     yAxis: {
       type: 'category',
-      data: roomTypes
+      data: roomTypeLabels
     },
     visualMap: {
       min: minPrice,
@@ -1037,9 +1182,27 @@ const formatDate = (date) => {
 }
 
 // 初始化
-onMounted(() => {
+onMounted(async () => {
+  // 设置默认日期范围
   setDefaultDateRange('month')
-  fetchData()
+  // 获取数据
+  await fetchData()
+  
+  // 确保图表在初始加载时能正确渲染
+  nextTick(() => {
+    if (transactionTrendChart.value && !trendChartInstance) {
+      initTransactionTrendChart()
+    }
+    if (districtChart.value && !districtChartInstance) {
+      initDistrictChart()
+    }
+    if (propertyTypeChart.value && !typeChartInstance) {
+      initPropertyTypeChart()
+    }
+    if (priceHeatmapChart.value && !heatmapChartInstance) {
+      initPriceHeatmapChart()
+    }
+  })
 })
 </script>
 
