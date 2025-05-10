@@ -139,6 +139,49 @@ func (s *transactionService) CreateTransaction(req *transactionDto.CreateTransac
 		return fmt.Errorf("买家和卖家不能为同一人")
 	}
 
+	// 对买方进行验资
+	// 根据身份证号前2位获取子通道信息
+	channelInfoBytes, err := mainContract.EvaluateTransaction(
+		"GetChannelInfoByRegionCode",
+		req.BuyerCitizenID[:2],
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取子通道信息失败: %v", err))
+		return fmt.Errorf("获取子通道信息失败: %v", err)
+	}
+
+	var channelInfo blockDto.ChannelInfo
+	if err := json.Unmarshal(channelInfoBytes, &channelInfo); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析子通道信息失败: %v", err))
+		return fmt.Errorf("解析子通道信息失败: %v", err)
+	}
+
+	buyerSubContract, err := blockchain.GetSubContract(channelInfo.ChannelName, constants.InvestorOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取子通道合约失败: %v", err))
+		return fmt.Errorf("获取子通道合约失败: %v", err)
+	}
+
+	buyerBalanceBytes, err := buyerSubContract.EvaluateTransaction(
+		"GetBalanceByCitizenIDHashAndOrganization",
+		buyerCitizenIDHash,
+		req.BuyerOrganization,
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取买方余额失败: %v", err))
+		return fmt.Errorf("获取买方余额失败: %v", err)
+	}
+
+	var buyerBalance float64
+	if err := json.Unmarshal(buyerBalanceBytes, &buyerBalance); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析买方余额失败: %v", err))
+		return fmt.Errorf("解析买方余额失败: %v", err)
+	}
+
+	if buyerBalance < req.Price+req.Tax {
+		return fmt.Errorf("买方余额不足")
+	}
+
 	_, err = subContract.SubmitTransaction(
 		"CreateTransaction",
 		utils.GenerateHash(req.RealtyCert),

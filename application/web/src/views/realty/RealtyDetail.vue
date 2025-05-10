@@ -102,7 +102,7 @@
           <!-- 相关操作 -->
           <div class="actions" v-if="realty.status === 'PENDING_SALE' && hasTransactionPermission">
             <el-divider />
-            <el-button type="primary" @click="createTransaction" :disabled="isOwner && userStore.user.organization !== 'investor'">发起交易</el-button>
+            <el-button type="primary" @click="createTransaction" :disabled="isOwner">发起交易</el-button>
           </div>
         </el-card>
       </el-col>
@@ -489,6 +489,7 @@ const isOwner = computed(() => {
   // 这里需要根据实际情况判断当前用户是否为房产拥有者
   // 假设通过比较当前用户ID和房产所有者ID
   return CryptoJS.SHA256(userStore.user.citizenID).toString() === realty.currentOwnerCitizenIDHash
+      && userStore.user.organization === realty.currentOwnerOrganization
 })
 
 // 计算属性：是否有编辑权限
