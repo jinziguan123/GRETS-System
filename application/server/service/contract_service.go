@@ -53,15 +53,51 @@ func NewContractService(contractDAO *dao.ContractDAO) ContractService {
 
 // UpdateContractStatus 更新合同状态
 func (s *contractService) UpdateContractStatus(req *contractDto.UpdateContractStatusDTO) error {
+
+	// 根据合同UUID查询合同
+	contractModel, err := s.contractDAO.GetContractByUUID(req.ContractUUID)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询合同失败: %v", err))
+		return fmt.Errorf("查询合同失败: %v", err)
+	}
+
+	if contractModel == nil {
+		utils.Log.Error(fmt.Sprintf("合同不存在: %v", req.ContractUUID))
+		return fmt.Errorf("合同不存在: %v", req.ContractUUID)
+	}
+
 	// 调用链码更新合同状态
-	contract, err := blockchain.GetMainContract(constants.InvestorOrganization)
+	mainContract, err := blockchain.GetMainContract(constants.InvestorOrganization)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("获取合约失败: %v", err))
 		return fmt.Errorf("获取合约失败: %v", err)
 	}
 
+	// 通过创建人公民ID查询通道信息
+	channelInfoBytes, err := mainContract.EvaluateTransaction(
+		"GetChannelInfoByRegionCode",
+		contractModel.CreatorCitizenID[:2],
+	)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("查询通道信息失败: %v", err))
+		return fmt.Errorf("查询通道信息失败: %v", err)
+	}
+
+	var channelInfo blockDto.ChannelInfo
+	if err := json.Unmarshal(channelInfoBytes, &channelInfo); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析通道信息失败: %v", err))
+		return fmt.Errorf("解析通道信息失败: %v", err)
+	}
+
+	// 调用子通道链码查询合同
+	subContract, err := blockchain.GetSubContract(channelInfo.ChannelName, constants.InvestorOrganization)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取子通道合约失败: %v", err))
+		return fmt.Errorf("获取子通道合约失败: %v", err)
+	}
+
 	// 调用链码查询
-	contractFromChainCodeBytes, err := contract.SubmitTransaction(
+	contractFromChainCodeBytes, err := subContract.EvaluateTransaction(
 		"QueryContract",
 		req.ContractUUID,
 	)
@@ -79,7 +115,7 @@ func (s *contractService) UpdateContractStatus(req *contractDto.UpdateContractSt
 	}
 
 	// 构建更新参数
-	_, err = contract.SubmitTransaction(
+	_, err = subContract.SubmitTransaction(
 		"UpdateContract",
 		req.ContractUUID,
 		contractFromChainCode.DocHash,
@@ -87,6 +123,14 @@ func (s *contractService) UpdateContractStatus(req *contractDto.UpdateContractSt
 		req.Status,
 	)
 
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("更新合同状态失败: %v", err))
+		return fmt.Errorf("更新合同状态失败: %v", err)
+	}
+
+	// 更新数据库
+	contractModel.Status = req.Status
+	err = s.contractDAO.UpdateContract(contractModel)
 	if err != nil {
 		utils.Log.Error(fmt.Sprintf("更新合同状态失败: %v", err))
 		return fmt.Errorf("更新合同状态失败: %v", err)
@@ -152,6 +196,7 @@ func (s *contractService) CreateContract(dto *contractDto.CreateContractDTO) err
 		Content:              dto.Content,
 		TransactionUUID:      "",
 		CreatorCitizenIDHash: utils.GenerateHash(dto.CreatorCitizenID),
+		CreatorCitizenID:     dto.CreatorCitizenID,
 		CreateTime:           time.Now(),
 		UpdateTime:           time.Now(),
 	}
@@ -349,7 +394,7 @@ func (s *contractService) UpdateContract(dto *contractDto.UpdateContractDTO) err
 		// 获取通道信息
 		channelInfoBytes, err := mainContract.EvaluateTransaction(
 			"GetChannelInfoByRegionCode",
-			contractModel.CreatorCitizenIDHash[:2],
+			contractModel.CreatorCitizenID[:2],
 		)
 		if err != nil {
 			utils.Log.Error(fmt.Sprintf("查询通道信息失败: %v", err))

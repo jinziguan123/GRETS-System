@@ -12,6 +12,7 @@ type Contract struct {
 	ContractType         string    `gorm:"size:30;not null" json:"contractType"`            // 合同类型：sale, purchase, mortgage, etc.
 	Status               string    `gorm:"size:30;not null" json:"status"`                  // 合同状态：drafted, signed_by_seller, signed_by_buyer, completed, cancelled
 	CreatorCitizenIDHash string    `gorm:"size:255" json:"creatorCitizenIDHash"`            // 创建者公民ID哈希
+	CreatorCitizenID     string    `gorm:"size:255" json:"creatorCitizenID"`                // 创建者公民ID
 	TransactionUUID      string    `gorm:"size:100" json:"transactionUUID"`                 // 关联交易uuid
 	CreateTime           time.Time `gorm:"autoCreateTime" json:"createTime"`                // 创建时间
 	UpdateTime           time.Time `gorm:"autoUpdateTime" json:"updateTime"`                // 更新时间
