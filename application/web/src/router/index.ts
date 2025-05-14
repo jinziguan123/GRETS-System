@@ -248,7 +248,7 @@ const routes: Array<RouteRecordRaw> = [
             path: 'transaction',
             name: 'TransactionStatistics',
             component: TransactionStatistics,
-            meta: { title: '交易统计', organizations: ['government'] } as RouteMeta
+            meta: { title: '交易统计', organizations: ['government', 'bank'] } as RouteMeta
           },
           {
             path: 'loan',

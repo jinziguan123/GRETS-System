@@ -91,8 +91,8 @@
             <el-icon><DataAnalysis /></el-icon>
             <span>统计分析</span>
           </template>
-          <el-menu-item index="/statistics/transaction" v-if="hasOrganization('government')">交易统计</el-menu-item>
-          <el-menu-item index="/statistics/loan" v-if="hasOrganization('bank')">贷款统计</el-menu-item>
+          <el-menu-item index="/statistics/transaction" v-if="hasOrganization(['government', 'bank'])">交易统计</el-menu-item>
+<!--          <el-menu-item index="/statistics/loan" v-if="hasOrganization('bank')">贷款统计</el-menu-item>-->
         </el-sub-menu>
         
         <!-- 系统管理 - 只有管理员可见 -->

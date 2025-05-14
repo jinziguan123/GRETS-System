@@ -30,11 +30,11 @@
             @change="handleDateRangeChange"
           />
         </el-form-item>
-        <el-form-item label="区域">
-          <el-select v-model="province" placeholder="选择区域" clearable @change="fetchData">
-            <el-option v-for="item in provinceOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
+<!--        <el-form-item label="区域">-->
+<!--          <el-select v-model="province" placeholder="选择区域" clearable @change="fetchData" style="width: 100px">-->
+<!--            <el-option v-for="item in provinceOptions" :key="item.value" :label="item.label" :value="item.value" />-->
+<!--          </el-select>-->
+<!--        </el-form-item>-->
         <el-form-item>
           <el-button type="primary" @click="fetchData">查询</el-button>
           <el-button @click="resetFilters">重置</el-button>

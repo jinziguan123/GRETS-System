@@ -336,7 +336,7 @@ const isBuyer = computed(() => {
   // 获取用户身份证号的SHA256哈希值
   const userCitizenIDHash = CryptoJS.SHA256(userInfo.value.citizenID).toString(CryptoJS.enc.Hex)
 
-  return userCitizenIDHash === transactionInfo.value.buyerCitizenIDHash
+  return userCitizenIDHash === transactionInfo.value.buyerCitizenIDHash && userInfo.value.organization === transactionInfo.value.buyerOrganization
 })
 
 // 判断当前用户是否为交易的卖方
