@@ -667,7 +667,7 @@ func (s *SmartContract) UpdateRealty(ctx contractapi.TransactionContextInterface
 		return err
 	}
 
-	if realEstatePublic.Status == constances.RealtyStatusFrozen {
+	if realEstatePublic.Status == constances.RealtyStatusFrozen && status != constances.RealtyStatusNormal {
 		return fmt.Errorf("[UpdateRealty] 房产已被冻结，无法更新")
 	}
 
