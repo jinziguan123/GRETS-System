@@ -66,11 +66,15 @@ export function auditContract(id: string, data: {
 }
 
 // 更新合同状态
-export function updateContractStatus(contractID: string, status: string) {
+export function updateContractStatus(data: {
+  contractUUID: string
+  status: string
+  reason?: string
+}) {
   return request({
-    url: `/contracts/${contractID}/status`,
-    method: 'put',
-    data: { status }
+    url: `/contracts/updateContractStatus`,
+    method: 'post',
+    data
   })
 }
 

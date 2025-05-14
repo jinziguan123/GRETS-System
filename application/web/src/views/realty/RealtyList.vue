@@ -150,7 +150,7 @@
           @click="viewDetails(item)"
         >
           <div class="realty-image">
-            <img :src="item.images[0]" alt="房产图片" />
+            <img :src="item.images[0] ? item.images[0] : 'http://localhost:8089/i/2025/04/28/680f3098ac95a.png'" alt="房产图片" />
             <div class="realty-status" :class="getStatusClass(item.status)">{{ getStatusText(item.status) }}</div>
             <div class="is-new-house" v-if="item.isNewHouse">{{'新房'}}</div>
             <div class="is-not-new-house" v-if="!item.isNewHouse">{{'二手房'}}</div>

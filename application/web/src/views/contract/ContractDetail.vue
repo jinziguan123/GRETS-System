@@ -438,7 +438,8 @@ const confirmUpdateStatus = async () => {
   updating.value = true
   
   try {
-    await updateContractStatus(contractUUID.value, {
+    await updateContractStatus({
+      contractUUID: contractUUID.value,
       status: updateStatusForm.value.newStatus,
       reason: updateStatusForm.value.reason
     })
