@@ -68,12 +68,223 @@ type blockListener struct {
 	ctx          context.Context
 	cancel       context.CancelFunc
 	dataDir      string
+	saveWorker   *blockSaveWorker
 }
 
 var (
 	listener     *blockListener
 	listenerOnce sync.Once
 )
+
+// 创建一个带有工作池的区块保存机制
+type blockSaveWorker struct {
+	blockChan  chan *blockSaveTask
+	workerPool chan struct{}
+	wg         sync.WaitGroup
+	db         *bolt.DB
+	batchSize  int
+	batchMu    sync.Mutex
+	batchMap   map[string][]*blockSaveTask
+}
+
+type blockSaveTask struct {
+	channelName string
+	orgName     string
+	block       *common.Block
+}
+
+// 初始化工作池
+func newBlockSaveWorker(db *bolt.DB, numWorkers, batchSize int) *blockSaveWorker {
+	worker := &blockSaveWorker{
+		blockChan:  make(chan *blockSaveTask, 1000), // 缓冲区大小可调整
+		workerPool: make(chan struct{}, numWorkers), // 工作池大小
+		db:         db,
+		batchSize:  batchSize,
+		batchMap:   make(map[string][]*blockSaveTask),
+	}
+
+	// 启动工作池
+	for i := 0; i < numWorkers; i++ {
+		worker.wg.Add(1)
+		go worker.processBlocks()
+	}
+
+	// 启动批处理协程
+	go worker.processBatches()
+
+	return worker
+}
+
+// 提交区块保存任务
+func (w *blockSaveWorker) submitBlock(channelName, orgName string, block *common.Block) {
+	task := &blockSaveTask{
+		channelName: channelName,
+		orgName:     orgName,
+		block:       block,
+	}
+	w.blockChan <- task
+}
+
+// 工作协程
+func (w *blockSaveWorker) processBlocks() {
+	defer w.wg.Done()
+
+	for task := range w.blockChan {
+		w.workerPool <- struct{}{} // 获取工作槽
+
+		// 将区块加入批处理队列
+		key := fmt.Sprintf("%s_%s", task.channelName, task.orgName)
+		w.batchMu.Lock()
+		w.batchMap[key] = append(w.batchMap[key], task)
+
+		// 检查是否达到批处理大小
+		if len(w.batchMap[key]) >= w.batchSize {
+			tasks := w.batchMap[key]
+			delete(w.batchMap, key)
+			w.batchMu.Unlock()
+
+			// 批量保存
+			w.saveBatch(key, tasks)
+		} else {
+			w.batchMu.Unlock()
+		}
+
+		<-w.workerPool // 释放工作槽
+	}
+}
+
+// 定期处理未满批次的数据
+func (w *blockSaveWorker) processBatches() {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		w.batchMu.Lock()
+		for key, tasks := range w.batchMap {
+			if len(tasks) > 0 {
+				batch := tasks
+				w.batchMap[key] = nil
+				go w.saveBatch(key, batch)
+			}
+		}
+		w.batchMu.Unlock()
+	}
+}
+
+// 批量保存区块
+func (w *blockSaveWorker) saveBatch(key string, tasks []*blockSaveTask) {
+	if len(tasks) == 0 {
+		return
+	}
+
+	// 预处理区块数据，减少事务内计算时间
+	blockDataMap := make(map[string][]byte)
+	var lastTaskOrgName string
+	var lastBlockNum uint64
+	var latestJsonData []byte
+
+	// 预先处理所有区块数据
+	for i, task := range tasks {
+		blockNum := task.block.GetHeader().GetNumber()
+
+		// 计算区块哈希
+		blockHeader := BlockHeader{
+			Number:       new(big.Int).SetUint64(blockNum),
+			PreviousHash: task.block.GetHeader().GetPreviousHash(),
+			DataHash:     task.block.GetHeader().GetDataHash(),
+		}
+		headerBytes, err := asn1.Marshal(blockHeader)
+		if err != nil {
+			utils.Log.Error(fmt.Sprintf("区块头序列化失败: %v", err))
+			continue
+		}
+		blockHash := sha256.Sum256(headerBytes)
+
+		// 获取区块时间
+		var saveTime time.Time
+		env, err := GetBlockListener().GetEnvelopeListFromBlock(task.block)
+		if err != nil || len(env) == 0 {
+			saveTime = time.Now() // 使用当前时间作为备用
+		} else {
+			channelHeader, err := GetBlockListener().GetChannelHeaderFromEnvelope(env[0])
+			if err != nil {
+				saveTime = time.Now()
+			} else {
+				saveTime = channelHeader.Timestamp.AsTime()
+			}
+		}
+
+		// 准备区块数据
+		blockData := BlockData{
+			BlockNumber: blockNum,
+			BlockHash:   fmt.Sprintf("%x", blockHash[:]),
+			DataHash:    fmt.Sprintf("%x", task.block.GetHeader().GetDataHash()),
+			PrevHash:    fmt.Sprintf("%x", task.block.GetHeader().GetPreviousHash()),
+			TxCount:     len(task.block.GetData().GetData()),
+			SaveTime:    saveTime,
+			Data:        task.block.GetData().GetData(),
+			ChannelName: task.channelName,
+		}
+
+		// 序列化区块数据
+		blockJson, err := json.Marshal(blockData)
+		if err != nil {
+			utils.Log.Error(fmt.Sprintf("区块数据序列化失败: %v", err))
+			continue
+		}
+
+		// 存储序列化后的数据
+		blockKey := fmt.Sprintf("%s_%s_%d", task.channelName, task.orgName, blockNum)
+		blockDataMap[blockKey] = blockJson
+
+		// 如果是最后一个任务，准备最新区块数据
+		if i == len(tasks)-1 {
+			lastTaskOrgName = task.orgName
+			lastBlockNum = blockNum
+
+			latestBlock := LatestBlock{
+				BlockNum: blockNum,
+				SaveTime: time.Now(),
+			}
+
+			latestJson, err := json.Marshal(latestBlock)
+			if err != nil {
+				utils.Log.Error(fmt.Sprintf("最新区块信息序列化失败: %v", err))
+			} else {
+				latestJsonData = latestJson
+			}
+		}
+	}
+
+	// 使用一个事务保存多个区块
+	err := w.db.Batch(func(tx *bolt.Tx) error {
+		blocksBucket := tx.Bucket([]byte(_BlocksBucket))
+		latestBucket := tx.Bucket([]byte(_LatestBucket))
+
+		// 保存所有区块数据
+		for blockKey, blockData := range blockDataMap {
+			if err := blocksBucket.Put([]byte(blockKey), blockData); err != nil {
+				return fmt.Errorf("保存区块数据失败: %v", err)
+			}
+		}
+
+		// 更新最新区块记录
+		if latestJsonData != nil && lastTaskOrgName != "" {
+			if err := latestBucket.Put([]byte(lastTaskOrgName), latestJsonData); err != nil {
+				return fmt.Errorf("保存最新区块信息失败: %v", err)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("批量保存区块失败: %v", err))
+		return
+	}
+
+	utils.Log.Info(fmt.Sprintf("成功批量保存%d个区块，最新区块号: %d", len(tasks), lastBlockNum))
+}
 
 func initBlockchainListener(dataDir string) error {
 	utils.Log.Info("初始化区块链监听器")
@@ -120,6 +331,7 @@ func initBlockchainListener(dataDir string) error {
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())
+		worker := newBlockSaveWorker(db, 10, 20) // 10个工作协程，批次大小20
 		listener = &blockListener{
 			mainNetworks: make(map[string]*client.Network),
 			subNetworks:  make(map[string]map[string]*client.Network),
@@ -127,6 +339,7 @@ func initBlockchainListener(dataDir string) error {
 			dataDir:      dataDir,
 			ctx:          ctx,
 			cancel:       cancel,
+			saveWorker:   worker,
 		}
 	})
 	utils.Log.Info("初始化区块链监听器完成")
@@ -338,73 +551,11 @@ func (l *blockListener) saveBlock(channelName string, orgName string, block *com
 		return
 	}
 
+	// 使用工作池提交任务
+	l.saveWorker.submitBlock(channelName, orgName, block)
+
 	blockNum := block.GetHeader().GetNumber()
-
-	// 计算区块哈希
-	blockHeader := BlockHeader{
-		Number:       new(big.Int).SetUint64(blockNum),
-		PreviousHash: block.GetHeader().GetPreviousHash(),
-		DataHash:     block.GetHeader().GetDataHash(),
-	}
-	headerBytes, err := asn1.Marshal(blockHeader)
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("区块头序列化失败: %v", err))
-		return
-	}
-
-	blockHash := sha256.Sum256(headerBytes)
-
-	env, _ := l.GetEnvelopeListFromBlock(block)
-	channelHeader, _ := l.GetChannelHeaderFromEnvelope(env[0])
-
-	// 准备区块数据
-	blockData := BlockData{
-		BlockNumber: blockNum,
-		BlockHash:   fmt.Sprintf("%x", blockHash[:]),
-		DataHash:    fmt.Sprintf("%x", block.GetHeader().GetDataHash()),
-		PrevHash:    fmt.Sprintf("%x", block.GetHeader().GetPreviousHash()),
-		TxCount:     len(block.GetData().GetData()),
-		SaveTime:    channelHeader.Timestamp.AsTime(),
-		Data:        block.GetData().GetData(),
-		ChannelName: channelName,
-	}
-
-	// 事务保存区块链
-	err = l.db.Update(func(tx *bolt.Tx) error {
-		// 保存区块数据
-		_BlocksBucket := tx.Bucket([]byte(_BlocksBucket))
-		blockKey := fmt.Sprintf("%s_%s_%d", channelName, orgName, blockNum)
-		blockJson, err := json.Marshal(blockData)
-		if err != nil {
-			return fmt.Errorf("区块数据序列化失败: %v", err)
-		}
-		if err := _BlocksBucket.Put([]byte(blockKey), blockJson); err != nil {
-			return fmt.Errorf("保存区块数据失败: %v", err)
-		}
-
-		// 更新最新区块信息
-		_LatestBucket := tx.Bucket([]byte(_LatestBucket))
-		latestBlock := LatestBlock{
-			BlockNum: blockNum,
-			SaveTime: time.Now(),
-		}
-		latestJson, err := json.Marshal(latestBlock)
-		if err != nil {
-			return fmt.Errorf("最新区块信息序列化失败: %v", err)
-		}
-		if err := _LatestBucket.Put([]byte(orgName), latestJson); err != nil {
-			return fmt.Errorf("保存最新区块信息失败: %v", err)
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		utils.Log.Error(fmt.Sprintf("保存区块失败: %v", err))
-		return
-	}
-
-	utils.Log.Info(fmt.Sprintf("组织[%s]区块[%d]保存成功", orgName, blockNum))
+	utils.Log.Info(fmt.Sprintf("组织[%s]区块[%d]提交保存成功", orgName, blockNum))
 }
 
 // GetBlockByNumber 根据组织名和区块号查询区块

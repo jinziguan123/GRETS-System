@@ -57,6 +57,9 @@ func (b *blockService) QueryBlockList(queryBlockDTO blockDto.QueryBlockDTO) (*bl
 				break
 			}
 		}
+		if len(blocks) != 1 {
+			return nil, nil
+		}
 	}
 
 	if queryBlockDTO.ProvinceName != "" {

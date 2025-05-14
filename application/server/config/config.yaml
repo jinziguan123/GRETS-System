@@ -67,7 +67,7 @@ fabric:
 
 # 日志配置
 log:
-  level: warn
+  level: info
   path: ./logs
   filename: grets.log
   max_size: 500
