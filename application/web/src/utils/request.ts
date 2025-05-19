@@ -74,6 +74,10 @@ const request = async <T = any>(config: AxiosRequestConfig): Promise<ApiResponse
         const response = await service(config as InternalAxiosRequestConfig)
         return response.data as ApiResponse<T>
     } catch (error) {
+        if (error.status === 401) {
+            localStorage.removeItem('token')
+            window.location.href = '/login'
+        }
         return Promise.reject(error)
     }
 }
