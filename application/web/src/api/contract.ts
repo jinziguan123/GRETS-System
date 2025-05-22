@@ -106,3 +106,15 @@ export function getContractByUUID(uuid: string) {
     method: 'get'
   })
 }
+
+// 绑定交易
+export function bindTransaction(data: {
+  contractUUID: string
+  transactionUUID: string
+}) {
+  return request({
+    url: '/contracts/bindTransaction',
+    method: 'post',
+    data
+  })
+}

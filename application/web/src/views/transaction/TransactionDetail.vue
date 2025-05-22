@@ -519,6 +519,13 @@ const handleAccept = async () => {
         transactionUUID: transactionUUID.value,
         status: 'IN_PROGRESS',
       })
+
+      // 更新合同状态
+      await bindTransaction({
+        contractUUID: contractInfo.value.contractUUID,
+        transactionUUID: transactionUUID.value,
+      })
+
       ElMessage.success('已同意交易')
       await fetchTransactionDetail()
     } catch (error) {

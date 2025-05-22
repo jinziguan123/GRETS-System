@@ -519,6 +519,19 @@ func (s *transactionService) CompleteTransaction(completeTransactionDTO *transac
 		Status:     constants.RealtyStatusNormal,
 	})
 
+	// 修改合同状态
+	contractModel, err := dao.NewContractDAO().GetContractByUUID(transaction.ContractUUID)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合同失败: %v", err))
+		return fmt.Errorf("获取合同失败: %v", err)
+	}
+	contractModel.Status = constants.ContractStatusCompleted
+	err = dao.NewContractDAO().UpdateContract(contractModel)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("更新合同失败: %v", err))
+		return fmt.Errorf("更新合同失败: %v", err)
+	}
+
 	return nil
 }
 

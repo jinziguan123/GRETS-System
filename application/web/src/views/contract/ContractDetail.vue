@@ -45,21 +45,13 @@
             <el-divider content-position="left">交易信息</el-divider>
             
             <el-descriptions :column="2" border>
+              <el-descriptions-item label="交易代码">{{ transaction.transactionUUID }}</el-descriptions-item>
+              <el-descriptions-item label="生效日期" :span="1">{{ formatDate(transaction?.createTime) || '未生效' }}</el-descriptions-item>
               <el-descriptions-item label="买方">{{ transaction?.buyerCitizenIDHash }}</el-descriptions-item>
               <el-descriptions-item label="卖方">{{ transaction?.sellerCitizenIDHash }}</el-descriptions-item>
               <el-descriptions-item label="买方组织">{{ getCurrentOwnerOrganization(transaction?.buyerOrganization) }}</el-descriptions-item>
               <el-descriptions-item label="卖方组织">{{ getCurrentOwnerOrganization(transaction?.sellerOrganization) }}</el-descriptions-item>
-              <el-descriptions-item label="交易金额">¥{{ formatCurrency(transaction?.amount) }}</el-descriptions-item>
-              <el-descriptions-item label="生效日期" :span="1">{{ formatDate(transaction?.createTime) || '未生效' }}</el-descriptions-item>
             </el-descriptions>
-            
-            <el-divider content-position="left">相关资产</el-divider>
-            
-            <el-descriptions :column="1" border v-if="contract.property">
-              <el-descriptions-item label="资产名称">{{ contract.property.title }}</el-descriptions-item>
-              <el-descriptions-item label="交付日期">{{ formatDate(contract.property.deliveryDate) }}</el-descriptions-item>
-            </el-descriptions>
-            <el-empty v-else description="暂无关联资产信息" />
           </el-card>
         </el-tab-pane>
         
@@ -339,7 +331,8 @@ const getStatusTag = (status) => {
     NORMAL: 'primary',
     FROZEN: 'warning',
     COMPLETED: 'success',
-    CANCEL: 'danger'
+    CANCEL: 'danger',
+    IN_PROGRESS: 'warning'
   }
   return tagMap[status] || ''
 }
@@ -350,7 +343,8 @@ const getStatusName = (status) => {
     NORMAL: '正常',
     FROZEN: '冻结',
     COMPLETED: '已完成',
-    CANCEL: '已取消'
+    CANCEL: '已取消',
+    IN_PROGRESS: '进行中'
   }
   return nameMap[status] || status
 }

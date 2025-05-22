@@ -73,10 +73,11 @@ const (
 
 // 合同状态枚举
 const (
-	ContractStatusNormal    = "NORMAL"    // 正常
-	ContractStatusFrozen    = "FROZEN"    // 冻结
-	ContractStatusCancel    = "CANCEL"    // 取消
-	ContractStatusCompleted = "COMPLETED" // 已完成
+	ContractStatusNormal     = "NORMAL"      // 正常
+	ContractStatusFrozen     = "FROZEN"      // 冻结
+	ContractStatusInProgress = "IN_PROGRESS" // 交易进行中
+	ContractStatusCancel     = "CANCEL"      // 取消
+	ContractStatusCompleted  = "COMPLETED"   // 已完成
 )
 
 // 合同类型枚举

@@ -35,6 +35,7 @@ type ContractService interface {
 	UpdateContract(req *contractDto.UpdateContractDTO) error
 	GetContractByUUID(contractUUID string) (*contractDto.ContractDTO, error)
 	UpdateContractStatus(req *contractDto.UpdateContractStatusDTO) error
+	BindTransaction(req *contractDto.BindTransactionDTO) error
 }
 
 // contractService 合同服务实现
@@ -294,6 +295,7 @@ func (s *contractService) QueryContractList(dto *contractDto.QueryContractDTO) (
 		dto := &contractDto.ContractDTO{
 			ID:                   contract.ID,
 			ContractUUID:         contract.ContractUUID,
+			TransactionUUID:      contract.TransactionUUID,
 			Title:                contract.Title,
 			Content:              contract.Content,
 			DocHash:              contract.DocHash,
@@ -504,4 +506,29 @@ func (s *contractService) GetContractByUUID(contractUUID string) (*contractDto.C
 		CreateTime:           contract.CreateTime,
 		UpdateTime:           contract.UpdateTime,
 	}, nil
+}
+
+// BindTransaction 绑定交易
+func (s *contractService) BindTransaction(req *contractDto.BindTransactionDTO) error {
+	// 直接修改本地数据库
+	contractModel, err := s.contractDAO.GetContractByUUID(req.ContractUUID)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("获取合同失败: %v", err))
+		return fmt.Errorf("获取合同失败: %v", err)
+	}
+
+	if contractModel == nil {
+		utils.Log.Error(fmt.Sprintf("合同不存在: %v", req.ContractUUID))
+		return fmt.Errorf("合同不存在: %v", req.ContractUUID)
+	}
+
+	contractModel.TransactionUUID = req.TransactionUUID
+	contractModel.Status = constants.ContractStatusInProgress
+	err = s.contractDAO.UpdateContract(contractModel)
+	if err != nil {
+		utils.Log.Error(fmt.Sprintf("更新合同失败: %v", err))
+		return fmt.Errorf("更新合同失败: %v", err)
+	}
+
+	return nil
 }

@@ -368,8 +368,9 @@ const getContractTypeName = (type) => {
 const getStatusTag = (status) => {
   const tagMap = {
     'NORMAL': 'primary',
-    'FROZEN': 'warning',
+    'FROZEN': 'danger',
     'COMPLETED': 'success',
+    'IN_PROGRESS': 'warning'
   }
   return tagMap[status] || ''
 }
@@ -380,6 +381,7 @@ const getStatusName = (status) => {
     'NORMAL': '正常',
     'FROZEN': '冻结',
     'COMPLETED': '已完成',
+    'IN_PROGRESS': '进行中'
   }
   return nameMap[status] || status
 }

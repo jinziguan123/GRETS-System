@@ -64,3 +64,8 @@ type UpdateContractStatusDTO struct {
 	Status       string `json:"status"`
 	Reason       string `json:"reason"`
 }
+
+type BindTransactionDTO struct {
+	ContractUUID    string `json:"contractUUID"`
+	TransactionUUID string `json:"transactionUUID"`
+}

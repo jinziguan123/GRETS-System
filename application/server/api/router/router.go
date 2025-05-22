@@ -122,6 +122,7 @@ func SetupRouter() *gin.Engine {
 			contracts.POST("/:id/sign", controller.SignContract)
 			contracts.POST("/:id/audit", controller.AuditContract)
 			contracts.POST("/updateContractStatus", controller.UpdateContractStatus)
+			contracts.POST("/bindTransaction", controller.BindTransaction)
 		}
 
 		// 区块相关接口

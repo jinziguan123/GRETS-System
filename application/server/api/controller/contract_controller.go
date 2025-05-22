@@ -174,6 +174,24 @@ func (ctrl *ContractController) UpdateContractStatus(c *gin.Context) {
 	utils.ResponseSuccess(c, "合同状态更新成功", nil)
 }
 
+// BindTransaction 绑定交易
+func (ctrl *ContractController) BindTransaction(c *gin.Context) {
+	var req contractDto.BindTransactionDTO
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ResponseBadRequest(c, "无效的请求参数")
+		return
+	}
+
+	// 调用服务绑定交易
+	if err := ctrl.contractService.BindTransaction(&req); err != nil {
+		utils.ResponseInternalServerError(c, err.Error())
+		return
+	}
+
+	// 返回成功结果
+	utils.ResponseSuccess(c, "交易绑定成功", nil)
+}
+
 // 创建全局合同控制器实例
 var GlobalContractController *ContractController
 
@@ -209,4 +227,8 @@ func GetContractByUUID(c *gin.Context) {
 
 func UpdateContractStatus(c *gin.Context) {
 	GlobalContractController.UpdateContractStatus(c)
+}
+
+func BindTransaction(c *gin.Context) {
+	GlobalContractController.BindTransaction(c)
 }
