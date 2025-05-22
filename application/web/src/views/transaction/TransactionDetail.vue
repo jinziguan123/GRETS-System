@@ -139,7 +139,7 @@
               }}
             </el-descriptions-item>
             <el-descriptions-item label="创建时间">{{ formatDate(contractInfo.createTime) }}</el-descriptions-item>
-            <el-descriptions-item label="创建人">{{ contractInfo.creatorCitizenID }}</el-descriptions-item>
+            <el-descriptions-item label="创建人">{{ contractInfo.creatorCitizenIDHash }}</el-descriptions-item>
             <el-descriptions-item label="合同标题">{{ contractInfo.title }}</el-descriptions-item>
             <el-descriptions-item label="合同状态">
               <el-tag :type="getContractStatusType(contractInfo.status)">
@@ -147,10 +147,7 @@
               </el-tag>
             </el-descriptions-item>
           </el-descriptions>
-          <div class="contract-content section-mt">
-            <h5>合同内容</h5>
-            <div class="content-box">{{ contractInfo.content }}</div>
-          </div>
+        
         </div>
 
         <!-- 支付记录 -->
@@ -253,6 +250,7 @@ import PaymentDialog from '@/components/transaction/PaymentDialog.vue'
 import CryptoJS from 'crypto-js'
 import {getPaymentList} from "@/api/payment.js";
 import {getRealtyDetail} from "@/api/realty.js";
+import { bindTransaction, getContractByUUID, getContractDetail } from '@/api/contract';
 
 const router = useRouter()
 const route = useRoute()
@@ -410,7 +408,7 @@ const fetchTransactionDetail = async () => {
 
     // 获取合同信息
     if (transactionInfo.value.contractUUID) {
-      await fetchContractDetail(transactionInfo.value.contractUUID)
+      contractInfo.value = await getContractByUUID(transactionInfo.value.contractUUID)
     }
 
     // 获取审核记录
@@ -457,18 +455,6 @@ const getRealtyTypeText = (type) => {
     'OTHER': '其他'
   }
   return typeMap[type] || type
-}
-
-// 获取合同详情
-const fetchContractDetail = async (contractUUID) => {
-  try {
-    const response = await axios.get(`/api/contract/getContractByUUID/${contractUUID}`)
-    contractInfo.value = response.data
-  } catch (error) {
-    console.error('获取合同详情失败:', error)
-    // 使用mock数据
-    contractInfo.value = mockContractDetail(contractUUID)
-  }
 }
 
 // 获取审核记录
@@ -716,26 +702,28 @@ const getRealtyStatusText = (status) => {
   return statusMap[status] || status
 }
 
-// 获取合同状态标签类型
+// 获取状态标签类型
 const getContractStatusType = (status) => {
-  const statusMap = {
-    'PENDING': 'info',
-    'SIGNED': 'success',
-    'REJECTED': 'danger',
-    'EXPIRED': 'warning'
+  const tagMap = {
+    NORMAL: 'primary',
+    FROZEN: 'warning',
+    COMPLETED: 'success',
+    CANCEL: 'danger',
+    IN_PROGRESS: 'warning'
   }
-  return statusMap[status] || 'info'
+  return tagMap[status] || ''
 }
 
-// 获取合同状态文本
+// 获取状态名称
 const getContractStatusText = (status) => {
-  const statusMap = {
-    'PENDING': '待签署',
-    'SIGNED': '已签署',
-    'REJECTED': '已拒绝',
-    'EXPIRED': '已过期'
+  const nameMap = {
+    NORMAL: '正常',
+    FROZEN: '冻结',
+    COMPLETED: '已完成',
+    CANCEL: '已取消',
+    IN_PROGRESS: '进行中'
   }
-  return statusMap[status] || status
+  return nameMap[status] || status
 }
 
 // 获取支付类型文本

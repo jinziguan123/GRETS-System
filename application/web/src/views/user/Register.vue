@@ -251,7 +251,7 @@ const organizations = [
   { label: '政府监管部门', value: 'government' },
   { label: '投资者/买家', value: 'investor' },
   { label: '银行机构', value: 'bank' },
-  { label: '第三方机构', value: 'thirdparty' },
+  // { label: '第三方机构', value: 'thirdparty' },
   { label: '审计机构', value: 'audit' }
 ]
 

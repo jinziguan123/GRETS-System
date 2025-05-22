@@ -45,7 +45,7 @@
             <el-divider content-position="left">交易信息</el-divider>
             
             <el-descriptions :column="2" border>
-              <el-descriptions-item label="交易代码">{{ transaction.transactionUUID }}</el-descriptions-item>
+              <el-descriptions-item label="交易代码">{{ transaction.transactionUUID || '未绑定交易' }}</el-descriptions-item>
               <el-descriptions-item label="生效日期" :span="1">{{ formatDate(transaction?.createTime) || '未生效' }}</el-descriptions-item>
               <el-descriptions-item label="买方">{{ transaction?.buyerCitizenIDHash }}</el-descriptions-item>
               <el-descriptions-item label="卖方">{{ transaction?.sellerCitizenIDHash }}</el-descriptions-item>
@@ -231,9 +231,19 @@ const fetchContractDetail = async () => {
     
     // 调用API获取合同详情
     contract.value = await getContractByUUID(contractUUID.value)
-    transactionUUID.value = contract.value.transactionUUID
+    transactionUUID.value = contract.value.transactionUUID || ''
     if (transactionUUID.value) {
       await getTransactionInfo()
+    }else{
+      // 如果交易代码为空，则显示未绑定交易
+      transaction.value = {
+        transactionUUID: '-',
+        createTime: '',
+        buyerCitizenIDHash: '-',
+        sellerCitizenIDHash: '-',
+        buyerOrganization: '-',
+        sellerOrganization: '-',
+      }
     }
   } catch (error) {
     console.error('Failed to fetch contract details:', error)

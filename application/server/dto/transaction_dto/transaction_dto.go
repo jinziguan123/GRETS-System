@@ -5,6 +5,7 @@ import "time"
 // TransactionDTO 交易DTO
 type TransactionDTO struct {
 	TransactionUUID     string    `json:"transactionUUID"`     // 交易UUID
+	ContractUUID        string    `json:"contractUUID"`        // 合同UUID
 	RealtyCertHash      string    `json:"realtyCertHash"`      // 房产ID
 	SellerCitizenIDHash string    `json:"sellerCitizenIDHash"` // 卖方
 	SellerOrganization  string    `json:"sellerOrganization"`  // 卖方组织机构代码

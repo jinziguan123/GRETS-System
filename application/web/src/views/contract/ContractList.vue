@@ -25,6 +25,8 @@
                 <el-option label="正常" value="NORMAL" />
                 <el-option label="冻结" value="FROZEN" />
                 <el-option label="已完成" value="COMPLETED" />
+                <el-option label="进行中" value="IN_PROGRESS" />
+                <el-option label="已取消" value="CANCEL" />
               </el-select>
             </el-form-item>
           </el-col>

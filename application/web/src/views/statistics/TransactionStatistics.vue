@@ -488,9 +488,9 @@ const loadRankingData = () => {
     // 查找对应的房产信息
     const realty = realtyData.value.find(r => r.realtyCertHash === transaction.realtyCertHash) || {}
 
-    // 计算单价
+    // 计算单价，保留两位小数
     const unitPrice = realty.area && realty.area > 0 && transaction.price
-      ? transaction.price / realty.area
+      ? parseFloat((transaction.price / realty.area).toFixed(2))
       : 0
 
     return {

@@ -157,7 +157,7 @@
           <template v-else>
             <div class="transaction-item" v-for="(tx, index) in transactions" :key="index">
               <el-collapse>
-                <el-collapse-item :title="`交易ID: ${tx.transactionID}`">
+                <el-collapse-item :title="`交易ID: ${tx.transactionID}`" style="margin-left: 10px">
                   <div class="tx-details">
                     <div class="tx-item">
                       <span class="label">交易ID:</span>

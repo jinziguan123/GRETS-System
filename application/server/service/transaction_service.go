@@ -292,6 +292,7 @@ func (s *transactionService) GetTransactionByTransactionUUID(transactionUUID str
 
 	txDTO := &transactionDto.TransactionDTO{
 		TransactionUUID:     tx.TransactionUUID,
+		ContractUUID:        tx.ContractUUID,
 		RealtyCertHash:      tx.RealtyCertHash,
 		SellerCitizenIDHash: tx.SellerCitizenIDHash,
 		SellerOrganization:  tx.SellerOrganization,
@@ -359,6 +360,7 @@ func (s *transactionService) QueryTransactionList(dto *transactionDto.QueryTrans
 	for _, tx := range transactions {
 		txDTO := &transactionDto.TransactionDTO{
 			TransactionUUID:     tx.TransactionUUID,
+			ContractUUID:        tx.ContractUUID,
 			RealtyCertHash:      tx.RealtyCertHash,
 			SellerCitizenIDHash: tx.SellerCitizenIDHash,
 			SellerOrganization:  tx.SellerOrganization,
@@ -628,6 +630,7 @@ func (s *transactionService) QueryTransactionStatistics(query *transactionDto.Qu
 		}
 		transactionDTOList = append(transactionDTOList, &transactionDto.TransactionDTO{
 			TransactionUUID:     transaction.TransactionUUID,
+			ContractUUID:        transaction.ContractUUID,
 			RealtyCertHash:      transaction.RealtyCertHash,
 			SellerCitizenIDHash: transaction.SellerCitizenIDHash,
 			SellerOrganization:  transaction.SellerOrganization,
