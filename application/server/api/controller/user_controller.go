@@ -177,7 +177,7 @@ func (c *UserController) GetBalanceByCitizenIDHashAndOrganization(ctx *gin.Conte
 	}
 
 	// 调用服务层获取用户余额
-	balance, err := c.userService.GetBalanceByCitizenIDHashAndOrganization(citizenID, organization)
+	balance, err := c.userService.GetBalanceByCitizenIDAndOrganization(citizenID, organization)
 	if err != nil {
 		utils.ResponseError(ctx, constants.ServiceError, err.Error())
 		return

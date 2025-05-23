@@ -33,8 +33,8 @@ type UserService interface {
 	UpdateUser(user *userDto.UpdateUserDTO) error
 	// GetUserRealty 获取用户房产
 	GetUserRealty(citizenID string) ([]*realtyDto.RealtyDTO, error)
-	// GetBalanceByCitizenIDHashAndOrganization 根据身份证号和组织获取用户余额
-	GetBalanceByCitizenIDHashAndOrganization(citizenID, organization string) (float64, error)
+	// GetBalanceByCitizenIDAndOrganization 根据身份证号和组织获取用户余额
+	GetBalanceByCitizenIDAndOrganization(citizenID, organization string) (float64, error)
 }
 
 // userService 用户服务实现
@@ -60,8 +60,8 @@ func NewUserService(userDAO *dao.UserDAO) UserService {
 	}
 }
 
-// GetBalanceByCitizenIDHashAndOrganization 根据身份证号和组织获取用户余额
-func (s *userService) GetBalanceByCitizenIDHashAndOrganization(citizenID, organization string) (float64, error) {
+// GetBalanceByCitizenIDAndOrganization 根据身份证号和组织获取用户余额
+func (s *userService) GetBalanceByCitizenIDAndOrganization(citizenID, organization string) (float64, error) {
 	// 调用链码查询余额
 	mainContract, err := blockchain.GetMainContract(organization)
 	if err != nil {

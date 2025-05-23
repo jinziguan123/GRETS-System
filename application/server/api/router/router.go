@@ -26,6 +26,7 @@ func InitServices() error {
 	service.InitPaymentService(paymentDAO)
 	service.InitBlockService()
 	service.InitPictureService()
+	service.InitChatService()
 
 	// 初始化控制器
 	controller.InitUserController()
@@ -35,6 +36,7 @@ func InitServices() error {
 	controller.InitPaymentController()
 	controller.InitBlockController()
 	controller.InitPictureController()
+	controller.InitChatController()
 	return nil
 }
 
@@ -136,6 +138,19 @@ func SetupRouter() *gin.Engine {
 		picture := api.Group("/picture")
 		{
 			picture.POST("/upload", controller.UploadPicture)
+		}
+
+		// 聊天相关接口
+		chats := api.Group("/chat")
+		chats.Use(middleware.JWTAuth())
+		{
+			chats.POST("/verifyCapital", controller.VerifyCapital)
+			chats.POST("/createChatRoom", controller.CreateChatRoom)
+			chats.POST("/getChatRoomList", controller.GetChatRoomList)
+			chats.POST("/sendMessage", controller.SendMessage)
+			chats.POST("/getChatMessageList", controller.GetChatMessageList)
+			chats.POST("/markMessagesRead", controller.MarkMessagesRead)
+			chats.POST("/closeChatRoom", controller.CloseChatRoom)
 		}
 	}
 

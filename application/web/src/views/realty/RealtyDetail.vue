@@ -102,7 +102,9 @@
           <!-- 相关操作 -->
           <div class="actions" v-if="realty.status === 'PENDING_SALE' && hasTransactionPermission">
             <el-divider />
-            <el-button type="primary" @click="createTransaction" :disabled="isOwner">发起交易</el-button>
+            <el-button type="primary" @click="startChatRoom" :disabled="isOwner">
+              {{ isOwner ? '不能与自己聊天' : '咨询房主' }}
+            </el-button>
           </div>
         </el-card>
       </el-col>
@@ -359,11 +361,32 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 添加验资对话框 -->
+    <el-dialog
+      v-model="verificationDialogVisible"
+      title="添加验资"
+      width="60%"
+    >
+      <el-form :model="verificationForm" :rules="verificationRules" ref="verificationFormRef" label-width="120px">
+        <el-form-item label="验资金额" prop="verificationAmount">
+          <el-input v-model="verificationForm.verificationAmount" type="number"></el-input>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="verificationDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitVerification" :loading="verificationLoading">
+            确认
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, nextTick } from 'vue'
+import { ref, reactive, onMounted, computed, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Document } from '@element-plus/icons-vue'
@@ -372,6 +395,7 @@ import { getRealtyDetail, updateRealty } from "@/api/realty.js"
 import CryptoJS from 'crypto-js'
 import {queryTransactionList} from "@/api/transaction.js";
 import {queryContractList, getContractDetail, getContractByUUID} from '@/api/contract'
+import { verifyCapital, createChatRoom } from '@/api/chat'
 
 const router = useRouter()
 const route = useRoute()
@@ -389,6 +413,23 @@ const contractList = ref([])
 const contractDialogVisible = ref(false)
 const contractLoading = ref(false)
 const currentContract = ref(null)
+
+// 添加验资相关的响应式数据
+const verificationDialogVisible = ref(false)
+const verificationLoading = ref(false)
+const verificationForm = reactive({
+  verificationAmount: 100000 // 默认验资金额10万
+})
+
+// 验资表单规则
+const verificationRules = {
+  verificationAmount: [
+    { required: true, message: '请输入验资金额', trigger: 'blur' },
+    { type: 'number', min: 1, message: '验资金额必须大于0', trigger: 'blur' }
+  ]
+}
+
+const verificationFormRef = ref(null)
 
 // 房产信息
 const realty = reactive({
@@ -853,6 +894,65 @@ const downloadContract = () => {
 // 处理合同选择变更
 const handleContractChange = (contractUUID) => {
   editForm.relContractUUID = contractUUID
+}
+
+// 打开聊天室
+const startChatRoom = () => {
+  if (isOwner.value) {
+    ElMessage.warning('不能与自己聊天')
+    return
+  }
+  
+  // 打开验资对话框
+  verificationForm.verificationAmount = Math.max(realty.price * 0.1, 100000) // 默认为房价的10%，最低10万
+  verificationDialogVisible.value = true
+}
+
+// 提交验资
+const submitVerification = async () => {
+  if (!verificationFormRef.value) return
+  
+  await verificationFormRef.value.validate(async (valid) => {
+    if (valid) {
+      verificationLoading.value = true
+      try {
+        // 1. 先进行验资
+        const verifyResult = await verifyCapital({
+          userCitizenID: userStore.user.citizenID,
+          userOrganization: userStore.user.organization,
+          realtyCert: realty.realtyCert,
+          verificationAmount: verificationForm.verificationAmount
+        })
+        
+        if (!verifyResult.success) {
+          ElMessage.error(verifyResult.message)
+          return
+        }
+        
+        // 2. 验资成功，创建聊天室
+        const chatRoomResult = await createChatRoom({
+          userCitizenID: userStore.user.citizenID,
+          userOrganization: userStore.user.organization,
+          realtyCert: realty.realtyCert,
+          verificationAmount: verificationForm.verificationAmount
+        })
+        
+        ElMessage.success('验资成功，聊天室已创建！')
+        verificationDialogVisible.value = false
+        
+        // 3. 跳转到聊天室页面
+        router.push(`/chat/room/${chatRoomResult.roomUUID}`)
+        
+      } catch (error) {
+        console.error('验资或创建聊天室失败:', error)
+        ElMessage.error(error.response?.data?.message || '操作失败')
+      } finally {
+        verificationLoading.value = false
+      }
+    } else {
+      ElMessage.error('请检查表单填写是否正确')
+    }
+  })
 }
 
 onMounted(() => {
