@@ -169,6 +169,7 @@
             @click="sendMessage"
             :loading="sending"
             :disabled="!inputMessage.trim() || !isConnected"
+            @keydown.enter="handleEnter"
             class="send-btn"
           >
             发送
@@ -239,6 +240,12 @@ const isMessageFromSelf = (message) => {
   
   return message.senderCitizenIDHash === currentUserCitizenIDHash && 
          message.senderOrganization === userStore.user.organization
+}
+
+const handleEnter = (e) => {
+  if (e.keyCode === 13 || e.keyCode === 108) {
+    sendMessage()
+  }
 }
 
 // WebSocket连接
@@ -485,9 +492,31 @@ const getBubbleClass = (message) => {
 
 // 判断是否显示时间
 const shouldShowTime = (message) => {
-  // 这里可以添加逻辑，比如每隔一定时间显示一次
-  // 暂时简化，只显示系统消息的时间
-  return message.messageType === 'SYSTEM'
+  const currentIndex = messages.value.findIndex(msg => msg.messageUUID === message.messageUUID)
+  
+  // 第一条消息总是显示时间
+  if (currentIndex === 0) {
+    return true
+  }
+  
+  // 系统消息总是显示时间
+  if (message.messageType === 'SYSTEM') {
+    return true
+  }
+  
+  // 获取上一条消息
+  const previousMessage = messages.value[currentIndex - 1]
+  if (!previousMessage || !previousMessage.createTime) {
+    return true
+  }
+  
+  // 计算时间差（毫秒）
+  const currentTime = new Date(message.createTime).getTime()
+  const previousTime = new Date(previousMessage.createTime).getTime()
+  const timeDiff = currentTime - previousTime
+  
+  // 如果间隔超过10分钟（600000毫秒），显示时间
+  return timeDiff > 600000
 }
 
 // 处理Enter键
@@ -578,8 +607,8 @@ const getRoomStatusText = (status) => {
 // 初始化房间信息
 const initRoomInfo = () => {
   roomInfo.roomUUID = roomUUID.value
-  roomInfo.title = `房产交易咨询`
-  roomInfo.subtitle = `房产证号: ${route.query.realtyCert || ''}`
+  roomInfo.subtitle = `房产交易咨询`
+  roomInfo.title = `房产证号: ${route.query.realtyCert || ''}`
 }
 
 // 生命周期
@@ -587,6 +616,7 @@ onMounted(() => {
   initRoomInfo()
   fetchMessages()
   connectWebSocket()
+  window.addEventListener('keydown', handleEnter);
 })
 
 // 页面销毁时清理WebSocket连接
@@ -707,19 +737,19 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
 .chat-content {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 16px 8px;
   background: linear-gradient(to bottom, #f5f5f5 0%, #f0f0f0 100%);
   min-height: 0; /* 确保可以被压缩 */
 }
 
 .message-container {
-  max-width: 900px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 8px;
 }
 
 .message-wrapper {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   display: flex;
   flex-direction: column;
 }
@@ -732,10 +762,10 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
   text-align: center;
   font-size: 12px;
   color: #999;
-  margin: 8px 0;
+  margin: 12px 0 8px 0;
   background: rgba(0, 0, 0, 0.05);
-  padding: 4px 12px;
-  border-radius: 10px;
+  padding: 6px 16px;
+  border-radius: 12px;
   display: inline-block;
   align-self: center;
 }
@@ -744,7 +774,7 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  max-width: 70%;
+  max-width: 85%;
 }
 
 .message-wrapper.message-self .message-item {
@@ -759,8 +789,9 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
 .message-content {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
+  align-items: flex-start; /* 让气泡根据内容宽度自适应 */
 }
 
 .message-wrapper.message-self .message-content {
@@ -768,22 +799,27 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
 }
 
 .sender-name {
-  font-size: 12px;
+  font-size: 13px;
   color: #666;
   margin-bottom: 4px;
-  padding: 0 8px;
+  padding: 0 12px;
 }
 
 /* 消息气泡样式 */
 .message-bubble {
   position: relative;
-  border-radius: 8px;
-  padding: 10px 14px;
+  border-radius: 12px;
+  padding: 14px 18px;
   word-wrap: break-word;
   word-break: break-word;
-  max-width: 100%;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  min-width: 40px; /* 最小宽度 */
+  max-width: 100%; /* 最大宽度 */
+  width: fit-content; /* 根据内容自适应宽度 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
+  font-size: 15px;
+  line-height: 1.6;
+  display: inline-block; /* 确保宽度自适应 */
 }
 
 .message-bubble:hover {
@@ -799,12 +835,12 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
 .other-bubble::before {
   content: '';
   position: absolute;
-  left: -6px;
-  top: 12px;
+  left: -8px;
+  top: 16px;
   width: 0;
   height: 0;
   border-style: solid;
-  border-width: 6px 6px 6px 0;
+  border-width: 8px 8px 8px 0;
   border-color: transparent #ffffff transparent transparent;
 }
 
@@ -817,12 +853,12 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
 .self-bubble::after {
   content: '';
   position: absolute;
-  right: -6px;
-  top: 12px;
+  right: -8px;
+  top: 16px;
   width: 0;
   height: 0;
   border-style: solid;
-  border-width: 6px 0 6px 6px;
+  border-width: 8px 0 8px 8px;
   border-color: transparent transparent transparent #07c160;
 }
 
@@ -835,6 +871,8 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
   font-size: 12px;
   align-self: center;
   margin: 8px 0;
+  width: auto; /* 自适应宽度 */
+  display: inline-block;
 }
 
 .system-bubble::before,
@@ -848,6 +886,7 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
   justify-content: center;
   gap: 4px;
   font-style: italic;
+  white-space: nowrap; /* 防止系统消息换行 */
 }
 
 .system-icon {
@@ -859,14 +898,19 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
   padding: 0;
   border-radius: 8px;
   overflow: hidden;
+  width: auto; /* 自适应宽度 */
+  display: inline-block;
 }
 
 .chat-image {
   max-width: 250px;
   max-height: 200px;
+  width: auto; /* 保持图片原始比例 */
+  height: auto;
   border-radius: 8px;
   cursor: pointer;
   transition: transform 0.2s;
+  display: block;
 }
 
 .chat-image:hover {
@@ -883,6 +927,8 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
   border-radius: 8px;
   border: 1px dashed #ddd;
   transition: all 0.2s;
+  width: auto; /* 自适应宽度 */
+  min-width: 200px; /* 文件消息最小宽度 */
 }
 
 .file-message:hover {
@@ -1114,16 +1160,26 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
   }
   
   .chat-content {
-    padding: 12px;
+    padding: 12px 4px;
     min-height: 0;
   }
   
   .message-container {
-    padding: 0 8px;
+    padding: 0 4px;
   }
   
   .message-item {
-    max-width: 85%;
+    max-width: 90%;
+  }
+  
+  .message-bubble {
+    padding: 12px 16px;
+    font-size: 14px;
+    min-width: 30px; /* 移动端最小宽度稍小 */
+  }
+  
+  .file-message {
+    min-width: 180px; /* 移动端文件消息最小宽度 */
   }
   
   .chat-input-area {
