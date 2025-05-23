@@ -86,12 +86,12 @@
 <!--        </el-sub-menu>-->
         
         <!-- 统计分析 - 政府和银行可见 -->
-        <el-sub-menu index="/statistics" v-if="hasOrganization(['government', 'bank'])">
+        <el-sub-menu index="/statistics" v-if="hasOrganization(['government'])">
           <template #title>
             <el-icon><DataAnalysis /></el-icon>
             <span>统计分析</span>
           </template>
-          <el-menu-item index="/statistics/transaction" v-if="hasOrganization(['government', 'bank'])">交易统计</el-menu-item>
+          <el-menu-item index="/statistics/transaction" v-if="hasOrganization(['government'])">交易统计</el-menu-item>
 <!--          <el-menu-item index="/statistics/loan" v-if="hasOrganization('bank')">贷款统计</el-menu-item>-->
         </el-sub-menu>
         

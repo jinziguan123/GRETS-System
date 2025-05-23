@@ -248,14 +248,14 @@ const routes: Array<RouteRecordRaw> = [
             path: 'transaction',
             name: 'TransactionStatistics',
             component: TransactionStatistics,
-            meta: { title: '交易统计', organizations: ['government', 'bank'] } as RouteMeta
+            meta: { title: '交易统计', organizations: ['government'] } as RouteMeta
           },
-          {
-            path: 'loan',
-            name: 'LoanStatistics',
-            component: LoanStatistics,
-            meta: { title: '贷款统计', organizations: ['bank'] } as RouteMeta
-          }
+          // {
+          //   path: 'loan',
+          //   name: 'LoanStatistics',
+          //   component: LoanStatistics,
+          //   meta: { title: '贷款统计', organizations: ['bank'] } as RouteMeta
+          // }
         ]
       },
       // 用户管理路由

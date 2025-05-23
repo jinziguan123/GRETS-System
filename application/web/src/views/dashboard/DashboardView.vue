@@ -115,7 +115,7 @@ const menus: QuickMenu[] = [
   { title: '交易列表', path: '/transaction', icon: 'Sell', organizations: ['government', 'investor', 'bank', 'audit'] },
   { title: '合同列表', path: '/contract', icon: 'Document', organizations: ['government', 'investor', 'bank', 'audit'] },
   { title: '支付列表', path: '/payment', icon: 'Money', organizations: ['investor', 'bank'] },
-  { title: '统计分析', path: '/statistics/transaction', icon: 'DataAnalysis', organizations: ['government', 'bank'] }
+  { title: '统计分析', path: '/statistics/transaction', icon: 'DataAnalysis', organizations: ['government'] }
 ]
 
 // 根据用户组织过滤菜单
