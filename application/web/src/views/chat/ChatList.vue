@@ -13,7 +13,7 @@
         <el-form-item label="房产证号">
           <el-input v-model="searchForm.realtyCert" placeholder="请输入房产证号" clearable />
         </el-form-item>
-        <el-form-item label="状态">
+        <el-form-item label="状态" style="width: 200px;">
           <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
             <el-option label="进行中" value="ACTIVE" />
             <el-option label="已关闭" value="CLOSED" />
@@ -67,7 +67,7 @@
               </div>
               <div class="room-footer">
                 <div class="last-message">
-                  {{ room.lastMessageContent || '暂无消息' }}
+                  {{ ('最后消息: ' + room.lastMessageContent) || '暂无消息' }}
                 </div>
                 <div class="unread-count" v-if="getUnreadCount(room) > 0">
                   <el-badge :value="getUnreadCount(room)" :max="99" />
@@ -192,7 +192,7 @@ const enterChatRoom = (room) => {
 // 获取房间标题
 const getRoomTitle = (room) => {
   if (room.realtyInfo) {
-    return `${room.realtyInfo.realtyType} - ${room.realtyInfo.realtyCert}`
+    return `${room.realtyInfo.address} - ${room.realtyInfo.realtyCert}`
   }
   return `房产 - ${room.realtyCert}`
 }

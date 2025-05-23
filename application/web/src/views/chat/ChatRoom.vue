@@ -122,7 +122,7 @@
     <!-- 输入区域 -->
     <div class="chat-input-area" v-if="roomInfo.status === 'ACTIVE'">
       <!-- 工具栏 -->
-      <div class="input-toolbar">
+      <!-- <div class="input-toolbar">
         <el-upload
           :action="uploadUrl"
           :show-file-list="false"
@@ -146,7 +146,7 @@
           @click="triggerImageUpload"
         >
         </el-button>
-      </div>
+      </div> -->
       
       <!-- 输入框 -->
       <div class="input-container">
@@ -232,6 +232,15 @@ const pagination = reactive({
 // 上传配置
 const uploadUrl = 'http://localhost:8080/api/v1/picture/upload'
 
+// 判断消息是否为自己发送的
+const isMessageFromSelf = (message) => {
+  const currentUserCitizenIDHash = userStore.user.citizenIDHash || 
+    CryptoJS.SHA256(userStore.user.citizenID).toString()
+  
+  return message.senderCitizenIDHash === currentUserCitizenIDHash && 
+         message.senderOrganization === userStore.user.organization
+}
+
 // WebSocket连接
 const connectWebSocket = () => {
   const token = localStorage.getItem('token')
@@ -281,12 +290,9 @@ const handleWebSocketMessage = (message) => {
     case 'newMessage':
       // 收到新消息，添加到消息列表
       if (message.data) {
-        const currentUserCitizenIDHash = userStore.user.citizenIDHash || 
-          CryptoJS.SHA256(userStore.user.citizenID).toString()
-        
         const newMessage = {
           ...message.data,
-          isSelf: message.data.senderCitizenIDHash === currentUserCitizenIDHash && message.data.senderOrganization === userStore.user.organization
+          isSelf: isMessageFromSelf(message.data)
         }
         messages.value.push(newMessage)
         nextTick(() => {
@@ -326,12 +332,18 @@ const fetchMessages = async (isLoadMore = false) => {
     
     const response = await getChatMessageList(requestData)
     
+    // 为每条消息添加isSelf字段
+    const messagesWithSelfFlag = (response.messages || []).map(message => ({
+      ...message,
+      isSelf: isMessageFromSelf(message)
+    }))
+    
     if (isLoadMore) {
       // 加载更多消息时，添加到开头
-      messages.value = [...response.messages.reverse(), ...messages.value]
+      messages.value = [...messagesWithSelfFlag.reverse(), ...messages.value]
     } else {
       // 首次加载或刷新时，直接设置
-      messages.value = response.messages || []
+      messages.value = messagesWithSelfFlag
     }
     
     pagination.total = response.total
@@ -596,11 +608,12 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
 
 <style scoped>
 .chat-room-wrapper {
-  height: 100vh;
+  height: 80vh;
   display: flex;
   flex-direction: column;
   background-color: #f5f5f5;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  overflow-y: hidden; /* 防止整体页面滚动 */
 }
 
 /* 聊天室头部样式 */
@@ -609,12 +622,14 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
   justify-content: space-between;
   align-items: center;
   height: 60px;
+  min-height: 60px; /* 确保头部高度固定 */
   padding: 0 20px;
   background: #ffffff;
   border-bottom: 1px solid #e4e7ed;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   position: relative;
   z-index: 100;
+  flex-shrink: 0; /* 防止被压缩 */
 }
 
 .header-left {
@@ -694,6 +709,7 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
   overflow-y: auto;
   padding: 20px;
   background: linear-gradient(to bottom, #f5f5f5 0%, #f0f0f0 100%);
+  min-height: 0; /* 确保可以被压缩 */
 }
 
 .message-container {
@@ -950,6 +966,8 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
   padding: 16px 20px;
   position: relative;
   z-index: 100;
+  flex-shrink: 0; /* 防止被压缩 */
+  min-height: auto; /* 确保高度自适应内容 */
 }
 
 .input-toolbar {
@@ -1046,6 +1064,7 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
   justify-content: center;
   background: #fafafa;
   padding: 40px;
+  min-height: 0; /* 确保可以被压缩 */
 }
 
 .chat-disabled :deep(.el-empty__description) {
@@ -1076,11 +1095,14 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
 @media (max-width: 768px) {
   .chat-room-wrapper {
     height: 100vh;
+    overflow: hidden; /* 确保移动端也不可滚动 */
   }
   
   .chat-header {
     height: 50px;
+    min-height: 50px;
     padding: 0 16px;
+    flex-shrink: 0;
   }
   
   .room-title {
@@ -1093,6 +1115,7 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
   
   .chat-content {
     padding: 12px;
+    min-height: 0;
   }
   
   .message-container {
@@ -1105,6 +1128,7 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
   
   .chat-input-area {
     padding: 12px 16px;
+    flex-shrink: 0;
   }
   
   .input-container {
