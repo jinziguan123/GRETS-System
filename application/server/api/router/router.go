@@ -152,6 +152,9 @@ func SetupRouter() *gin.Engine {
 			chats.POST("/markMessagesRead", controller.MarkMessagesRead)
 			chats.POST("/closeChatRoom", controller.CloseChatRoom)
 		}
+
+		// WebSocket连接路由（不使用JWT中间件，自行处理认证）
+		api.GET("/chat/ws/:roomUUID", controller.WebSocketHandler)
 	}
 
 	return r

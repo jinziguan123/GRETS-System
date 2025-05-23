@@ -12,22 +12,24 @@ var jwtSecret = []byte("grets_system_secret_key")
 
 // Claims JWT声明
 type Claims struct {
-	CitizenID string `json:"citizenID"`
-	Username  string `json:"username"`
-	Role      string `json:"role"`
+	CitizenID    string `json:"citizenID"`
+	Organization string `json:"organization"`
+	Username     string `json:"username"`
+	Role         string `json:"role"`
 	jwt.StandardClaims
 }
 
 // GenerateToken 生成JWT令牌
-func GenerateToken(citizenID, username, role string) (string, error) {
+func GenerateToken(citizenID, organization, username, role string) (string, error) {
 	// 设置过期时间，这里设置为24小时
 	expireTime := time.Now().Add(24 * time.Hour)
 
 	// 创建声明
 	claims := Claims{
-		CitizenID: citizenID,
-		Username:  username,
-		Role:      role,
+		CitizenID:    citizenID,
+		Organization: organization,
+		Username:     username,
+		Role:         role,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expireTime.Unix(),
 			IssuedAt:  time.Now().Unix(),

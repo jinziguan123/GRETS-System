@@ -29,6 +29,8 @@ func JWTAuth() gin.HandlerFunc {
 		c.Set("citizenID", claims.CitizenID)
 		c.Set("userName", claims.Username)
 		c.Set("role", claims.Role)
+		c.Set("organization", claims.Organization)
+		c.Set("claims", claims) // 保存完整的claims对象
 
 		c.Next()
 	}

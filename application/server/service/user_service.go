@@ -123,7 +123,7 @@ func (s *userService) Login(req *userDto.LoginDTO) (*userDto.UserDTO, string, er
 	}
 
 	// 生成JWT令牌
-	token, err := utils.GenerateToken(user.CitizenID, user.Name, user.Role)
+	token, err := utils.GenerateToken(user.CitizenID, user.Organization, user.Name, user.Role)
 	if err != nil {
 		log.Printf("Failed to generate token: %v", err)
 		return nil, "", fmt.Errorf("生成token失败: %v", err)

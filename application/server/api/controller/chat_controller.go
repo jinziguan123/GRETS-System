@@ -1,16 +1,25 @@
 package controller
 
 import (
+	"encoding/json"
 	chatDto "grets_server/dto/chat_dto"
+	"grets_server/pkg/websocket"
 	"grets_server/service"
 	"net/http"
+
+	"grets_server/pkg/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 var GlobalChatController *ChatController
+var GlobalChatHub *websocket.Hub
 
 func InitChatController() {
+	// 初始化WebSocket Hub
+	GlobalChatHub = websocket.NewHub()
+	go GlobalChatHub.Run()
+
 	GlobalChatController = NewChatController(service.GlobalChatService)
 }
 
@@ -167,7 +176,7 @@ func (ctrl *ChatController) GetChatRoomList(c *gin.Context) {
 // @Failure 400 {object} response.Response
 // @Failure 401 {object} response.Response
 // @Failure 500 {object} response.Response
-// @Router /api/v1/chat/message [post]
+// @Router /api/v1/chat/sendMessage [post]
 func (ctrl *ChatController) SendMessage(c *gin.Context) {
 	// 绑定请求参数
 	var req chatDto.SendMessageDTO
@@ -189,11 +198,64 @@ func (ctrl *ChatController) SendMessage(c *gin.Context) {
 		return
 	}
 
+	// 通过WebSocket广播消息到房间
+	if GlobalChatHub != nil {
+		wsMessage := websocket.Message{
+			Type:     "newMessage",
+			RoomUUID: req.RoomUUID,
+			Data:     result,
+		}
+		if messageData, err := json.Marshal(wsMessage); err == nil {
+			GlobalChatHub.BroadcastToRoom(req.RoomUUID, messageData)
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code":    200,
 		"message": "消息发送成功",
 		"data":    result,
 	})
+}
+
+// WebSocketHandler 处理WebSocket连接
+// @Summary WebSocket连接
+// @Description 建立聊天室WebSocket连接
+// @Tags 聊天室
+// @Param roomUUID path string true "聊天室UUID"
+// @Param token query string true "JWT认证token"
+// @Router /api/v1/chat/ws/{roomUUID} [get]
+func (ctrl *ChatController) WebSocketHandler(c *gin.Context) {
+	roomUUID := c.Param("roomUUID")
+	if roomUUID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    400,
+			"message": "聊天室UUID不能为空",
+		})
+		return
+	}
+
+	// 从URL参数获取token
+	token := c.Query("token")
+	if token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code":    401,
+			"message": "未提供认证令牌",
+		})
+		return
+	}
+
+	// 解析并验证Token
+	claims, err := utils.ParseToken(token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code":    401,
+			"message": "认证令牌无效",
+		})
+		return
+	}
+
+	// 升级HTTP连接为WebSocket连接
+	websocket.ServeWS(GlobalChatHub, c.Writer, c.Request, roomUUID, claims.CitizenID, claims.Organization)
 }
 
 // GetChatMessageList 获取聊天消息列表
@@ -350,4 +412,8 @@ func MarkMessagesRead(c *gin.Context) {
 
 func CloseChatRoom(c *gin.Context) {
 	GlobalChatController.CloseChatRoom(c)
+}
+
+func WebSocketHandler(c *gin.Context) {
+	GlobalChatController.WebSocketHandler(c)
 }

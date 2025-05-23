@@ -64,6 +64,15 @@
           <el-menu-item index="/payment">支付列表</el-menu-item>
         </el-sub-menu>
 
+        <!-- 聊天室管理 - 投资者可见 -->
+        <el-sub-menu index="/chat" v-if="hasOrganization(['investor', 'government'])">
+          <template #title>
+            <el-icon><CreditCard /></el-icon>
+            <span>聊天室管理</span>
+          </template>
+          <el-menu-item index="/chat">聊天室列表</el-menu-item>
+        </el-sub-menu>
+
 <!--        &lt;!&ndash; 税费管理 - 政府和投资者可见 &ndash;&gt;-->
 <!--        <el-sub-menu index="/tax" v-if="hasOrganization(['government', 'investor'])">-->
 <!--          <template #title>-->
@@ -175,7 +184,7 @@ import {
   Monitor,
   ArrowDown,
   DataAnalysis,
-  UserFilled
+  UserFilled,
 } from '@element-plus/icons-vue'
 import { queryTransactionList } from '@/api/transaction'
 

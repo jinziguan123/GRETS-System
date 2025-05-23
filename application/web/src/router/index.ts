@@ -28,6 +28,10 @@ const TransactionCreate = () => import('@/views/transaction/TransactionCreate.vu
 // 新增交易聊天室
 const TransactionChat = () => import('@/views/transaction/TransactionChat.vue')
 
+// 聊天室管理
+const ChatList = () => import('@/views/chat/ChatList.vue')
+const ChatRoom = () => import('@/views/chat/ChatRoom.vue')
+
 // 合同管理
 const ContractList = () => import('@/views/contract/ContractList.vue')
 const ContractDetail = () => import('@/views/contract/ContractDetail.vue')
@@ -173,6 +177,25 @@ const routes: Array<RouteRecordRaw> = [
             name: 'ContractAudit',
             component: ContractAudit,
             meta: { title: '合同审核', organizations: ['audit'] } as RouteMeta
+          }
+        ]
+      },
+      // 聊天室管理路由
+      {
+        path: 'chat',
+        meta: { title: '聊天室管理' } as RouteMeta,
+        children: [
+          {
+            path: '',
+            name: 'ChatList',
+            component: ChatList,
+            meta: { title: '聊天室列表', organizations: ['investor', 'government'] } as RouteMeta
+          },
+          {
+            path: 'room/:roomUUID',
+            name: 'ChatRoom',
+            component: ChatRoom,
+            meta: { title: '聊天室', organizations: ['investor', 'government'] } as RouteMeta
           }
         ]
       },

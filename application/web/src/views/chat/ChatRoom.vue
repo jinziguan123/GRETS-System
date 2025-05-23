@@ -1,74 +1,127 @@
 <template>
-  <div class="chat-room-container">
-    <!-- 页面头部 -->
+  <div class="chat-room-wrapper">
+    <!-- 聊天室头部 -->
     <div class="chat-header">
       <div class="header-left">
-        <el-button @click="goBack" circle>
-          <el-icon><ArrowLeft /></el-icon>
+        <el-button 
+          type="text" 
+          @click="goBack" 
+          class="back-btn"
+          :icon="ArrowLeft"
+        >
         </el-button>
         <div class="room-info">
-          <h3>{{ roomInfo.title }}</h3>
+          <h3 class="room-title">{{ roomInfo.title }}</h3>
           <span class="room-subtitle">{{ roomInfo.subtitle }}</span>
         </div>
       </div>
       <div class="header-right">
-        <el-tag :type="getRoomStatusType(roomInfo.status)">
+        <div class="connection-status" :class="{ 'connected': isConnected }">
+          <span class="status-dot"></span>
+          <span class="status-text">{{ isConnected ? '在线' : '连接中...' }}</span>
+        </div>
+        <el-tag 
+          :type="getRoomStatusType(roomInfo.status)" 
+          class="room-status-tag"
+        >
           {{ getRoomStatusText(roomInfo.status) }}
         </el-tag>
       </div>
     </div>
 
-    <!-- 聊天内容区域 -->
+    <!-- 聊天消息区域 -->
     <div class="chat-content" ref="chatContentRef">
-      <div class="message-list">
+      <div class="message-container">
         <div 
           v-for="message in messages" 
           :key="message.messageUUID" 
-          :class="['message-item', message.isSelf ? 'self' : 'other']"
+          :class="['message-wrapper', { 'message-self': message.isSelf }]"
         >
-          <div class="message-avatar">
-            <el-avatar :size="40">
-              {{ message.senderName ? message.senderName.charAt(0) : '?' }}
-            </el-avatar>
+          <!-- 消息时间（间隔显示） -->
+          <div class="message-time" v-if="shouldShowTime(message)">
+            {{ formatTime(message.createTime) }}
           </div>
-          <div class="message-content">
-            <div class="message-header">
-              <span class="sender-name">{{ message.senderName }}</span>
-              <span class="message-time">{{ formatTime(message.createTime) }}</span>
+          
+          <div class="message-item">
+            <!-- 头像 -->
+            <div class="message-avatar">
+              <el-avatar 
+                :size="36" 
+                :style="{ backgroundColor: message.isSelf ? '#07c160' : '#4a90e2' }"
+              >
+                {{ getAvatarText(message) }}
+              </el-avatar>
             </div>
-            <div class="message-body">
-              <!-- 文本消息 -->
-              <div v-if="message.messageType === 'TEXT'" class="text-message">
-                {{ message.content }}
+            
+            <!-- 消息内容 -->
+            <div class="message-content">
+              <!-- 发送者名称 -->
+              <div v-if="!message.isSelf" class="sender-name">
+                {{ message.senderName }}
               </div>
-              <!-- 系统消息 -->
-              <div v-else-if="message.messageType === 'SYSTEM'" class="system-message">
-                {{ message.content }}
-              </div>
-              <!-- 图片消息 -->
-              <div v-else-if="message.messageType === 'IMAGE'" class="image-message">
-                <el-image 
-                  :src="message.fileURL" 
-                  :preview-src-list="[message.fileURL]"
-                  fit="cover"
-                  style="width: 200px; height: 150px; border-radius: 8px;"
-                />
-              </div>
-              <!-- 文件消息 -->
-              <div v-else-if="message.messageType === 'FILE'" class="file-message">
-                <el-button type="primary" link @click="downloadFile(message)">
-                  <el-icon><Document /></el-icon>
-                  {{ message.fileName }} ({{ formatFileSize(message.fileSize) }})
-                </el-button>
+              
+              <!-- 消息气泡 -->
+              <div class="message-bubble" :class="getBubbleClass(message)">
+                <!-- 文本消息 -->
+                <div v-if="message.messageType === 'TEXT'" class="text-message">
+                  {{ message.content }}
+                </div>
+                
+                <!-- 系统消息 -->
+                <div v-else-if="message.messageType === 'SYSTEM'" class="system-message">
+                  <el-icon class="system-icon"><InfoFilled /></el-icon>
+                  {{ message.content }}
+                </div>
+                
+                <!-- 图片消息 -->
+                <div v-else-if="message.messageType === 'IMAGE'" class="image-message">
+                  <el-image 
+                    :src="message.fileURL" 
+                    :preview-src-list="[message.fileURL]"
+                    fit="cover"
+                    class="chat-image"
+                    :preview-teleported="true"
+                  />
+                </div>
+                
+                <!-- 文件消息 -->
+                <div v-else-if="message.messageType === 'FILE'" class="file-message">
+                  <div class="file-icon">
+                    <el-icon size="24"><Document /></el-icon>
+                  </div>
+                  <div class="file-info">
+                    <div class="file-name">{{ message.fileName }}</div>
+                    <div class="file-size">{{ formatFileSize(message.fileSize) }}</div>
+                  </div>
+                  <el-button 
+                    type="primary" 
+                    text 
+                    @click="downloadFile(message)"
+                    class="download-btn"
+                  >
+                    下载
+                  </el-button>
+                </div>
               </div>
             </div>
           </div>
         </div>
+        
+        <!-- 正在输入提示 -->
+        <div v-if="sending" class="typing-indicator">
+          <div class="typing-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <span class="typing-text">发送中...</span>
+        </div>
       </div>
     </div>
 
-    <!-- 消息输入区域 -->
-    <div class="chat-input" v-if="roomInfo.status === 'ACTIVE'">
+    <!-- 输入区域 -->
+    <div class="chat-input-area" v-if="roomInfo.status === 'ACTIVE'">
+      <!-- 工具栏 -->
       <div class="input-toolbar">
         <el-upload
           :action="uploadUrl"
@@ -76,33 +129,64 @@
           :on-success="handleFileUpload"
           :before-upload="beforeFileUpload"
           accept="image/*,.pdf,.doc,.docx,.txt"
+          class="upload-btn"
         >
-          <el-button circle>
-            <el-icon><Plus /></el-icon>
+          <el-button 
+            type="text" 
+            class="toolbar-btn"
+            :icon="Plus"
+          >
           </el-button>
         </el-upload>
+        
+        <el-button 
+          type="text" 
+          class="toolbar-btn"
+          :icon="Picture"
+          @click="triggerImageUpload"
+        >
+        </el-button>
       </div>
-      <div class="input-content">
+      
+      <!-- 输入框 -->
+      <div class="input-container">
         <el-input
           v-model="inputMessage"
           type="textarea"
           :rows="3"
-          placeholder="请输入消息..."
-          @keydown.ctrl.enter="sendMessage"
           resize="none"
+          placeholder="请输入消息... (按 Ctrl+Enter 发送)"
+          @keydown.ctrl.enter="sendMessage"
+          @keydown.enter.prevent="handleEnterKey"
+          class="message-input"
+          :disabled="!isConnected"
         />
-      </div>
-      <div class="input-actions">
-        <el-button @click="clearInput">清空</el-button>
-        <el-button type="primary" @click="sendMessage" :loading="sending">
-          发送 (Ctrl+Enter)
-        </el-button>
+        
+        <!-- 发送按钮 -->
+        <div class="send-container">
+          <el-button
+            type="primary"
+            @click="sendMessage"
+            :loading="sending"
+            :disabled="!inputMessage.trim() || !isConnected"
+            class="send-btn"
+          >
+            发送
+          </el-button>
+        </div>
       </div>
     </div>
 
     <!-- 聊天室已关闭提示 -->
-    <div v-else class="chat-closed">
-      <el-empty description="聊天室已关闭或被冻结" />
+    <div v-else class="chat-disabled">
+      <el-empty 
+        description="聊天室已关闭或被冻结" 
+        :image-size="100"
+      >
+        <template #image>
+          <el-icon size="100" color="#c0c4cc"><ChatDotSquare /></el-icon>
+        </template>
+      </el-empty>
     </div>
   </div>
 </template>
@@ -111,9 +195,10 @@
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Plus, Document } from '@element-plus/icons-vue'
+import { ArrowLeft, Plus, Document, InfoFilled, Picture, ChatDotSquare } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { getChatMessageList, sendMessage as sendChatMessage, markMessagesRead } from '@/api/chat'
+import CryptoJS from 'crypto-js'
 
 const router = useRouter()
 const route = useRoute()
@@ -126,6 +211,8 @@ const inputMessage = ref('')
 const sending = ref(false)
 const loading = ref(true)
 const roomUUID = ref(route.params.roomUUID)
+const webSocket = ref(null)
+const isConnected = ref(false)
 
 const roomInfo = reactive({
   roomUUID: '',
@@ -145,8 +232,82 @@ const pagination = reactive({
 // 上传配置
 const uploadUrl = 'http://localhost:8080/api/v1/picture/upload'
 
-// 轮询定时器
-let pollingTimer = null
+// WebSocket连接
+const connectWebSocket = () => {
+  const token = localStorage.getItem('token')
+  // 通过查询参数传递token
+  const wsUrl = `ws://localhost:8080/api/v1/chat/ws/${roomUUID.value}?token=${encodeURIComponent(token)}`
+  
+  webSocket.value = new WebSocket(wsUrl)
+  
+  webSocket.value.onopen = () => {
+    console.log('WebSocket连接已建立')
+    isConnected.value = true
+  }
+  
+  webSocket.value.onmessage = (event) => {
+    try {
+      const message = JSON.parse(event.data)
+      handleWebSocketMessage(message)
+    } catch (error) {
+      console.error('解析WebSocket消息失败:', error)
+    }
+  }
+  
+  webSocket.value.onclose = () => {
+    console.log('WebSocket连接已关闭')
+    isConnected.value = false
+    
+    // 重连逻辑
+    setTimeout(() => {
+      if (roomInfo.status === 'ACTIVE') {
+        connectWebSocket()
+      }
+    }, 3000)
+  }
+  
+  webSocket.value.onerror = (error) => {
+    console.error('WebSocket错误:', error)
+    isConnected.value = false
+  }
+}
+
+// 处理WebSocket消息
+const handleWebSocketMessage = (message) => {
+  switch (message.type) {
+    case 'join':
+      console.log('成功加入聊天室')
+      break
+    case 'newMessage':
+      // 收到新消息，添加到消息列表
+      if (message.data) {
+        const currentUserCitizenIDHash = userStore.user.citizenIDHash || 
+          CryptoJS.SHA256(userStore.user.citizenID).toString()
+        
+        const newMessage = {
+          ...message.data,
+          isSelf: message.data.senderCitizenIDHash === currentUserCitizenIDHash && message.data.senderOrganization === userStore.user.organization
+        }
+        messages.value.push(newMessage)
+        nextTick(() => {
+          scrollToBottom()
+        })
+      }
+      break
+    case 'pong':
+      // 心跳回应
+      break
+  }
+}
+
+// 断开WebSocket连接
+const disconnectWebSocket = () => {
+  if (webSocket.value) {
+    webSocket.value.close()
+    webSocket.value = null
+    isConnected.value = false
+  }
+}
 
 // 获取消息列表
 const fetchMessages = async (isLoadMore = false) => {
@@ -204,8 +365,14 @@ const sendMessage = async () => {
     return
   }
   
+  if (!isConnected.value) {
+    ElMessage.error('WebSocket连接已断开，请稍后重试')
+    return
+  }
+  
   sending.value = true
   try {
+    // 通过HTTP API发送消息到服务器
     const messageData = {
       userCitizenID: userStore.user.citizenID,
       userOrganization: userStore.user.organization,
@@ -216,15 +383,9 @@ const sendMessage = async () => {
     
     const response = await sendChatMessage(messageData)
     
-    // 添加新消息到列表
-    messages.value.push(response)
-    
+    // 消息发送成功，WebSocket会收到广播消息并自动添加到列表中
     // 清空输入框
     inputMessage.value = ''
-    
-    // 滚动到底部
-    await nextTick()
-    scrollToBottom()
     
   } catch (error) {
     console.error('发送消息失败:', error)
@@ -282,6 +443,63 @@ const downloadFile = (message) => {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+}
+
+// 获取头像显示文本
+const getAvatarText = (message) => {
+  if (message.messageType === 'SYSTEM') {
+    return '系'
+  }
+  if (message.senderName) {
+    return message.senderName.charAt(0).toUpperCase()
+  }
+  return '?'
+}
+
+// 获取消息气泡样式类
+const getBubbleClass = (message) => {
+  const classes = []
+  
+  if (message.messageType === 'SYSTEM') {
+    classes.push('system-bubble')
+  } else if (message.isSelf) {
+    classes.push('self-bubble')
+  } else {
+    classes.push('other-bubble')
+  }
+  
+  return classes
+}
+
+// 判断是否显示时间
+const shouldShowTime = (message) => {
+  // 这里可以添加逻辑，比如每隔一定时间显示一次
+  // 暂时简化，只显示系统消息的时间
+  return message.messageType === 'SYSTEM'
+}
+
+// 处理Enter键
+const handleEnterKey = (event) => {
+  if (!event.ctrlKey) {
+    // 普通Enter键不发送，只换行
+    return
+  }
+}
+
+// 触发图片上传
+const triggerImageUpload = () => {
+  // 创建隐藏的文件输入框
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      // 这里可以添加图片上传逻辑
+      console.log('选择的图片:', file)
+    }
+  }
+  input.click()
 }
 
 // 清空输入
@@ -345,24 +563,6 @@ const getRoomStatusText = (status) => {
   return statusMap[status] || status
 }
 
-// 开始轮询获取新消息
-const startPolling = () => {
-  pollingTimer = setInterval(() => {
-    // 获取最新消息（这里可以优化为只获取比当前最新消息更新的消息）
-    if (roomInfo.status === 'ACTIVE') {
-      fetchMessages()
-    }
-  }, 3000) // 每3秒轮询一次
-}
-
-// 停止轮询
-const stopPolling = () => {
-  if (pollingTimer) {
-    clearInterval(pollingTimer)
-    pollingTimer = null
-  }
-}
-
 // 初始化房间信息
 const initRoomInfo = () => {
   roomInfo.roomUUID = roomUUID.value
@@ -374,12 +574,12 @@ const initRoomInfo = () => {
 onMounted(() => {
   initRoomInfo()
   fetchMessages()
-  startPolling()
+  connectWebSocket()
 })
 
-// 页面销毁时清理定时器
+// 页面销毁时清理WebSocket连接
 onBeforeUnmount(() => {
-  stopPolling()
+  disconnectWebSocket()
 })
 
 // 监听路由变化
@@ -388,156 +588,469 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
     roomUUID.value = newRoomUUID
     initRoomInfo()
     fetchMessages()
+    disconnectWebSocket()
+    connectWebSocket()
   }
 })
 </script>
 
 <style scoped>
-.chat-room-container {
+.chat-room-wrapper {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f5f7fa;
+  background-color: #f5f5f5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+/* 聊天室头部样式 */
 .chat-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  background: white;
+  height: 60px;
+  padding: 0 20px;
+  background: #ffffff;
   border-bottom: 1px solid #e4e7ed;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+  z-index: 100;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
-.room-info h3 {
-  margin: 0;
+.back-btn {
+  padding: 8px;
   font-size: 18px;
+  color: #606266;
+  transition: color 0.2s;
+}
+
+.back-btn:hover {
+  color: #409eff;
+}
+
+.room-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.room-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
   color: #303133;
+  line-height: 1.2;
 }
 
 .room-subtitle {
-  font-size: 14px;
+  font-size: 12px;
+  color: #909399;
+  line-height: 1;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #f56c6c;
+  transition: background-color 0.3s;
+}
+
+.connection-status.connected .status-dot {
+  background-color: #67c23a;
+}
+
+.status-text {
+  font-size: 12px;
   color: #909399;
 }
 
+.room-status-tag {
+  font-size: 12px;
+}
+
+/* 聊天消息区域样式 */
 .chat-content {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-  background-color: #f5f7fa;
+  background: linear-gradient(to bottom, #f5f5f5 0%, #f0f0f0 100%);
 }
 
-.message-list {
-  max-width: 800px;
+.message-container {
+  max-width: 900px;
   margin: 0 auto;
+  padding: 0 20px;
+}
+
+.message-wrapper {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.message-wrapper.message-self {
+  align-items: flex-end;
+}
+
+.message-time {
+  text-align: center;
+  font-size: 12px;
+  color: #999;
+  margin: 8px 0;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 4px 12px;
+  border-radius: 10px;
+  display: inline-block;
+  align-self: center;
 }
 
 .message-item {
   display: flex;
-  margin-bottom: 20px;
+  align-items: flex-start;
   gap: 12px;
+  max-width: 70%;
 }
 
-.message-item.self {
+.message-wrapper.message-self .message-item {
   flex-direction: row-reverse;
 }
 
-.message-item.self .message-content {
-  align-items: flex-end;
-}
-
-.message-item.self .message-body {
-  background-color: #409eff;
-  color: white;
+.message-avatar {
+  flex: 0 0 auto;
+  margin-top: 4px;
 }
 
 .message-content {
   display: flex;
   flex-direction: column;
-  max-width: 60%;
   gap: 4px;
+  min-width: 0;
 }
 
-.message-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.message-item.self .message-header {
-  flex-direction: row-reverse;
+.message-wrapper.message-self .message-content {
+  align-items: flex-end;
 }
 
 .sender-name {
-  font-size: 14px;
-  color: #606266;
-  font-weight: 500;
-}
-
-.message-time {
   font-size: 12px;
-  color: #909399;
+  color: #666;
+  margin-bottom: 4px;
+  padding: 0 8px;
 }
 
-.message-body {
-  background-color: white;
-  padding: 12px 16px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+/* 消息气泡样式 */
+.message-bubble {
+  position: relative;
+  border-radius: 8px;
+  padding: 10px 14px;
   word-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.message-bubble:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 对方消息气泡 */
+.other-bubble {
+  background: #ffffff;
+  color: #333;
+}
+
+.other-bubble::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 12px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 6px 6px 6px 0;
+  border-color: transparent #ffffff transparent transparent;
+}
+
+/* 自己发送的消息气泡 */
+.self-bubble {
+  background: #07c160;
+  color: #ffffff;
+}
+
+.self-bubble::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 12px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 6px 0 6px 6px;
+  border-color: transparent transparent transparent #07c160;
+}
+
+/* 系统消息气泡 */
+.system-bubble {
+  background: #f0f9ff;
+  color: #0ea5e9;
+  border: 1px solid #e0f2fe;
+  text-align: center;
+  font-size: 12px;
+  align-self: center;
+  margin: 8px 0;
+}
+
+.system-bubble::before,
+.system-bubble::after {
+  display: none;
 }
 
 .system-message {
-  background-color: #f0f9ff !important;
-  color: #0ea5e9 !important;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   font-style: italic;
 }
 
-.file-message {
-  padding: 8px 12px;
+.system-icon {
+  font-size: 14px;
 }
 
-.chat-input {
-  background: white;
+/* 图片消息样式 */
+.image-message {
+  padding: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.chat-image {
+  max-width: 250px;
+  max-height: 200px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.chat-image:hover {
+  transform: scale(1.02);
+}
+
+/* 文件消息样式 */
+.file-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px dashed #ddd;
+  transition: all 0.2s;
+}
+
+.file-message:hover {
+  border-color: #409eff;
+  background: rgba(64, 158, 255, 0.05);
+}
+
+.file-icon {
+  color: #409eff;
+  font-size: 24px;
+}
+
+.file-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file-name {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.file-size {
+  font-size: 12px;
+  color: #999;
+}
+
+.download-btn {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+/* 正在输入提示 */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  margin: 16px 0;
+  align-self: flex-start;
+  font-size: 12px;
+  color: #666;
+}
+
+.typing-dots {
+  display: flex;
+  gap: 3px;
+}
+
+.typing-dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #666;
+  animation: typing-bounce 1.4s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing-bounce {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 输入区域样式 */
+.chat-input-area {
+  background: #ffffff;
   border-top: 1px solid #e4e7ed;
   padding: 16px 20px;
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  max-width: 800px;
-  margin: 0 auto;
-  width: 100%;
-  box-sizing: border-box;
+  position: relative;
+  z-index: 100;
 }
 
 .input-toolbar {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 8px;
+  margin-bottom: 12px;
 }
 
-.input-content {
+.toolbar-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: #666;
+  font-size: 16px;
+  transition: all 0.2s;
+  background: #f5f5f5;
+}
+
+.toolbar-btn:hover {
+  background: #e6f7ff;
+  color: #409eff;
+}
+
+.input-container {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.message-input {
   flex: 1;
 }
 
-.input-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.message-input :deep(.el-textarea__inner) {
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  resize: none;
+  transition: border-color 0.2s;
+  background: #fafafa;
 }
 
-.chat-closed {
-  background: white;
+.message-input :deep(.el-textarea__inner):focus {
+  border-color: #409eff;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+}
+
+.message-input :deep(.el-textarea__inner):disabled {
+  background: #f5f5f5;
+  color: #999;
+}
+
+.send-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.send-btn {
+  height: 36px;
+  padding: 0 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.send-btn:not(:disabled) {
+  background: #07c160;
+  border-color: #07c160;
+}
+
+.send-btn:not(:disabled):hover {
+  background: #06ad56;
+  border-color: #06ad56;
+  transform: translateY(-1px);
+}
+
+.send-btn:disabled {
+  background: #f5f5f5;
+  border-color: #ddd;
+  color: #999;
+}
+
+/* 聊天室已关闭样式 */
+.chat-disabled {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
   padding: 40px;
-  text-align: center;
+}
+
+.chat-disabled :deep(.el-empty__description) {
+  color: #909399;
+  font-size: 14px;
 }
 
 /* 滚动条样式 */
@@ -546,15 +1059,132 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
 }
 
 .chat-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: transparent;
 }
 
 .chat-content::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 3px;
+  transition: background 0.2s;
 }
 
 .chat-content::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: rgba(0, 0, 0, 0.4);
 }
-</style> 
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .chat-room-wrapper {
+    height: 100vh;
+  }
+  
+  .chat-header {
+    height: 50px;
+    padding: 0 16px;
+  }
+  
+  .room-title {
+    font-size: 14px;
+  }
+  
+  .room-subtitle {
+    font-size: 11px;
+  }
+  
+  .chat-content {
+    padding: 12px;
+  }
+  
+  .message-container {
+    padding: 0 8px;
+  }
+  
+  .message-item {
+    max-width: 85%;
+  }
+  
+  .chat-input-area {
+    padding: 12px 16px;
+  }
+  
+  .input-container {
+    gap: 8px;
+  }
+  
+  .send-btn {
+    height: 32px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+}
+
+/* 动画效果 */
+.message-wrapper {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: white) {
+  .chat-room-wrapper {
+    background-color: #2c2c2c;
+  }
+  
+  .chat-header {
+    background: #3a3a3a;
+    border-bottom-color: #484848;
+  }
+  
+  .room-title {
+    color: #ffffff;
+  }
+  
+  .room-subtitle {
+    color: #b3b3b3;
+  }
+  
+  .chat-content {
+    background: linear-gradient(to bottom, #2c2c2c 0%, #262626 100%);
+  }
+  
+  .other-bubble {
+    background: #404040;
+    color: #ffffff;
+  }
+  
+  .other-bubble::before {
+    border-right-color: #404040;
+  }
+  
+  .chat-input-area {
+    background: #3a3a3a;
+    border-top-color: #484848;
+  }
+  
+  .message-input :deep(.el-textarea__inner) {
+    background: #404040;
+    border-color: #484848;
+    color: #ffffff;
+  }
+  
+  .toolbar-btn {
+    background: #404040;
+    color: #b3b3b3;
+  }
+  
+  .toolbar-btn:hover {
+    background: #484848;
+    color: #409eff;
+  }
+}
+</style>

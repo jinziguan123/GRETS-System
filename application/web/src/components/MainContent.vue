@@ -37,8 +37,8 @@ const userStore = useUserStore()
 
 // 组织权限映射
 const organizationPermissions = {
-  'investor': ['/realty', '/transaction', '/contract', '/payment', '/mortgage'],
-  'government': ['/realty', '/transaction', '/contract', '/tax', '/statistics'],
+  'investor': ['/realty', '/transaction', '/contract', '/payment', '/mortgage', '/chat'],
+  'government': ['/realty', '/transaction', '/contract', '/tax', '/statistics', '/chat'],
   'bank': ['/transaction', '/payment', '/mortgage', '/statistics', '/contract', '/realty'],
   'audit': ['/contract', '/realty', '/transaction'],
   'thirdparty': ['/admin', '/realty', '/transaction', '/contract', '/payment', '/tax', '/mortgage', '/statistics']
