@@ -32,7 +32,7 @@ const (
 	_LatestBucket      = "latestBucket"
 	_RetryInterval     = 3 * time.Second
 	_BlockQueueSize    = 1000                   // 内部区块处理队列大小
-	_BlockBatchSize    = 50                     // 一次数据库事务保存的区块数量
+	_BlockBatchSize    = 100                    // 一次数据库事务保存的区块数量
 	_BlockBatchTimeout = 200 * time.Millisecond // 批量保存的最大等待时间
 )
 
