@@ -37,7 +37,7 @@ export function getRealtyDetail(id: string) {
 
 export function QueryRealtyByOrganizationAndCitizenID(organization: string, citizenID: string) {
   return request({
-    url: `/realty/QueryRealtyByOrganizationAndCitizenID`,
+    url: `/realty/queryRealtyByOrganizationAndCitizenID`,
     method: 'get',
     params: {
       organization,
@@ -71,7 +71,7 @@ export function createRealty(data: {
   address?: string
 }) {
   return request({
-    url: '/realty/createRealty',
+    url: '/realty/admin/createRealty',
     method: 'post',
     data
   })

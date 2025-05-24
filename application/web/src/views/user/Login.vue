@@ -1,6 +1,6 @@
 <template>
   <div class="login-container">
-    <h2 class="login-title">用户登录</h2>
+    <h2 class="login-title">投资者登录</h2>
     
     <el-form
       ref="formRef"
@@ -10,27 +10,10 @@
       class="login-form"
     >
 
-      <!-- 组织选择 -->
-      <el-form-item prop="organization">
-        <el-select
-            v-model="loginForm.organization"
-            placeholder="请选择组织"
-            class="w-100"
-        >
-          <el-option
-              v-for="org in organizations"
-              :key="org.value"
-              :label="org.label"
-              :value="org.value"
-          />
-        </el-select>
-      </el-form-item>
-
       <!-- 用户名输入框 -->
       <el-form-item prop="citizenID">
         <el-input
           v-model="loginForm.citizenID"
-          v-if="loginForm.organization"
           placeholder="请输入身份证号"
           prefix-icon="User"
           autocomplete="citizenID"
@@ -41,7 +24,6 @@
       <el-form-item prop="password">
         <el-input
           v-model="loginForm.password"
-          v-if="loginForm.organization"
           type="password"
           placeholder="请输入密码"
           prefix-icon="Lock"
@@ -95,6 +77,8 @@ interface LoginResponse {
     token: string
     user?: any
   }
+  token: string
+  user?: any
 }
 
 const router = useRouter()
@@ -110,49 +94,23 @@ interface LoginForm extends LoginData {
 const loginForm = reactive<LoginForm>({
   citizenID: '',
   password: '',
-  organization: '',
+  organization: 'investor', // 固定为投资者
   remember: false
 })
-
-// 可选组织列表
-interface Organization {
-  label: string
-  value: string
-}
-
-const organizations: Organization[] = [
-  { label: '政府监管部门', value: 'government' },
-  { label: '投资者/买家', value: 'investor' },
-  { label: '银行机构', value: 'bank' },
-  // { label: '第三方机构', value: 'thirdparty' },
-  { label: '审计机构', value: 'audit' }
-]
 
 // 表单验证规则
 const loginRules = reactive<FormRules>({
   citizenID: [
     { required: true, message: '请输入身份证号', trigger: 'blur' },
     { 
-      validator: (rule, value, callback) => {
-        if (loginForm.organization === 'investor') {
-          if (value.length !== 18) {
-            callback(new Error('投资者身份证号长度应为18个字符'));
-          } else {
-            callback();
-          }
-        } else {
-          // 非投资者组织只验证非空
-          callback();
-        }
-      }, 
+      min: 18, 
+      max: 18, 
+      message: '身份证号应为18位', 
       trigger: 'blur' 
     }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' }
-  ],
-  organization: [
-    { required: true, message: '请选择组织', trigger: 'change' }
   ]
 })
 
@@ -216,7 +174,7 @@ onMounted(() => {
   window.addEventListener('keydown', handleEnter);
 });
 
-const handleEnter = (e) => {
+const handleEnter = (e: KeyboardEvent) => {
   if (e.keyCode === 13 || e.keyCode === 108) {
     handleLogin()
   }

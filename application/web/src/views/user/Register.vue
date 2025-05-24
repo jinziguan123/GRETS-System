@@ -1,6 +1,6 @@
 <template>
   <div class="register-container">
-    <h2 class="register-title">用户注册</h2>
+    <h2 class="register-title">投资者注册</h2>
     
     <el-form
       ref="formRef"
@@ -10,26 +10,9 @@
       class="register-form"
     >
 
-      <!-- 组织选择 -->
-      <el-form-item prop="organization">
-        <el-select
-            v-model="registerForm.organization"
-            placeholder="请选择组织"
-            class="w-100"
-        >
-          <el-option
-              v-for="org in organizations"
-              :key="org.value"
-              :label="org.label"
-              :value="org.value"
-          />
-        </el-select>
-      </el-form-item>
-
       <!-- 用户名 -->
       <el-form-item prop="name">
         <el-input
-          v-if="registerForm.organization"
           v-model="registerForm.name"
           placeholder="请输入姓名"
           prefix-icon="User"
@@ -39,7 +22,6 @@
       <!-- 身份证号 -->
       <el-form-item prop="citizenID">
         <el-input
-            v-if="registerForm.organization"
           v-model="registerForm.citizenID"
           placeholder="请输入身份证号"
           prefix-icon="User"
@@ -49,7 +31,6 @@
       <!-- 密码 -->
       <el-form-item prop="password">
         <el-input
-            v-if="registerForm.organization"
           v-model="registerForm.password"
           type="password"
           placeholder="请输入密码"
@@ -61,7 +42,6 @@
       <!-- 确认密码 -->
       <el-form-item prop="confirmPassword">
         <el-input
-            v-if="registerForm.organization"
           v-model="registerForm.confirmPassword"
           type="password"
           placeholder="请确认密码"
@@ -73,7 +53,6 @@
       <!-- 电子邮箱 -->
       <el-form-item prop="email">
         <el-input
-            v-if="registerForm.organization"
           v-model="registerForm.email"
           placeholder="请输入电子邮箱"
           prefix-icon="Message"
@@ -83,20 +62,19 @@
       <!-- 手机号码 -->
       <el-form-item prop="phone">
         <el-input
-            v-if="registerForm.organization"
           v-model="registerForm.phone"
           placeholder="请输入手机号码"
           prefix-icon="Phone"
         />
       </el-form-item>
 
-      <!-- 注册金额，仅当选择投资者/买家时显示 -->
-      <el-form-item prop="balance" v-if="registerForm.organization === 'investor'">
+      <!-- 注册金额 -->
+      <el-form-item prop="balance">
         <el-input
-            v-model="registerForm.balance"
-            placeholder="请输入注册金额"
-            prefix-icon="Money"
-            type="number"
+          v-model="registerForm.balance"
+          placeholder="请输入注册金额"
+          prefix-icon="Money"
+          type="number"
         />
       </el-form-item>
       
@@ -241,33 +219,12 @@ const registerForm = reactive({
   confirmPassword: '',
   email: '',
   phone: '',
-  organization: '',
+  organization: 'investor', // 固定为投资者
   balance: undefined,
   agreement: false
 })
 
-// 可选组织列表
-const organizations = [
-  { label: '政府监管部门', value: 'government' },
-  { label: '投资者/买家', value: 'investor' },
-  { label: '银行机构', value: 'bank' },
-  // { label: '第三方机构', value: 'thirdparty' },
-  { label: '审计机构', value: 'audit' }
-]
-
-// 监听组织变化，非投资者时重置余额
-// watch(() => registerForm.organization, (newVal) => {
-//   if (newVal !== 'investor') {
-//     registerForm.balance = undefined
-//     // 对非投资者组织，设置固定身份证号
-//     if (newVal) {
-//       const orgName = newVal.charAt(0).toUpperCase() + newVal.slice(1);
-//       registerForm.citizenID = `${orgName}Default`;
-//     }
-//   }else{
-//     registerForm.citizenID = ''
-//   }
-// })
+// 由于组织固定为投资者，不需要监听组织变化
 
 // 验证密码是否一致
 const validatePass = (rule, value, callback) => {
@@ -310,14 +267,10 @@ const validateEmail = (rule, value, callback) => {
 
 // 验证投资者余额
 const validateBalance = (rule, value, callback) => {
-  if (registerForm.organization === 'investor') {
-    if (value === undefined || value === '') {
-      callback(new Error('投资者必须输入注册金额'))
-    } else if (isNaN(value) || parseFloat(value) <= 0) {
-      callback(new Error('注册金额必须大于0'))
-    } else {
-      callback()
-    }
+  if (value === undefined || value === '') {
+    callback(new Error('必须输入注册金额'))
+  } else if (isNaN(value) || parseFloat(value) <= 0) {
+    callback(new Error('注册金额必须大于0'))
   } else {
     callback()
   }
@@ -332,18 +285,9 @@ const registerRules = reactive({
   citizenID: [
     { required: true, message: '请输入身份证号', trigger: 'blur' },
     { 
-      validator: (rule, value, callback) => {
-        if (registerForm.organization === 'investor') {
-          if (value.length !== 18) {
-            callback(new Error('投资者身份证号长度应为18个字符'));
-          } else {
-            callback();
-          }
-        } else {
-          // 非投资者组织只验证非空
-          callback();
-        }
-      }, 
+      min: 18, 
+      max: 18, 
+      message: '身份证号应为18位', 
       trigger: 'blur' 
     }
   ],
@@ -363,9 +307,7 @@ const registerRules = reactive({
     { required: true, message: '请输入手机号码', trigger: 'blur' },
     { validator: validatePhone, trigger: 'blur' }
   ],
-  organization: [
-    { required: true, message: '请选择组织', trigger: 'change' }
-  ],
+
   balance: [
     { validator: validateBalance, trigger: 'blur' }
   ],
@@ -400,10 +342,8 @@ const handleRegister = () => {
             phone: registerForm.phone,
             role: 'user',
             organization: registerForm.organization,
-            // 投资者使用输入的金额，其他组织使用0.0
-            balance: registerForm.organization === 'investor' 
-              ? parseFloat(registerForm.balance) 
-              : 0.0,
+            // 投资者使用输入的金额
+            balance: parseFloat(registerForm.balance),
           })
           
           ElMessage.success('注册成功，请登录')

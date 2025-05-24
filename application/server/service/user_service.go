@@ -213,6 +213,12 @@ func (s *userService) Register(req *userDto.RegisterDTO) error {
 		return fmt.Errorf("调用链码[Register]失败: %v", err)
 	}
 
+	if req.Organization == constants.InvestorOrganization {
+		req.Role = "user"
+	} else {
+		req.Role = "admin"
+	}
+
 	// 创建用户对象 - 不设置ID，让MySQL自动生成
 	user := &models.User{
 		ID:           0, // 设置为0让数据库自动生成
