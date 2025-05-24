@@ -41,10 +41,19 @@
                 />
               </el-select>
             </el-form-item>
-            <el-form-item>
+            <el-form-item label="创建者">
+              <el-input 
+                v-model="formState.creator" 
+                placeholder="输入交易创建者" 
+                clearable
+                :disabled="detailVisible"
+                style="width: 200px"
+              />
+            </el-form-item>
+            <div>
               <el-button type="primary" @click="handleSubmit" :disabled="detailVisible">查询</el-button>
               <el-button @click="resetForm" :disabled="detailVisible">重置</el-button>
-            </el-form-item>
+            </div>
           </el-form>
         </div>
 
@@ -246,7 +255,8 @@ const currentBlock = ref<BlockInfo | null>(null)
 
 const formState = reactive({
   blockHash: '',
-  provinceName: ''
+  provinceName: '',
+  creator: ''
 })
 
 const pagination = reactive({
@@ -321,6 +331,7 @@ const fetchBlockList = async () => {
     const params = {
       pageSize: pagination.pageSize,
       pageNumber: pagination.current,
+      creator: formState.creator || undefined,
       blockHash: formState.blockHash || undefined,
       provinceName: formState.provinceName || undefined,
       organization: userStore.organization
@@ -372,6 +383,7 @@ const handleSubmit = () => {
 const resetForm = () => {
   formState.blockHash = ''
   formState.provinceName = ''
+  formState.creator = ''
   pagination.current = 1
   fetchBlockList()
 }

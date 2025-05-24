@@ -70,6 +70,14 @@ func (b *blockService) QueryBlockList(queryBlockDTO blockDto.QueryBlockDTO) (*bl
 		blocks = filteredBlocks
 	}
 
+	if queryBlockDTO.Creator != "" {
+		filteredBlocks, err := filterBlocksByCreator(blocks, queryBlockDTO.Creator)
+		if err != nil {
+			return nil, err
+		}
+		blocks = filteredBlocks
+	}
+
 	total := len(blocks)
 
 	// 分页
@@ -118,6 +126,34 @@ func filterBlocksByProvince(blocks []*blockchain.BlockData, provinceName string)
 	for _, block := range blocks {
 		if block.ChannelName == channelInfo.ChannelName {
 			filteredBlocks = append(filteredBlocks, block)
+		}
+	}
+	return filteredBlocks, nil
+}
+
+func filterBlocksByCreator(blocks []*blockchain.BlockData, creator string) ([]*blockchain.BlockData, error) {
+	filteredBlocks := make([]*blockchain.BlockData, 0)
+	for _, block := range blocks {
+		// 如果是最后一块区块，则跳过
+		if block.BlockNumber == blocks[len(blocks)-1].BlockNumber {
+			continue
+		}
+
+		// 从block中获取所有的交易
+		envelopeList, err := blockchain.GetBlockListener().GetEnvelopeListFromBoltBlockData(block)
+		if err != nil {
+			return nil, err
+		}
+
+		transactionDetailList, err := blockchain.GetBlockListener().GetTransactionDetailListFromEnvelopeList(envelopeList)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, transactionDetail := range transactionDetailList {
+			if transactionDetail.Creator == creator {
+				filteredBlocks = append(filteredBlocks, block)
+			}
 		}
 	}
 	return filteredBlocks, nil

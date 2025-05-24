@@ -4,6 +4,7 @@ package block_dto
 type QueryBlockDTO struct {
 	BlockHash    string `json:"blockHash"`
 	ProvinceName string `json:"provinceName"`
+	Creator      string `json:"creator"`
 	Organization string `json:"organization"`
 	PageSize     int    `json:"pageSize"`
 	PageNumber   int    `json:"pageNumber"`
