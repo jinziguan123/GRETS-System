@@ -160,7 +160,7 @@ func (dao *DIDDAO) GetDIDByUser(citizenID, organization string) (string, error) 
 func (dao *DIDDAO) GetUserByDID(didStr string) (string, string, error) {
 	var mapping models.UserDIDMapping
 	if err := dao.mysqlDB.First(&mapping, "did = ?", didStr).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", "", fmt.Errorf("DID映射不存在: %s", didStr)
 		}
 		return "", "", fmt.Errorf("查询DID映射失败: %v", err)

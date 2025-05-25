@@ -1,8 +1,12 @@
 package service
 
 import (
+	"crypto/ecdsa"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"grets_server/config"
 	"grets_server/constants"
 	"grets_server/dao"
 	blockDto "grets_server/dto/block_dto"
@@ -12,6 +16,7 @@ import (
 	"grets_server/pkg/did"
 	"grets_server/pkg/utils"
 	"log"
+	"os"
 	"time"
 )
 
@@ -90,15 +95,15 @@ func (s *didService) CreateDID(req *didDto.CreateDIDRequest) (*didDto.CreateDIDR
 	didStr := s.didManager.GenerateDID(req.Organization, req.CitizenID)
 
 	// 恢复公钥
-	keyPair := &did.KeyPair{}
+	userKeyPair := &did.KeyPair{}
 	publicKey, err := did.HexToPublicKey(req.PublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("无效的公钥格式: %v", err)
 	}
-	keyPair.PublicKey = publicKey
+	userKeyPair.PublicKey = publicKey
 
 	// 创建DID文档
-	didDoc := s.didManager.CreateDIDDocument(didStr, req.Organization, req.Role, keyPair)
+	didDoc := s.didManager.CreateDIDDocument(didStr, req.Organization, req.Role, userKeyPair)
 
 	// 序列化DID文档用于上链
 	didDocJSON, err := json.Marshal(didDoc)
@@ -149,11 +154,6 @@ func (s *didService) CreateDID(req *didDto.CreateDIDRequest) (*didDto.CreateDIDR
 		utils.Log.Error(fmt.Sprintf("保存DID文档到链下数据库失败: %v", err))
 	}
 
-	// 保存用户DID映射到链下
-	if err := s.didDAO.SaveUserDIDMapping(req.CitizenID, req.Organization, didStr); err != nil {
-		utils.Log.Error(fmt.Sprintf("保存用户DID映射失败: %v", err))
-	}
-
 	// 创建身份凭证
 	var credentials []did.VerifiableCredential
 
@@ -170,11 +170,39 @@ func (s *didService) CreateDID(req *didDto.CreateDIDRequest) (*didDto.CreateDIDR
 	// 这里简化处理，实际应该由相应的权威机构签发
 	issuerDID := s.getIssuerDID(req.Organization)
 
-	// 使用issuerDID获取颁发者密钥
-	issuerKeyPair, err := s.didDAO.GetKeyPairByDID(issuerDID)
+	// 准备颁发者的密钥对
+	issuerKeyPair := &did.KeyPair{}
+
+	// 1. 获取对应的组织的私钥keyPath
+	issuerKeyPath := config.GlobalConfig.Fabric.Organizations[req.Organization].KeyPath
+	privateKeyBytes, err := os.ReadFile(issuerKeyPath + "/priv_sk")
 	if err != nil {
-		return nil, fmt.Errorf("获取颁发者密钥失败: %v", err)
+		return nil, fmt.Errorf("获取颁发者密钥路径失败: %v", err)
 	}
+	// 2. 解析pem文件
+	block, _ := pem.Decode(privateKeyBytes)
+	if block == nil {
+		return nil, fmt.Errorf("解析pem文件失败")
+	}
+	// 3. 解析 PKCS#8 编码的私钥
+	// x509.ParsePKCS8PrivateKey 返回的是一个 interface{} (crypto.PrivateKey)
+	// 因为 PKCS#8 可以编码多种类型的私钥 (RSA, ECDSA, Ed25519 等)
+	genericPrivateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		// 如果你知道它肯定是老的 SEC1 "EC PRIVATE KEY" 格式 (Fabric 通常不是这种)
+		// 你可以尝试 x509.ParseECPrivateKey(block.Bytes)
+		// 但对于 Fabric 的 priv_sk，ParsePKCS8PrivateKey 通常是正确的
+		return nil, fmt.Errorf("无法解析 PKCS#8 私钥: %w", err)
+	}
+
+	// 4. 将通用的 crypto.PrivateKey 类型断言为 *ecdsa.PrivateKey
+	// 因为我们期望这是一个 ECC 私钥
+	ecdsaPrivateKey, ok := genericPrivateKey.(*ecdsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("解析的密钥不是 ECDSA 私钥, 类型是 %T", genericPrivateKey)
+	}
+	issuerKeyPair.PrivateKey = ecdsaPrivateKey
+	issuerKeyPair.PublicKey = &ecdsaPrivateKey.PublicKey
 
 	identityCredential, err := s.didManager.CreateCredential(
 		issuerDID,
@@ -191,6 +219,11 @@ func (s *didService) CreateDID(req *didDto.CreateDIDRequest) (*didDto.CreateDIDR
 		if err := s.didDAO.SaveCredential(identityCredential); err != nil {
 			log.Printf("保存身份凭证失败: %v", err)
 		}
+	}
+
+	// 保存用户DID映射到链下
+	if err := s.didDAO.SaveUserDIDMapping(req.CitizenID, req.Organization, didStr); err != nil {
+		utils.Log.Error(fmt.Sprintf("保存用户DID映射失败: %v", err))
 	}
 
 	return &didDto.CreateDIDResponse{
