@@ -1,4 +1,5 @@
 import { ec as EC } from 'elliptic'; // 使用 ES6 模块导入语法
+import { Buffer } from 'buffer'; // 从 npm 包导入
 
 // 选择椭圆曲线。
 // 'p256' (NIST P-256 / prime256v1 / secp256r1)
@@ -32,37 +33,24 @@ export interface SignatureResult {
 export async function generateKeyPair(): Promise<KeyPair> {
   try {
     const cryptoKeyPair = await window.crypto.subtle.generateKey(
-      {
-        name: 'ECDSA',
-        namedCurve: 'P-256' // NIST P-256
-      },
-      true, // exportable
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      true,
       ['sign', 'verify']
     );
 
-    // Export Public Key (raw format for 04 + X + Y)
     const publicKeyBuffer = await window.crypto.subtle.exportKey('raw', cryptoKeyPair.publicKey);
     const publicKeyHex = arrayBufferToHex(publicKeyBuffer);
-    // Verification for uncompressed P-256 public key
     if (new Uint8Array(publicKeyBuffer).length !== 65 || new Uint8Array(publicKeyBuffer)[0] !== 0x04) {
-        throw new Error('Generated public key is not in uncompressed P-256 format (65 bytes, starting with 0x04)');
+      throw new Error('Generated public key is not in uncompressed P-256 format');
     }
 
-    // Export Private Key as JWK to easily get the 'd' parameter (raw private scalar)
     const privateKeyJwk = await window.crypto.subtle.exportKey('jwk', cryptoKeyPair.privateKey);
-
     if (!privateKeyJwk.d) {
-      throw new Error('Failed to get "d" parameter (private scalar) from JWK');
+      throw new Error('Failed to get "d" (private scalar) from JWK');
     }
-
-    // The 'd' parameter in JWK is the Base64URL encoded private scalar
     const privateKeyHex = base64UrlToHex(privateKeyJwk.d);
 
-    return {
-      publicKey: publicKeyHex,
-      privateKey: privateKeyHex, // This is now the raw 32-byte scalar in hex
-      cryptoKeyPair
-    };
+    return { publicKey: publicKeyHex, privateKey: privateKeyHex, cryptoKeyPair };
   } catch (error: any) {
     console.error("Key generation failed:", error);
     throw new Error(`Key generation failed: ${error.message || error}`);
@@ -85,7 +73,7 @@ export async function restoreKeyPair(privateKeyHex: string, publicKeyHex: string
     }   
 
     // 重新导入密钥到Web Crypto API
-    const cryptoKeyPair = await importKeyPair(privateKeyHex, publicKeyHex)
+    const cryptoKeyPair = await importCryptoKeyPair(privateKeyHex, publicKeyHex)
 
     return {
       publicKey: publicKeyHex,
@@ -339,24 +327,38 @@ function privateKeyToPKCS8(privateKeyHex: string): ArrayBuffer {
 /**
  * 导入密钥对到Web Crypto API
  */
-async function importKeyPair(privateKeyHex: string, publicKeyHex: string): Promise<CryptoKeyPair> {
-  // 导入私钥
-  const privateKeyPKCS8 = privateKeyToPKCS8(privateKeyHex)
-  const privateKey = await window.crypto.subtle.importKey(
-    'pkcs8',
-    privateKeyPKCS8,
-    {
-      name: 'ECDSA',
-      namedCurve: 'P-256'
-    },
-    true,
-    ['sign']
-  )
+async function importCryptoKeyPair(privateKeyHex: string, publicKeyHex: string): Promise<CryptoKeyPair> {
+  try {
+    // Validate inputs (basic checks)
+    if (!isValidPrivateKey(privateKeyHex)) throw new Error('Invalid private key format for import.');
+    if (!isValidPublicKey(publicKeyHex)) throw new Error('Invalid public key format for import.');
 
-  // 导入公钥
-  const publicKey = await importPublicKey(publicKeyHex)
+    // Construct JWK for private key
+    const pubPoint = ec.keyFromPublic(publicKeyHex, 'hex').getPublic(); // Use elliptic to get X, Y
+    const jwkPrivateKey = {
+      kty: 'EC',
+      crv: 'P-256',
+      d: hexToBase64Url(privateKeyHex),
+      x: hexToBase64Url(pubPoint.getX().toString('hex')),
+      y: hexToBase64Url(pubPoint.getY().toString('hex')),
+      ext: true,
+    };
+    const privateKey = await window.crypto.subtle.importKey(
+      'jwk',
+      jwkPrivateKey,
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      true,
+      ['sign']
+    );
 
-  return { privateKey, publicKey }
+    // Import public key using 'raw' format (as you already have)
+    const publicKey = await importPublicKey(publicKeyHex);
+
+    return { privateKey, publicKey };
+  } catch (error: any) {
+    console.error("Failed to import CryptoKeyPair:", error);
+    throw new Error(`Failed to import CryptoKeyPair: ${error.message || error}`);
+  }
 }
 
 /**
@@ -598,3 +600,9 @@ export async function createAuthResponse(
     throw new Error(`创建认证响应失败: ${error.message}`)
   }
 } 
+
+
+function hexToBase64Url(hex: string): string {
+  const base64 = Buffer.from(hex, 'hex').toString('base64');
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
