@@ -78,10 +78,11 @@ func autoMigrate(db *gorm.DB) error {
 		&models.Region{},
 		&models.ChatRoom{},
 		&models.ChatMessage{},
-		// &models.Audit{},
-		// &models.Tax{},
-		// &models.Mortgage{},
-		// &models.File{},
+		&models.DIDDocument{},
+		&models.VerifiableCredential{},
+		&models.DIDAuthChallenge{},
+		&models.DIDKeyPair{},
+		&models.UserDIDMapping{},
 	)
 
 	if err != nil {

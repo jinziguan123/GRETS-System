@@ -161,8 +161,6 @@ func (dao *RealEstateDAO) QueryRealEstatesWithPagination(
 				query = query.Where("room = ?", v)
 			} else if field == "house_type" {
 				query = query.Where("house_type = ?", v)
-			} else if field == "status" {
-				query = query.Where("status = ?", v)
 			}
 		} else if field == "price_range" {
 			if priceRange, ok := value.(map[string]float64); ok {

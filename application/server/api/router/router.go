@@ -57,10 +57,43 @@ func SetupRouter() *gin.Engine {
 	// API 路由组
 	api := r.Group("/api/v1")
 	{
-		// 注册接口
+		// 传统注册接口
 		api.POST("/register", controller.Register)
-		// 登录接口
+		// 传统登录接口
 		api.POST("/login", controller.Login)
+
+		// DID相关接口
+		did := api.Group("/did")
+		{
+			// DID注册（兼容传统注册）
+			did.POST("/register", controller.DIDRegister)
+			// 获取认证挑战
+			did.POST("/challenge", controller.GetChallenge)
+			// DID登录
+			did.POST("/login", controller.DIDLogin)
+			// 创建DID
+			did.POST("/create", controller.CreateDID)
+			// 解析DID
+			did.GET("/resolve/:did", controller.ResolveDID)
+			// 更新DID文档
+			did.PUT("/document", controller.UpdateDIDDocument)
+			// 根据用户信息获取DID
+			did.GET("/user", controller.GetDIDByUser)
+		}
+
+		// 凭证相关接口
+		credentials := api.Group("/credentials")
+		credentials.Use(middleware.JWTAuth())
+		{
+			// 签发凭证
+			credentials.POST("/issue", controller.IssueCredential)
+			// 获取凭证
+			credentials.POST("/get", controller.GetCredentials)
+			// 撤销凭证
+			credentials.POST("/revoke", controller.RevokeCredential)
+			// 验证展示
+			credentials.POST("/verify", controller.VerifyPresentation)
+		}
 
 		// 用户相关接口
 		users := api.Group("/user")
