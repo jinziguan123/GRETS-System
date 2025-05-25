@@ -120,10 +120,15 @@ func (kp *KeyPair) SignMessage(message []byte) (string, error) {
 
 // VerifySignature 验证签名
 func VerifySignature(publicKeyHex, message, signatureHex string) (bool, error) {
+
 	// 恢复公钥
 	publicKey, err := HexToPublicKey(publicKeyHex)
 	if err != nil {
 		return false, fmt.Errorf("恢复公钥失败: %v", err)
+	}
+
+	if !publicKey.Curve.IsOnCurve(publicKey.X, publicKey.Y) {
+		return false, fmt.Errorf("公钥不在曲线上")
 	}
 
 	// 解码签名
@@ -138,6 +143,11 @@ func VerifySignature(publicKeyHex, message, signatureHex string) (bool, error) {
 
 	r := new(big.Int).SetBytes(signatureBytes[:32])
 	s := new(big.Int).SetBytes(signatureBytes[32:])
+
+	curveOrder := elliptic.P256().Params().N
+	if r.Sign() <= 0 || s.Sign() <= 0 || r.Cmp(curveOrder) >= 0 || s.Cmp(curveOrder) >= 0 {
+		return false, fmt.Errorf("无效的 r/s 值")
+	}
 
 	// 计算消息哈希
 	hash := sha256.Sum256([]byte(message))

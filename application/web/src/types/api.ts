@@ -138,3 +138,10 @@ export interface QueryTransactionListResponse {
   total: number
   transactions: Transaction[]
 }
+
+export interface Challenge {
+  did: string
+  challenge: string
+  nonce: string
+  domain: string
+}

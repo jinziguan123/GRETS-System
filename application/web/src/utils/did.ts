@@ -1,5 +1,6 @@
 import { ec as EC } from 'elliptic'; // 使用 ES6 模块导入语法
 import { Buffer } from 'buffer'; // 从 npm 包导入
+import type { Challenge as ChallengeType } from '@/types/api';
 
 // 选择椭圆曲线。
 // 'p256' (NIST P-256 / prime256v1 / secp256r1)
@@ -91,33 +92,27 @@ export async function restoreKeyPair(privateKeyHex: string, publicKeyHex: string
  */
 export async function signMessage(keyPair: KeyPair, message: string): Promise<SignatureResult> {
   try {
-    let cryptoKeyPair = keyPair.cryptoKeyPair
+    // 使用elliptic库进行签名，确保与后端一致
+    const ecInstance = new EC('p256')
+    const key = ecInstance.keyFromPrivate(keyPair.privateKey, 'hex')
     
-    if (!cryptoKeyPair) {
-      // 如果没有cryptoKeyPair，尝试恢复
-      const restoredKeyPair = await restoreKeyPair(keyPair.privateKey, keyPair.publicKey)
-      cryptoKeyPair = restoredKeyPair.cryptoKeyPair!
-    }
-
     // 计算消息的SHA-256哈希
     const messageBuffer = new TextEncoder().encode(message)
     const hashBuffer = await window.crypto.subtle.digest('SHA-256', messageBuffer)
-
-    // 使用私钥签名哈希
-    const signatureBuffer = await window.crypto.subtle.sign(
-      {
-        name: 'ECDSA',
-        hash: 'SHA-256'
-      },
-      cryptoKeyPair.privateKey,
-      hashBuffer
-    )
-
-    // 转换签名格式为r+s格式（64字节）
-    const signature = formatSignature(signatureBuffer)
+    const hashArray = new Uint8Array(hashBuffer)
+    
+    // 使用elliptic库签名哈希
+    const signature = key.sign(hashArray)
+    
+    // 确保r和s都是32字节
+    const rHex = signature.r.toString('hex').padStart(64, '0')
+    const sHex = signature.s.toString('hex').padStart(64, '0')
+    
+    // 组合r+s格式（64字节）
+    const signatureHex = rHex + sHex
 
     return {
-      signature,
+      signature: signatureHex,
       message,
       publicKey: keyPair.publicKey
     }
@@ -573,7 +568,7 @@ export function validateDID(did: string): boolean {
  */
 export async function createAuthResponse(
   did: string,
-  challenge: string,
+  challenge: ChallengeType,
   privateKey: string,
   publicKey: string
 ): Promise<{
@@ -585,14 +580,17 @@ export async function createAuthResponse(
   try {
     // 恢复密钥对
     const keyPair = await restoreKeyPair(privateKey, publicKey)
+
+    // 通过challenge构造message
+    const message = `${did}:${challenge.challenge}:${challenge.nonce}`
+    console.log('message:', message)
     
     // 对挑战进行签名
-    const signatureResult = await signMessage(keyPair, challenge)
-    console.log('signatureResult:', signatureResult)
+    const signatureResult = await signMessage(keyPair, message)
     
     return {
       did,
-      challenge,
+      challenge: challenge.challenge,
       signature: signatureResult.signature,
       publicKey
     }

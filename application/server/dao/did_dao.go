@@ -80,7 +80,7 @@ func (dao *DIDDAO) SaveDIDDocument(didDoc *did.DIDDocument) error {
 func (dao *DIDDAO) GetDIDDocument(didStr string) (*did.DIDDocument, error) {
 	var dbDoc models.DIDDocument
 	if err := dao.mysqlDB.First(&dbDoc, "did = ? AND status = ?", didStr, "active").Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("查询DID文档失败: %v", err)
@@ -264,7 +264,7 @@ func (dao *DIDDAO) SaveAuthChallenge(challenge *did.DIDAuthChallenge) error {
 func (dao *DIDDAO) GetAuthChallenge(challengeStr string) (*did.DIDAuthChallenge, error) {
 	var dbChallenge models.DIDAuthChallenge
 	if err := dao.mysqlDB.First(&dbChallenge, "challenge = ? AND used = ? AND expires_at > ?", challengeStr, false, time.Now()).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("查询认证挑战失败: %v", err)
@@ -292,7 +292,7 @@ func (dao *DIDDAO) MarkChallengeUsed(challengeStr string) error {
 func (dao *DIDDAO) GetPublicKeyByDID(didStr string) (string, error) {
 	var keyPair models.DIDKeyPair
 	if err := dao.mysqlDB.First(&keyPair, "did = ? AND status = ?", didStr, "active").Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", nil
 		}
 		return "", fmt.Errorf("查询公钥失败: %v", err)

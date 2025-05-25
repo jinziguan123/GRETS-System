@@ -419,6 +419,7 @@ const handleDIDLogin = async (): Promise<void> => {
             ElMessage.error('无法加载密钥，请检查密码或重新导入密钥')
             return
           }
+
           // 步骤4: 使用私钥对挑战进行签名
           loginStep.value = 3
           loginProgressText.value = '正在生成数字签名...'
@@ -492,6 +493,10 @@ const importKey = async (): Promise<void> => {
         try {
           // 从私钥生成对应的公钥，与后端crypto.go格式保持一致          
           const publicKey = await generatePublicKeyFromPrivate(keyImportForm.privateKey)
+          if (!publicKey) {
+            throw new Error('无法从私钥生成公钥')
+          }
+          
           const keyPair = {
             privateKey: keyImportForm.privateKey,
             publicKey: publicKey
