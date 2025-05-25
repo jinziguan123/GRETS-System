@@ -2,6 +2,22 @@
   <div class="register-container">
     <h2 class="register-title">投资者注册</h2>
     
+    <!-- 注册方式选择 -->
+    <div class="register-mode-selector">
+      <el-radio-group v-model="registerMode" class="mode-group">
+        <el-radio-button label="traditional">传统注册</el-radio-button>
+        <el-radio-button label="did">DID注册</el-radio-button>
+      </el-radio-group>
+      <div class="mode-description">
+        <p v-if="registerMode === 'traditional'">
+          使用传统的用户名密码方式注册，适合熟悉传统系统的用户
+        </p>
+        <p v-if="registerMode === 'did'">
+          使用去中心化身份(DID)注册，享受更安全的区块链身份认证
+        </p>
+      </div>
+    </div>
+    
     <el-form
       ref="formRef"
       :model="registerForm"
@@ -77,6 +93,87 @@
           type="number"
         />
       </el-form-item>
+
+      <!-- DID密钥管理 -->
+      <div v-if="registerMode === 'did'" class="did-key-section">
+        <el-divider content-position="left">
+          <span class="key-section-title">
+            <el-icon><Key /></el-icon>
+            DID密钥管理
+          </span>
+        </el-divider>
+        
+        <!-- 密钥生成 -->
+        <el-form-item>
+          <el-button 
+            type="primary" 
+            @click="generateKeys"
+            :disabled="!!keyPair"
+            icon="Key"
+          >
+            {{ keyPair ? '密钥已生成' : '生成密钥对' }}
+          </el-button>
+          <el-button 
+            v-if="keyPair" 
+            type="warning" 
+            @click="regenerateKeys"
+            icon="Refresh"
+          >
+            重新生成
+          </el-button>
+        </el-form-item>
+
+        <!-- 密钥显示 -->
+        <div v-if="keyPair" class="key-display">
+          <el-alert
+            title="重要提醒"
+            type="warning"
+            :closable="false"
+            show-icon
+          >
+            <template #default>
+              <p>请务必安全保存您的私钥！私钥丢失将无法恢复您的DID身份。</p>
+              <p>建议将私钥保存到安全的地方，如密码管理器或离线存储设备。</p>
+            </template>
+          </el-alert>
+
+          <el-form-item label="公钥">
+            <el-input
+              v-model="keyPair.publicKey"
+              readonly
+              type="textarea"
+              :rows="3"
+            >
+              <template #append>
+                <el-button @click="copyToClipboard(keyPair.publicKey)">复制</el-button>
+              </template>
+            </el-input>
+          </el-form-item>
+
+          <el-form-item label="私钥">
+            <el-input
+              v-model="keyPair.privateKey"
+              readonly
+              type="textarea"
+              :rows="3"
+              :show-password="!showPrivateKey"
+            >
+              <template #append>
+                <el-button @click="showPrivateKey = !showPrivateKey">
+                  {{ showPrivateKey ? '隐藏' : '显示' }}
+                </el-button>
+                <el-button @click="copyToClipboard(keyPair.privateKey)">复制</el-button>
+              </template>
+            </el-input>
+          </el-form-item>
+
+          <el-form-item>
+            <el-checkbox v-model="keysSaved">
+              我已安全保存私钥，理解私钥丢失的风险
+            </el-checkbox>
+          </el-form-item>
+        </div>
+      </div>
       
       <!-- 服务条款 -->
       <el-form-item prop="agreement">
@@ -95,8 +192,9 @@
           :loading="loading"
           class="w-100"
           @click="handleRegister"
+          :disabled="registerMode === 'did' && (!keyPair || !keysSaved)"
         >
-          {{ loading ? '注册中...' : '注册' }}
+          {{ loading ? '注册中...' : (registerMode === 'did' ? 'DID注册' : '传统注册') }}
         </el-button>
       </el-form-item>
       
@@ -136,6 +234,17 @@
         
         <h4>8. 法律适用</h4>
         <p>本条款受中华人民共和国法律管辖，任何争议应提交至有管辖权的人民法院解决。</p>
+
+        <!-- DID相关条款 -->
+        <h4>9. DID身份管理</h4>
+        <p>如果您选择使用DID注册：</p>
+        <ul>
+          <li>您的身份将基于去中心化身份(DID)技术进行管理</li>
+          <li>您需要妥善保管您的私钥，私钥丢失将无法恢复您的身份</li>
+          <li>我们不会存储您的私钥，无法帮助您恢复丢失的私钥</li>
+          <li>您的DID身份信息将记录在区块链上，具有不可篡改性</li>
+          <li>您可以使用DID身份在支持的平台间进行身份验证</li>
+        </ul>
       </div>
       <template #footer>
         <span class="dialog-footer">
@@ -157,6 +266,7 @@
           <li>注册信息：用户名、密码、电子邮箱、手机号码、所属组织等</li>
           <li>交易信息：房产交易记录、合同信息、支付信息等</li>
           <li>使用数据：访问日志、设备信息、IP地址等</li>
+          <li>DID信息：DID标识符、公钥、DID文档等（不包括私钥）</li>
         </ul>
         
         <h4>2. 信息使用</h4>
@@ -167,6 +277,7 @@
           <li>发送通知和更新</li>
           <li>预防欺诈和提升安全性</li>
           <li>分析使用趋势和改进用户体验</li>
+          <li>验证DID身份和处理相关凭证</li>
         </ul>
         
         <h4>3. 信息共享</h4>
@@ -175,18 +286,28 @@
           <li>经您明确同意</li>
           <li>完成交易所必需的共享</li>
           <li>遵守法律要求、保护权利或安全</li>
+          <li>DID身份验证所需的公开信息</li>
         </ul>
         
         <h4>4. 区块链数据</h4>
         <p>请注意，存储在区块链上的交易数据具有不可篡改性。个人敏感信息不会直接存储在区块链上，但交易记录将被永久保存。</p>
         
-        <h4>5. 数据安全</h4>
+        <h4>5. DID隐私保护</h4>
+        <p>对于DID用户：</p>
+        <ul>
+          <li>我们不会存储您的私钥</li>
+          <li>您的DID标识符和公钥可能会公开</li>
+          <li>您可以控制哪些信息通过可验证凭证分享</li>
+          <li>您的身份验证过程是去中心化的</li>
+        </ul>
+        
+        <h4>6. 数据安全</h4>
         <p>我们采取合理措施保护您的个人信息，包括加密技术和访问控制。但互联网传输无法保证绝对安全，您使用服务即表示了解这一风险。</p>
         
-        <h4>6. 您的权利</h4>
+        <h4>7. 您的权利</h4>
         <p>您有权访问、更正或删除您的个人信息。如需行使这些权利，请通过系统内的设置或联系我们的客服。</p>
         
-        <h4>7. 政策变更</h4>
+        <h4>8. 政策变更</h4>
         <p>我们可能会不时更新本隐私政策。更新后的政策将在系统内发布，请定期查阅。</p>
       </div>
       <template #footer>
@@ -202,14 +323,25 @@
 <script setup>
 import { ref, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Key } from '@element-plus/icons-vue'
 import { register } from '../../api/user.js'
+import { didRegister } from '../../api/did.ts'
+import { generateKeyPair } from '../../utils/did.ts'
 
 const router = useRouter()
 const formRef = ref(null)
 const loading = ref(false)
 const termsDialogVisible = ref(false)
 const privacyDialogVisible = ref(false)
+
+// 注册模式
+const registerMode = ref('traditional')
+
+// DID相关状态
+const keyPair = ref(null)
+const showPrivateKey = ref(false)
+const keysSaved = ref(false)
 
 // 注册表单数据
 const registerForm = reactive({
@@ -224,7 +356,71 @@ const registerForm = reactive({
   agreement: false
 })
 
-// 由于组织固定为投资者，不需要监听组织变化
+// 监听注册模式变化，重置相关状态
+watch(registerMode, (newMode) => {
+  if (newMode === 'traditional') {
+    keyPair.value = null
+    keysSaved.value = false
+    showPrivateKey.value = false
+  }
+})
+
+// 生成密钥对
+const generateKeys = async () => {
+  try {
+    keyPair.value = await generateKeyPair()
+    keysSaved.value = false
+    showPrivateKey.value = false
+    ElMessage.success('密钥对生成成功！请务必保存您的私钥')
+    
+    // 自动滚动到密钥显示区域
+    setTimeout(() => {
+      const keyDisplayElement = document.querySelector('.key-display')
+      if (keyDisplayElement) {
+        keyDisplayElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        })
+      }
+    }, 100)
+  } catch (error) {
+    ElMessage.error('密钥生成失败：' + error.message)
+  }
+}
+
+// 重新生成密钥对
+const regenerateKeys = () => {
+  ElMessageBox.confirm(
+    '重新生成密钥对将覆盖当前密钥，请确保已保存当前私钥。是否继续？',
+    '确认重新生成',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+    generateKeys()
+  }).catch(() => {
+    // 用户取消
+  })
+}
+
+// 复制到剪贴板
+const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('已复制到剪贴板')
+  } catch (error) {
+    // 降级方案
+    const textArea = document.createElement('textarea')
+    textArea.value = text
+    document.body.appendChild(textArea)
+    textArea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textArea)
+    ElMessage.success('已复制到剪贴板')
+  }
+}
 
 // 验证密码是否一致
 const validatePass = (rule, value, callback) => {
@@ -331,22 +527,51 @@ const handleRegister = () => {
   if (formRef.value) {
     formRef.value.validate(async (valid) => {
       if (valid) {
+        // DID注册额外验证
+        if (registerMode.value === 'did') {
+          if (!keyPair.value) {
+            ElMessage.error('请先生成密钥对')
+            return
+          }
+          if (!keysSaved.value) {
+            ElMessage.error('请确认已保存私钥')
+            return
+          }
+        }
+
         loading.value = true
         try {
-          // 调用注册接口
-          await register({
-            name: registerForm.name,
-            citizenID: registerForm.citizenID,
-            password: registerForm.password,
-            email: registerForm.email,
-            phone: registerForm.phone,
-            role: 'user',
-            organization: registerForm.organization,
-            // 投资者使用输入的金额
-            balance: parseFloat(registerForm.balance),
-          })
+          if (registerMode.value === 'did') {
+            // DID注册
+            await didRegister({
+              citizenID: registerForm.citizenID,
+              name: registerForm.name,
+              phone: registerForm.phone,
+              email: registerForm.email,
+              password: registerForm.password,
+              organization: registerForm.organization,
+              role: 'user',
+              balance: parseFloat(registerForm.balance),
+              publicKey: keyPair.value.publicKey
+            })
+            
+            ElMessage.success('DID注册成功！您现在拥有了去中心化身份')
+          } else {
+            // 传统注册
+            await register({
+              name: registerForm.name,
+              citizenID: registerForm.citizenID,
+              password: registerForm.password,
+              email: registerForm.email,
+              phone: registerForm.phone,
+              role: 'user',
+              organization: registerForm.organization,
+              balance: parseFloat(registerForm.balance),
+            })
+            
+            ElMessage.success('注册成功，请登录')
+          }
           
-          ElMessage.success('注册成功，请登录')
           await router.push('/login')
         } catch (error) {
           ElMessage.error(error.message || '注册失败，请稍后再试')
@@ -384,6 +609,29 @@ const agreePrivacy = () => {
 <style scoped>
 .register-container {
   width: 100%;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* 为了更好的滚动体验，添加自定义滚动条样式 */
+.register-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.register-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.register-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.register-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .register-title {
@@ -391,10 +639,71 @@ const agreePrivacy = () => {
   color: #333;
   text-align: center;
   margin-bottom: 30px;
+  top: 0;
+  background: white;
+  z-index: 10;
+  padding: 10px 0;
+}
+
+.register-mode-selector {
+  margin-bottom: 30px;
+  text-align: center;
+  top: 80px;
+  background: white;
+  z-index: 9;
+  padding: 15px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.mode-group {
+  margin-bottom: 10px;
+}
+
+.mode-description {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.5;
 }
 
 .register-form {
   width: 100%;
+}
+
+.did-key-section {
+  margin: 20px 0;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+/* DID密钥部分的滚动条样式 */
+.did-key-section::-webkit-scrollbar {
+  width: 6px;
+}
+
+.did-key-section::-webkit-scrollbar-track {
+  background: #e9ecef;
+  border-radius: 3px;
+}
+
+.did-key-section::-webkit-scrollbar-thumb {
+  background: #6c757d;
+  border-radius: 3px;
+}
+
+.did-key-section::-webkit-scrollbar-thumb:hover {
+  background: #495057;
+}
+
+.key-display {
+  margin-top: 20px;
+}
+
+.key-display .el-alert {
+  margin-bottom: 20px;
 }
 
 .w-100 {
@@ -437,5 +746,116 @@ const agreePrivacy = () => {
 
 .terms-content ul {
   padding-left: 20px;
+}
+
+/* DID相关样式 */
+.el-radio-button {
+  margin-right: 0;
+}
+
+.el-divider {
+  margin: 20px 0;
+}
+
+.key-display .el-form-item {
+  margin-bottom: 20px;
+}
+
+.key-display .el-textarea {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
+
+.key-display .el-input-group__append {
+  padding: 0;
+}
+
+.key-display .el-input-group__append .el-button {
+  margin: 0;
+  border-radius: 0;
+}
+
+.key-display .el-input-group__append .el-button:first-child {
+  border-right: 1px solid #dcdfe6;
+}
+
+/* 响应式设计 */
+@media (max-height: 800px) {
+  .register-container {
+    max-height: 95vh;
+  }
+  
+  .did-key-section {
+    max-height: 50vh;
+  }
+}
+
+@media (max-height: 600px) {
+  .register-container {
+    max-height: 90vh;
+  }
+  
+  .did-key-section {
+    max-height: 40vh;
+  }
+  
+  .register-title {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .register-mode-selector {
+    margin-bottom: 20px;
+    padding: 10px 0;
+  }
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .register-container {
+    padding: 15px;
+    max-height: 100vh;
+  }
+  
+  .did-key-section {
+    padding: 15px;
+    margin: 15px 0;
+  }
+  
+  .key-display .el-textarea {
+    font-size: 11px;
+  }
+  
+  .register-title {
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
+}
+
+/* 为表单添加平滑滚动 */
+.register-form {
+  scroll-behavior: smooth;
+}
+
+/* 优化密钥显示区域的布局 */
+.key-display {
+  margin-top: 20px;
+}
+
+.key-display .el-form-item:last-child {
+  margin-bottom: 0;
+}
+
+/* 密钥部分标题样式 */
+.key-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #409eff;
+}
+
+.key-section-title .el-icon {
+  font-size: 16px;
 }
 </style> 

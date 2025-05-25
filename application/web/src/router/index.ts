@@ -311,13 +311,13 @@ const routes: Array<RouteRecordRaw> = [
         path: 'login',
         name: 'Login',
         component: Login,
-        meta: { title: '登录' } as RouteMeta
+        meta: { title: '登录', requiresAuth: false } as RouteMeta
       },
       {
         path: 'register',
         name: 'Register',
         component: Register,
-        meta: { title: '注册' } as RouteMeta
+        meta: { title: '注册', requiresAuth: false } as RouteMeta
       }
     ]
   },

@@ -63,11 +63,15 @@
 ## 功能模块
 
 1. **用户管理**：用户注册、认证和权限管理
+   - 传统用户名密码注册/登录
+   - **DID（去中心化身份）注册/登录**
+   - 基于区块链的身份验证
 2. **房产管理**：房产信息登记、查询和更新、产权变更处理
 3. **交易管理**：发起交易、交易审批和执行
 4. **资金管理**：支付处理、贷款申请和审批
 5. **合同管理**：合同生成、签署和存证
 6. **审计管理**：审计与争议处理
+7. **DID身份管理**：去中心化身份创建、验证和凭证管理
 
 ## 智能合约接口设计
 所有需要上链的数据都有**需要多方共识**以及**不可篡改**的需求
@@ -626,5 +630,178 @@ api.grets.com    -> 统一后端服务 (Nginx + Golang)
 - 前后台共享同一个后端服务，减少重复开发
 - 严格的权限控制确保数据安全
 - 模块化设计便于后续扩展和维护
+
+## DID（去中心化身份）功能
+
+### 概述
+
+GRETS系统集成了基于W3C DID标准的去中心化身份认证功能，为用户提供更安全、更私密的身份管理方案。
+
+### DID功能特性
+
+1. **去中心化身份管理**
+   - 基于区块链的身份验证
+   - 用户完全控制自己的身份数据
+   - 支持跨平台身份互操作
+
+2. **密钥管理**
+   - ECDSA P-256密钥对生成
+   - 客户端密钥生成和管理
+   - 私钥本地安全存储
+
+3. **可验证凭证**
+   - 身份凭证签发和验证
+   - 组织角色凭证管理
+   - 资产凭证支持
+
+4. **DID认证流程**
+   - 挑战-响应认证机制
+   - 数字签名验证
+   - 无密码登录体验
+
+### DID标识符格式
+
+```
+did:grets:{organization}:{identifier}
+```
+
+示例：
+- `did:grets:investor:a1b2c3d4e5f6g7h8`
+- `did:grets:government:system`
+- `did:grets:bank:system`
+
+### 注册流程
+
+#### 传统注册
+1. 填写基本信息（姓名、身份证号、密码等）
+2. 选择组织（投资者）
+3. 输入注册金额
+4. 同意服务条款
+5. 提交注册
+
+#### DID注册
+1. 选择DID注册模式
+2. 填写基本信息
+3. **生成密钥对**
+   - 系统自动生成ECDSA密钥对
+   - 显示公钥和私钥
+   - 用户必须安全保存私钥
+4. 确认已保存私钥
+5. 提交DID注册
+6. 系统创建DID文档和身份凭证
+
+### 登录流程
+
+#### DID登录
+1. 输入DID标识符
+2. 获取认证挑战
+3. 使用私钥签名挑战
+4. 提交签名验证
+5. 验证成功后获得访问令牌
+
+### API接口
+
+#### DID管理接口
+- `POST /api/v1/did/register` - DID注册
+- `POST /api/v1/did/challenge` - 获取认证挑战
+- `POST /api/v1/did/login` - DID登录
+- `POST /api/v1/did/create` - 创建DID
+- `GET /api/v1/did/resolve/{did}` - 解析DID文档
+- `GET /api/v1/did/user` - 根据用户信息获取DID
+
+#### 凭证管理接口
+- `POST /api/v1/credentials/issue` - 签发凭证
+- `POST /api/v1/credentials/get` - 获取凭证
+- `POST /api/v1/credentials/revoke` - 撤销凭证
+- `POST /api/v1/credentials/verify` - 验证展示
+
+### 数据结构
+
+#### DID文档
+```json
+{
+  "@context": ["https://www.w3.org/ns/did/v1"],
+  "id": "did:grets:investor:a1b2c3d4e5f6g7h8",
+  "publicKey": [{
+    "id": "did:grets:investor:a1b2c3d4e5f6g7h8#keys-1",
+    "type": "EcdsaSecp256k1VerificationKey2019",
+    "controller": "did:grets:investor:a1b2c3d4e5f6g7h8",
+    "publicKeyHex": "04..."
+  }],
+  "authentication": ["did:grets:investor:a1b2c3d4e5f6g7h8#vm-1"],
+  "service": [{
+    "id": "did:grets:investor:a1b2c3d4e5f6g7h8#grets-service",
+    "type": "GretsService",
+    "serviceEndpoint": "https://grets.example.com/api/v1"
+  }],
+  "organization": "investor",
+  "role": "user"
+}
+```
+
+#### 可验证凭证
+```json
+{
+  "@context": ["https://www.w3.org/2018/credentials/v1"],
+  "id": "urn:uuid:12345678-1234-5678-9abc-123456789abc",
+  "type": ["VerifiableCredential", "IdentityCredential"],
+  "issuer": "did:grets:government:system",
+  "issuanceDate": "2024-01-01T00:00:00Z",
+  "credentialSubject": {
+    "id": "did:grets:investor:a1b2c3d4e5f6g7h8",
+    "name": "张三",
+    "organization": "investor",
+    "role": "user"
+  },
+  "proof": {
+    "type": "EcdsaSecp256k1Signature2019",
+    "created": "2024-01-01T00:00:00Z",
+    "verificationMethod": "did:grets:government:system#keys-1",
+    "proofPurpose": "assertionMethod",
+    "jws": "..."
+  }
+}
+```
+
+### 安全考虑
+
+1. **私钥安全**
+   - 私钥仅在客户端生成和存储
+   - 服务器不存储用户私钥
+   - 建议使用硬件安全模块或安全存储
+
+2. **身份验证**
+   - 基于数字签名的强身份验证
+   - 挑战-响应机制防止重放攻击
+   - 时间戳验证防止过期攻击
+
+3. **隐私保护**
+   - 身份证号等敏感信息哈希处理
+   - 可选择性披露身份信息
+   - 最小化数据原则
+
+### 使用建议
+
+1. **密钥管理**
+   - 使用密码管理器保存私钥
+   - 定期备份密钥到安全位置
+   - 考虑使用硬件钱包
+
+2. **身份验证**
+   - 优先使用DID登录获得更好的安全性
+   - 定期更新DID文档
+   - 监控身份使用情况
+
+3. **凭证管理**
+   - 及时更新过期凭证
+   - 撤销不再需要的凭证
+   - 验证凭证的有效性
+
+### 技术实现
+
+- **前端**：Vue3 + TypeScript + crypto-js
+- **后端**：Golang + ECDSA + SHA256
+- **存储**：MySQL（DID文档、凭证、映射关系）
+- **区块链**：Hyperledger Fabric（身份注册、凭证签发）
 
 接下来我可以为您详细实现任何特定的模块或功能。您希望我先从哪个部分开始实现呢？

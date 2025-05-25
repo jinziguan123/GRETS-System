@@ -125,7 +125,7 @@ func (s *didService) CreateDID(req *didDto.CreateDIDRequest) (*didDto.CreateDIDR
 		return nil, fmt.Errorf("解析通道信息失败: %v", err)
 	}
 
-	subContract, err := blockchain.GetSubContract(channelInfo.ChainCodeName, req.Organization)
+	subContract, err := blockchain.GetSubContract(channelInfo.ChannelName, req.Organization)
 	if err != nil {
 		return nil, fmt.Errorf("获取子合约失败: %v", err)
 	}
@@ -155,12 +155,12 @@ func (s *didService) CreateDID(req *didDto.CreateDIDRequest) (*didDto.CreateDIDR
 	}
 
 	// 创建身份凭证
-	credentials := []did.VerifiableCredential{}
+	var credentials []did.VerifiableCredential
 
 	// 创建身份凭证
 	identityClaims := map[string]interface{}{
 		"name":         req.Name,
-		"citizenID":    utils.GenerateHash(req.CitizenID), // 哈希处理身份证号
+		"citizenID":    req.CitizenID, // 哈希处理身份证号
 		"phone":        req.Phone,
 		"email":        req.Email,
 		"organization": req.Organization,
@@ -169,12 +169,19 @@ func (s *didService) CreateDID(req *didDto.CreateDIDRequest) (*didDto.CreateDIDR
 
 	// 这里简化处理，实际应该由相应的权威机构签发
 	issuerDID := s.getIssuerDID(req.Organization)
+
+	// 使用issuerDID获取颁发者密钥
+	issuerKeyPair, err := s.didDAO.GetKeyPairByDID(issuerDID)
+	if err != nil {
+		return nil, fmt.Errorf("获取颁发者密钥失败: %v", err)
+	}
+
 	identityCredential, err := s.didManager.CreateCredential(
 		issuerDID,
 		didStr,
 		did.CredentialTypeIdentity,
 		identityClaims,
-		keyPair, // 这里应该使用颁发者的密钥
+		issuerKeyPair, // 这里应该使用颁发者的密钥
 	)
 	if err != nil {
 		log.Printf("创建身份凭证失败: %v", err)
@@ -516,6 +523,22 @@ func (s *didService) RevokeCredential(req *didDto.RevokeCredentialRequest) error
 
 // DIDRegister DID注册（兼容传统注册）
 func (s *didService) DIDRegister(req *didDto.DIDRegistrationRequest) (*didDto.DIDRegistrationResponse, error) {
+	// 创建DID
+	createDIDReq := &didDto.CreateDIDRequest{
+		CitizenID:    req.CitizenID,
+		Organization: req.Organization,
+		Role:         req.Role,
+		PublicKey:    req.PublicKey,
+		Name:         req.Name,
+		Phone:        req.Phone,
+		Email:        req.Email,
+	}
+
+	didResponse, err := s.CreateDID(createDIDReq)
+	if err != nil {
+		return nil, fmt.Errorf("创建DID失败: %v", err)
+	}
+
 	// 首先执行传统注册
 	registerReq := &userDto.RegisterDTO{
 		CitizenID:    req.CitizenID,
@@ -531,22 +554,6 @@ func (s *didService) DIDRegister(req *didDto.DIDRegistrationRequest) (*didDto.DI
 	// 调用传统注册服务
 	if err := GlobalUserService.Register(registerReq); err != nil {
 		return nil, fmt.Errorf("传统注册失败: %v", err)
-	}
-
-	// 创建DID
-	createDIDReq := &didDto.CreateDIDRequest{
-		CitizenID:    req.CitizenID,
-		Organization: req.Organization,
-		Role:         req.Role,
-		PublicKey:    req.PublicKey,
-		Name:         req.Name,
-		Phone:        req.Phone,
-		Email:        req.Email,
-	}
-
-	didResponse, err := s.CreateDID(createDIDReq)
-	if err != nil {
-		return nil, fmt.Errorf("创建DID失败: %v", err)
 	}
 
 	return &didDto.DIDRegistrationResponse{

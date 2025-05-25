@@ -2,14 +2,23 @@
   <div class="login-container">
     <h2 class="login-title">用户登录</h2>
     
+    <!-- 登录方式选择 -->
+    <div class="login-mode-selector">
+      <el-radio-group v-model="loginMode" class="mode-group">
+        <el-radio-button label="traditional">传统登录</el-radio-button>
+        <el-radio-button label="did">DID登录</el-radio-button>
+      </el-radio-group>
+    </div>
+
+    <!-- 传统登录表单 -->
     <el-form
+      v-if="loginMode === 'traditional'"
       ref="formRef"
       :model="loginForm"
       :rules="loginRules"
       @submit.prevent="handleLogin"
       class="login-form"
     >
-
       <!-- 组织选择 -->
       <el-form-item prop="organization">
         <el-select
@@ -48,14 +57,6 @@
         />
       </el-form-item>
       
-      <!-- 记住我选项 -->
-      <el-form-item>
-        <div class="login-options">
-<!--          <el-checkbox v-model="loginForm.remember">记住我</el-checkbox>-->
-<!--          <el-button type="text" @click="forgotPassword">忘记密码？</el-button>-->
-        </div>
-      </el-form-item>
-      
       <!-- 登录按钮 -->
       <el-form-item>
         <el-button
@@ -68,13 +69,145 @@
           {{ loading ? '登录中...' : '登录' }}
         </el-button>
       </el-form-item>
+    </el-form>
+
+    <!-- DID登录表单 -->
+    <el-form
+      v-if="loginMode === 'did'"
+      ref="didFormRef"
+      :model="didLoginForm"
+      :rules="didLoginRules"
+      @submit.prevent="handleDIDLogin"
+      class="login-form"
+    >
+      <!-- 组织选择 -->
+      <el-form-item prop="organization">
+        <el-select
+            v-model="didLoginForm.organization"
+            placeholder="请选择组织"
+            class="w-100"
+        >
+          <el-option
+              v-for="org in organizations"
+              :key="org.value"
+              :label="org.label"
+              :value="org.value"
+          />
+        </el-select>
+      </el-form-item>
+
+      <!-- DID输入框 -->
+      <el-form-item prop="did">
+        <el-input
+          v-model="didLoginForm.did"
+          placeholder="请输入DID或身份证号"
+          prefix-icon="Key"
+        />
+        <div class="form-help">
+          <small>可以输入完整的DID或身份证号自动查找DID</small>
+        </div>
+      </el-form-item>
+
+      <!-- 密钥管理 -->
+      <el-form-item>
+        <div class="key-management">
+          <el-button 
+            v-if="!hasStoredKey" 
+            type="info" 
+            @click="showKeyImportDialog = true"
+            icon="Upload"
+          >
+            导入密钥
+          </el-button>
+          <el-button 
+            v-if="hasStoredKey" 
+            type="success" 
+            @click="showKeyInfoDialog = true"
+            icon="Key"
+          >
+            密钥已加载
+          </el-button>
+          <el-button 
+            v-if="hasStoredKey" 
+            type="danger" 
+            @click="removeStoredKey"
+            icon="Delete"
+          >
+            清除密钥
+          </el-button>
+        </div>
+      </el-form-item>
       
-      <!-- 注册链接 -->
-      <el-form-item class="register-link">
-        <span>还没有账号？</span>
-        <el-button type="text" @click="router.push('register')">立即注册</el-button>
+      <!-- DID登录按钮 -->
+      <el-form-item>
+        <el-button
+          type="primary"
+          :loading="didLoading"
+          :disabled="!hasStoredKey"
+          class="w-100"
+          @click="handleDIDLogin"
+        >
+          {{ didLoading ? 'DID认证中...' : 'DID登录' }}
+        </el-button>
       </el-form-item>
     </el-form>
+      
+    <!-- 注册链接 -->
+    <el-form-item class="register-link">
+      <span>还没有账号？</span>
+      <el-button type="text" @click="router.push('register')">立即注册</el-button>
+    </el-form-item>
+
+    <!-- 密钥导入对话框 -->
+    <el-dialog v-model="showKeyImportDialog" title="导入DID密钥" width="500px">
+      <el-form :model="keyImportForm" :rules="keyImportRules" ref="keyImportFormRef">
+        <el-form-item label="私钥" prop="privateKey">
+          <el-input
+            v-model="keyImportForm.privateKey"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入私钥"
+            show-password
+          />
+        </el-form-item>
+        <el-form-item label="密码" prop="password">
+          <el-input
+            v-model="keyImportForm.password"
+            type="password"
+            placeholder="设置密钥保护密码"
+            show-password
+          />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input
+            v-model="keyImportForm.confirmPassword"
+            type="password"
+            placeholder="确认密钥保护密码"
+            show-password
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showKeyImportDialog = false">取消</el-button>
+          <el-button type="primary" @click="importKey">导入</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 密钥信息对话框 -->
+    <el-dialog v-model="showKeyInfoDialog" title="密钥信息" width="500px">
+      <div class="key-info">
+        <p><strong>公钥:</strong></p>
+        <el-input v-model="currentKeyInfo.publicKey" readonly />
+        <p style="margin-top: 15px;"><strong>状态:</strong> 已加载</p>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showKeyInfoDialog = false">关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -82,9 +215,20 @@
 import {useRouter} from 'vue-router'
 import {useUserStore} from '@/stores/user.ts'
 import type {FormInstance, FormRules} from 'element-plus'
-import {ElMessage} from 'element-plus'
+import {ElMessage, ElMessageBox} from 'element-plus'
 import {login} from '@/api/user'
+import {getChallenge, didLogin, getDIDByUser} from '@/api/did'
 import type {LoginData} from '@/types/api'
+import {
+  generateKeyPair,
+  saveKeyPair,
+  loadKeyPair,
+  hasKeyPair,
+  removeKeyPair,
+  createAuthResponse,
+  validateDID,
+  generateHash
+} from '@/utils/did'
 
 interface LoginResponse {
   code: number
@@ -93,14 +237,22 @@ interface LoginResponse {
     token: string
     user?: any
   }
+  token: string
+  user?: any
 }
 
 const router = useRouter()
 const formRef = ref<FormInstance | null>(null)
+const didFormRef = ref<FormInstance | null>(null)
+const keyImportFormRef = ref<FormInstance | null>(null)
 const loading = ref<boolean>(false)
+const didLoading = ref<boolean>(false)
 const userStore = useUserStore()
 
-// 登录表单数据
+// 登录模式
+const loginMode = ref<'traditional' | 'did'>('traditional')
+
+// 传统登录表单数据
 interface LoginForm extends LoginData {
   remember: boolean
 }
@@ -110,6 +262,29 @@ const loginForm = reactive<LoginForm>({
   password: '',
   organization: '',
   remember: false
+})
+
+// DID登录表单数据
+const didLoginForm = reactive({
+  did: '',
+  organization: ''
+})
+
+// 密钥导入表单
+const keyImportForm = reactive({
+  privateKey: '',
+  password: '',
+  confirmPassword: ''
+})
+
+// 对话框状态
+const showKeyImportDialog = ref(false)
+const showKeyInfoDialog = ref(false)
+
+// 密钥状态
+const hasStoredKey = ref(hasKeyPair())
+const currentKeyInfo = reactive({
+  publicKey: ''
 })
 
 // 可选组织列表
@@ -152,30 +327,49 @@ const loginRules = reactive<FormRules>({
   ]
 })
 
-// watch(() => loginForm.organization, (newVal) => {
-//   if (newVal !== 'investor') {
-//     // 对非投资者组织，设置固定身份证号
-//     if (newVal) {
-//       const orgName = newVal.charAt(0).toUpperCase() + newVal.slice(1);
-//       loginForm.citizenID = `${orgName}Default`;
-//     }
-//   }else{
-//     loginForm.citizenID = ''
-//   }
-// })
+const didLoginRules = reactive<FormRules>({
+  did: [
+    { required: true, message: '请输入DID或身份证号', trigger: 'blur' }
+  ],
+  organization: [
+    { required: true, message: '请选择组织', trigger: 'change' }
+  ]
+})
+
+const keyImportRules = reactive<FormRules>({
+  privateKey: [
+    { required: true, message: '请输入私钥', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请设置密钥保护密码', trigger: 'blur' },
+    { min: 6, message: '密码至少6位', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请确认密码', trigger: 'blur' },
+    {
+      validator: (rule: any, value: string, callback: Function) => {
+        if (value !== keyImportForm.password) {
+          callback(new Error('两次输入的密码不一致'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ]
+})
 
 if (localStorage.getItem('token') !== null) {
   router.push({ path: '/' })
 }
 
-// 处理登录
+// 处理传统登录
 const handleLogin = (): void => {
   if (formRef.value) {
     formRef.value.validate(async (valid: boolean) => {
       if (valid) {
         loading.value = true
         try {
-          // 调用登录接口
           const res = await login({
             citizenID: loginForm.citizenID,
             password: loginForm.password,
@@ -183,13 +377,10 @@ const handleLogin = (): void => {
           }) as unknown as LoginResponse
 
           ElMessage.success('登录成功')
-          // 保存token
           localStorage.setItem('token', res.token)
-          // 保存用户信息
           if (res.user) {
             userStore.updateUserInfo(res.user)
           }
-          // 重定向到仪表盘或之前访问的页面
           const redirect = router.currentRoute.value.query.redirect as string || '/'
           router.push(redirect)
         } catch (error) {
@@ -203,18 +394,157 @@ const handleLogin = (): void => {
   }
 }
 
-// 忘记密码处理
-const forgotPassword = (): void => {
-  router.push('/forgot-password')
+// 处理DID登录
+const handleDIDLogin = async (): Promise<void> => {
+  if (didFormRef.value) {
+    didFormRef.value.validate(async (valid: boolean) => {
+      if (valid) {
+        didLoading.value = true
+        try {
+          let userDID = didLoginForm.did
+
+          // 如果输入的不是DID格式，尝试根据身份证号查找DID
+          if (!validateDID(userDID)) {
+            if (userDID.length >= 8) { // 管理员身份证号可能不是18位
+              try {
+                const didResponse = await getDIDByUser(userDID, didLoginForm.organization)
+                userDID = didResponse.data.did
+                didLoginForm.did = userDID
+              } catch (error) {
+                ElMessage.error('未找到对应的DID，请先注册')
+                return
+              }
+            } else {
+              ElMessage.error('请输入有效的DID或身份证号')
+              return
+            }
+          }
+
+          // 获取认证挑战
+          const challengeResponse = await getChallenge({
+            did: userDID,
+            domain: window.location.hostname
+          })
+
+          const challenge = challengeResponse.data
+
+          // 获取密钥对
+          const keyPair = loadKeyPair(await getKeyPassword())
+          if (!keyPair) {
+            ElMessage.error('无法加载密钥，请重新导入')
+            return
+          }
+
+          // 创建认证响应
+          const authResponse = createAuthResponse(
+            userDID,
+            challenge,
+            keyPair.privateKey,
+            keyPair.publicKey
+          )
+
+          // 执行DID登录
+          const loginResponse = await didLogin(authResponse)
+
+          ElMessage.success('DID登录成功')
+          localStorage.setItem('token', loginResponse.data.token)
+          if (loginResponse.data.user) {
+            userStore.updateUserInfo(loginResponse.data.user)
+          }
+          const redirect = router.currentRoute.value.query.redirect as string || '/'
+          router.push(redirect)
+        } catch (error) {
+          console.error('DID登录失败:', error)
+          ElMessage.error('DID登录失败，请检查网络连接或密钥是否正确')
+        } finally {
+          didLoading.value = false
+        }
+      }
+    })
+  }
 }
 
-onMounted(() => {
-  window.addEventListener('keydown', handleEnter);
-});
+// 导入密钥
+const importKey = (): void => {
+  if (keyImportFormRef.value) {
+    keyImportFormRef.value.validate((valid: boolean) => {
+      if (valid) {
+        try {
+          // 生成公钥（简化处理）
+          const publicKey = generateHash(keyImportForm.privateKey)
+          
+          const keyPair = {
+            privateKey: keyImportForm.privateKey,
+            publicKey: publicKey
+          }
 
-const handleEnter = (e) => {
+          saveKeyPair(keyPair, keyImportForm.password)
+          hasStoredKey.value = true
+          currentKeyInfo.publicKey = publicKey
+          
+          ElMessage.success('密钥导入成功')
+          showKeyImportDialog.value = false
+          
+          // 清空表单
+          keyImportForm.privateKey = ''
+          keyImportForm.password = ''
+          keyImportForm.confirmPassword = ''
+        } catch (error) {
+          ElMessage.error('密钥导入失败')
+        }
+      }
+    })
+  }
+}
+
+// 移除存储的密钥
+const removeStoredKey = (): void => {
+  removeKeyPair()
+  hasStoredKey.value = false
+  currentKeyInfo.publicKey = ''
+  ElMessage.success('密钥已清除')
+}
+
+// 获取密钥密码（简化处理，实际应该有更安全的方式）
+const getKeyPassword = async (): Promise<string> => {
+  return new Promise((resolve) => {
+    ElMessageBox.prompt('请输入密钥保护密码', '密钥验证', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputType: 'password'
+    }).then(({ value }) => {
+      resolve(value)
+    }).catch(() => {
+      resolve('')
+    })
+  })
+}
+
+// 初始化时检查密钥状态
+onMounted(() => {
+  window.addEventListener('keydown', handleEnter)
+  
+  if (hasStoredKey.value) {
+    // 尝试加载公钥信息用于显示
+    try {
+      const stored = localStorage.getItem('did_keypair')
+      if (stored) {
+        // 这里只是为了显示，不解密私钥
+        currentKeyInfo.publicKey = '已加载（需要密码验证才能查看完整信息）'
+      }
+    } catch (error) {
+      console.error('加载密钥信息失败:', error)
+    }
+  }
+})
+
+const handleEnter = (e: KeyboardEvent) => {
   if (e.keyCode === 13 || e.keyCode === 108) {
-    handleLogin()
+    if (loginMode.value === 'traditional') {
+      handleLogin()
+    } else {
+      handleDIDLogin()
+    }
   }
 }
 
@@ -232,7 +562,48 @@ const handleEnter = (e) => {
   margin-bottom: 30px;
 }
 
+.login-mode-selector {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.mode-group {
+  display: inline-flex;
+}
+
 .login-form {
+  width: 100%;
+}
+
+.key-management {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.form-help {
+  margin-top: 5px;
+}
+
+.form-help small {
+  color: #999;
+}
+
+.key-info {
+  padding: 10px 0;
+}
+
+.key-info p {
+  margin: 10px 0 5px 0;
+  font-weight: bold;
+}
+
+.register-link {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.w-100 {
   width: 100%;
 }
 
@@ -240,19 +611,5 @@ const handleEnter = (e) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.w-100 {
-  width: 100%;
-}
-
-.register-link {
-  text-align: center;
-  margin-top: 10px;
-}
-
-.register-link span {
-  font-size: 14px;
-  color: #666;
 }
 </style> 

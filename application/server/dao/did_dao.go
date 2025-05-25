@@ -2,6 +2,7 @@ package dao
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"grets_server/db"
 	"grets_server/db/models"
@@ -146,7 +147,7 @@ func (dao *DIDDAO) SaveUserDIDMapping(citizenID, organization, didStr string) er
 func (dao *DIDDAO) GetDIDByUser(citizenID, organization string) (string, error) {
 	var mapping models.UserDIDMapping
 	if err := dao.mysqlDB.First(&mapping, "citizen_id = ? AND organization = ?", citizenID, organization).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", nil
 		}
 		return "", fmt.Errorf("查询用户DID映射失败: %v", err)

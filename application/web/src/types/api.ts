@@ -11,6 +11,8 @@ export interface RegisterData {
   password: string
   phone: string
   email: string
+  publicKey: string
+  role: string
   organization: string
   balance?: number
 }
