@@ -1,11 +1,14 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 	"grets_server/constants"
 	"grets_server/dao"
+	blockDto "grets_server/dto/block_dto"
 	didDto "grets_server/dto/did_dto"
 	userDto "grets_server/dto/user_dto"
+	"grets_server/pkg/blockchain"
 	"grets_server/pkg/did"
 	"grets_server/pkg/utils"
 	"log"
@@ -51,27 +54,24 @@ type DIDService interface {
 
 // didService DID服务实现
 type didService struct {
-	didDAO      *dao.DIDDAO
-	userDAO     *dao.UserDAO
-	didManager  *did.DIDManager
-	userService UserService
+	didDAO     *dao.DIDDAO
+	userDAO    *dao.UserDAO
+	didManager *did.DIDManager
 }
 
 // 全局DID服务
 var GlobalDIDService DIDService
 
 // InitDIDService 初始化DID服务
-func InitDIDService(didDAO *dao.DIDDAO, userDAO *dao.UserDAO) {
-	GlobalDIDService = NewDIDService(didDAO, userDAO)
-	utils.Log.Info("DID服务初始化完成")
+func InitDIDService(didDAO *dao.DIDDAO) {
+	GlobalDIDService = NewDIDService(didDAO)
 }
 
 // NewDIDService 创建DID服务实例
-func NewDIDService(didDAO *dao.DIDDAO, userDAO *dao.UserDAO) DIDService {
+func NewDIDService(didDAO *dao.DIDDAO) DIDService {
 	return &didService{
-		didDAO:     didDAO,
-		userDAO:    userDAO,
 		didManager: did.NewDIDManager(),
+		didDAO:     didDAO,
 	}
 }
 
@@ -100,14 +100,58 @@ func (s *didService) CreateDID(req *didDto.CreateDIDRequest) (*didDto.CreateDIDR
 	// 创建DID文档
 	didDoc := s.didManager.CreateDIDDocument(didStr, req.Organization, req.Role, keyPair)
 
-	// 保存DID文档
-	if err := s.didDAO.SaveDIDDocument(didDoc); err != nil {
-		return nil, fmt.Errorf("保存DID文档失败: %v", err)
+	// 序列化DID文档用于上链
+	didDocJSON, err := json.Marshal(didDoc)
+	if err != nil {
+		return nil, fmt.Errorf("序列化DID文档失败: %v", err)
 	}
 
-	// 保存用户DID映射
+	// 1. 先上链保存DID核心信息（确保不可篡改）
+	mainContract, err := blockchain.GetMainContract(req.Organization)
+	if err != nil {
+		return nil, fmt.Errorf("获取主合约失败: %v", err)
+	}
+	// 根据身份证号获取子通道
+	channelInfoBytes, err := mainContract.EvaluateTransaction(
+		"GetChannelInfoByRegionCode",
+		req.CitizenID[:2],
+	)
+	if err != nil {
+		return nil, fmt.Errorf("查询通道信息失败: %v", err)
+	}
+	var channelInfo blockDto.ChannelInfo
+	if err := json.Unmarshal(channelInfoBytes, &channelInfo); err != nil {
+		utils.Log.Error(fmt.Sprintf("解析通道信息失败: %v", err))
+		return nil, fmt.Errorf("解析通道信息失败: %v", err)
+	}
+
+	subContract, err := blockchain.GetSubContract(channelInfo.ChainCodeName, req.Organization)
+	if err != nil {
+		return nil, fmt.Errorf("获取子合约失败: %v", err)
+	}
+	// 注册DID
+
+	_, err = subContract.SubmitTransaction(
+		"RegisterDID",
+		didStr,
+		string(didDocJSON),
+		req.CitizenID,
+		req.Organization,
+		req.PublicKey,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("注册DID失败: %v", err)
+	}
+
+	// 2. 再保存到链下数据库（详细信息和隐私数据）
+	if err := s.didDAO.SaveDIDDocument(didDoc); err != nil {
+		// 如果链下保存失败，记录日志但不回滚链上操作（因为链上已经确认）
+		utils.Log.Error(fmt.Sprintf("保存DID文档到链下数据库失败: %v", err))
+	}
+
+	// 保存用户DID映射到链下
 	if err := s.didDAO.SaveUserDIDMapping(req.CitizenID, req.Organization, didStr); err != nil {
-		return nil, fmt.Errorf("保存用户DID映射失败: %v", err)
+		utils.Log.Error(fmt.Sprintf("保存用户DID映射失败: %v", err))
 	}
 
 	// 创建身份凭证

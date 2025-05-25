@@ -65,6 +65,82 @@ type AuditRecord struct {
 	Recommendations []string  `json:"recommendations"` // 建议
 }
 
+// DID文档结构
+type DIDDocument struct {
+	Context            []string             `json:"@context"`
+	ID                 string               `json:"id"`
+	PublicKey          []PublicKey          `json:"publicKey"`
+	Authentication     []string             `json:"authentication"`
+	Service            []Service            `json:"service,omitempty"`
+	Organization       string               `json:"organization"`
+	Role               string               `json:"role"`
+	Created            time.Time            `json:"created"`
+	Updated            time.Time            `json:"updated"`
+	VerificationMethod []VerificationMethod `json:"verificationMethod"`
+}
+
+// 公钥信息
+type PublicKey struct {
+	ID           string `json:"id"`
+	Type         string `json:"type"`
+	Controller   string `json:"controller"`
+	PublicKeyHex string `json:"publicKeyHex"`
+}
+
+// 验证方法
+type VerificationMethod struct {
+	ID                 string `json:"id"`
+	Type               string `json:"type"`
+	Controller         string `json:"controller"`
+	PublicKeyMultibase string `json:"publicKeyMultibase"`
+}
+
+// 服务端点
+type Service struct {
+	ID              string `json:"id"`
+	Type            string `json:"type"`
+	ServiceEndpoint string `json:"serviceEndpoint"`
+}
+
+// 可验证凭证
+type VerifiableCredential struct {
+	Context           []string               `json:"@context"`
+	ID                string                 `json:"id"`
+	Type              []string               `json:"type"`
+	Issuer            string                 `json:"issuer"`
+	IssuanceDate      time.Time              `json:"issuanceDate"`
+	ExpirationDate    *time.Time             `json:"expirationDate,omitempty"`
+	CredentialSubject map[string]interface{} `json:"credentialSubject"`
+	Proof             Proof                  `json:"proof"`
+}
+
+// 证明信息
+type Proof struct {
+	Type               string    `json:"type"`
+	Created            time.Time `json:"created"`
+	VerificationMethod string    `json:"verificationMethod"`
+	ProofPurpose       string    `json:"proofPurpose"`
+	JWS                string    `json:"jws"`
+}
+
+// DID认证挑战
+type DIDAuthChallenge struct {
+	Challenge string    `json:"challenge"`
+	Domain    string    `json:"domain"`
+	Nonce     string    `json:"nonce"`
+	Timestamp time.Time `json:"timestamp"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+// DID用户映射
+type DIDUserMapping struct {
+	DID           string    `json:"did"`
+	CitizenID     string    `json:"citizenId"`
+	CitizenIDHash string    `json:"citizenIdHash"`
+	Organization  string    `json:"organization"`
+	Created       time.Time `json:"created"`
+}
+
 // 查询结果结构
 type QueryResult struct {
 	Records             []interface{} `json:"records"`             // 记录列表
@@ -2061,6 +2137,469 @@ func (s *SmartContract) UpdateContract(ctx contractapi.TransactionContextInterfa
 		return fmt.Errorf("[UpdateContractStatus] 构造复合键失败: %v", err)
 	}
 	return ctx.GetStub().PutState(key, contractJSON)
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// DID相关
+//
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// RegisterDID 注册DID（支持所有组织）
+func (s *SmartContract) RegisterDID(ctx contractapi.TransactionContextInterface,
+	did string,
+	didDocumentJSON string,
+	citizenID string,
+	organization string,
+	publicKey string,
+) error {
+	// 检查DID是否已存在
+	didKey, err := s.createCompositeKey(ctx, "DID", []string{did}...)
+	if err != nil {
+		return fmt.Errorf("[RegisterDID] 创建DID复合键失败: %v", err)
+	}
+
+	exists, err := ctx.GetStub().GetState(didKey)
+	if err != nil {
+		return fmt.Errorf("[RegisterDID] 查询DID失败: %v", err)
+	}
+	if exists != nil {
+		return fmt.Errorf("[RegisterDID] DID %s 已存在", did)
+	}
+
+	// 检查用户DID映射是否已存在
+	mappingKey, err := s.createCompositeKey(ctx, "DIDMapping", []string{tools.GenerateHash(citizenID), organization}...)
+	if err != nil {
+		return fmt.Errorf("[RegisterDID] 创建映射复合键失败: %v", err)
+	}
+
+	existingMapping, err := ctx.GetStub().GetState(mappingKey)
+	if err != nil {
+		return fmt.Errorf("[RegisterDID] 查询DID映射失败: %v", err)
+	}
+	if existingMapping != nil {
+		return fmt.Errorf("[RegisterDID] 用户在组织 %s 中已存在DID", organization)
+	}
+
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[RegisterDID] 获取交易时间戳失败: %v", err)
+	}
+	timestamp := time.Unix(now.Seconds, int64(now.Nanos)).UTC()
+
+	// 保存DID文档
+	err = ctx.GetStub().PutState(didKey, []byte(didDocumentJSON))
+	if err != nil {
+		return fmt.Errorf("[RegisterDID] 保存DID文档失败: %v", err)
+	}
+
+	// 保存用户DID映射
+	mapping := DIDUserMapping{
+		DID:           did,
+		CitizenID:     citizenID,
+		CitizenIDHash: tools.GenerateHash(citizenID),
+		Organization:  organization,
+		Created:       timestamp,
+	}
+
+	mappingJSON, err := json.Marshal(mapping)
+	if err != nil {
+		return fmt.Errorf("[RegisterDID] 序列化DID映射失败: %v", err)
+	}
+
+	err = ctx.GetStub().PutState(mappingKey, mappingJSON)
+	if err != nil {
+		return fmt.Errorf("[RegisterDID] 保存DID映射失败: %v", err)
+	}
+
+	// 保存公钥信息
+	publicKeyKey, err := s.createCompositeKey(ctx, "DIDPublicKey", []string{did}...)
+	if err != nil {
+		return fmt.Errorf("[RegisterDID] 创建公钥复合键失败: %v", err)
+	}
+
+	publicKeyData := map[string]interface{}{
+		"did":       did,
+		"publicKey": publicKey,
+		"created":   timestamp,
+		"status":    "active",
+	}
+
+	publicKeyJSON, err := json.Marshal(publicKeyData)
+	if err != nil {
+		return fmt.Errorf("[RegisterDID] 序列化公钥数据失败: %v", err)
+	}
+
+	err = ctx.GetStub().PutState(publicKeyKey, publicKeyJSON)
+	if err != nil {
+		return fmt.Errorf("[RegisterDID] 保存公钥信息失败: %v", err)
+	}
+
+	return nil
+}
+
+// ResolveDID 解析DID文档
+func (s *SmartContract) ResolveDID(ctx contractapi.TransactionContextInterface,
+	did string,
+) (string, error) {
+	didKey, err := s.createCompositeKey(ctx, "DID", []string{did}...)
+	if err != nil {
+		return "", fmt.Errorf("[ResolveDID] 创建DID复合键失败: %v", err)
+	}
+
+	didDocumentBytes, err := ctx.GetStub().GetState(didKey)
+	if err != nil {
+		return "", fmt.Errorf("[ResolveDID] 查询DID文档失败: %v", err)
+	}
+	if didDocumentBytes == nil {
+		return "", fmt.Errorf("[ResolveDID] DID %s 不存在", did)
+	}
+
+	return string(didDocumentBytes), nil
+}
+
+// GetDIDByUser 根据用户信息获取DID
+func (s *SmartContract) GetDIDByUser(ctx contractapi.TransactionContextInterface,
+	citizenIDHash string,
+	organization string,
+) (string, error) {
+	mappingKey, err := s.createCompositeKey(ctx, "DIDMapping", []string{citizenIDHash, organization}...)
+	if err != nil {
+		return "", fmt.Errorf("[GetDIDByUser] 创建映射复合键失败: %v", err)
+	}
+
+	mappingBytes, err := ctx.GetStub().GetState(mappingKey)
+	if err != nil {
+		return "", fmt.Errorf("[GetDIDByUser] 查询DID映射失败: %v", err)
+	}
+	if mappingBytes == nil {
+		return "", fmt.Errorf("[GetDIDByUser] 用户在组织 %s 中不存在DID", organization)
+	}
+
+	var mapping DIDUserMapping
+	err = json.Unmarshal(mappingBytes, &mapping)
+	if err != nil {
+		return "", fmt.Errorf("[GetDIDByUser] 解析DID映射失败: %v", err)
+	}
+
+	return mapping.DID, nil
+}
+
+// CreateAuthChallenge 创建认证挑战
+func (s *SmartContract) CreateAuthChallenge(ctx contractapi.TransactionContextInterface,
+	challenge string,
+	nonce string,
+	domain string,
+	expirationMinutes int,
+) error {
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[CreateAuthChallenge] 获取交易时间戳失败: %v", err)
+	}
+	timestamp := time.Unix(now.Seconds, int64(now.Nanos)).UTC()
+
+	challengeData := DIDAuthChallenge{
+		Challenge: challenge,
+		Domain:    domain,
+		Nonce:     nonce,
+		Timestamp: timestamp,
+		ExpiresAt: timestamp.Add(time.Duration(expirationMinutes) * time.Minute),
+	}
+
+	challengeKey, err := s.createCompositeKey(ctx, "DIDChallenge", []string{challenge}...)
+	if err != nil {
+		return fmt.Errorf("[CreateAuthChallenge] 创建挑战复合键失败: %v", err)
+	}
+
+	challengeJSON, err := json.Marshal(challengeData)
+	if err != nil {
+		return fmt.Errorf("[CreateAuthChallenge] 序列化挑战数据失败: %v", err)
+	}
+
+	return ctx.GetStub().PutState(challengeKey, challengeJSON)
+}
+
+// VerifyAuthChallenge 验证认证挑战
+func (s *SmartContract) VerifyAuthChallenge(ctx contractapi.TransactionContextInterface,
+	challenge string,
+) (*DIDAuthChallenge, error) {
+	challengeKey, err := s.createCompositeKey(ctx, "DIDChallenge", []string{challenge}...)
+	if err != nil {
+		return nil, fmt.Errorf("[VerifyAuthChallenge] 创建挑战复合键失败: %v", err)
+	}
+
+	challengeBytes, err := ctx.GetStub().GetState(challengeKey)
+	if err != nil {
+		return nil, fmt.Errorf("[VerifyAuthChallenge] 查询挑战失败: %v", err)
+	}
+	if challengeBytes == nil {
+		return nil, fmt.Errorf("[VerifyAuthChallenge] 挑战 %s 不存在", challenge)
+	}
+
+	var challengeData DIDAuthChallenge
+	err = json.Unmarshal(challengeBytes, &challengeData)
+	if err != nil {
+		return nil, fmt.Errorf("[VerifyAuthChallenge] 解析挑战数据失败: %v", err)
+	}
+
+	// 检查挑战是否过期
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return nil, fmt.Errorf("[VerifyAuthChallenge] 获取交易时间戳失败: %v", err)
+	}
+	currentTime := time.Unix(now.Seconds, int64(now.Nanos)).UTC()
+
+	if currentTime.After(challengeData.ExpiresAt) {
+		return nil, fmt.Errorf("[VerifyAuthChallenge] 挑战已过期")
+	}
+
+	return &challengeData, nil
+}
+
+// MarkChallengeUsed 标记挑战已使用
+func (s *SmartContract) MarkChallengeUsed(ctx contractapi.TransactionContextInterface,
+	challenge string,
+) error {
+	challengeKey, err := s.createCompositeKey(ctx, "DIDChallenge", []string{challenge}...)
+	if err != nil {
+		return fmt.Errorf("[MarkChallengeUsed] 创建挑战复合键失败: %v", err)
+	}
+
+	// 删除挑战（标记为已使用）
+	return ctx.GetStub().DelState(challengeKey)
+}
+
+// IssueCredential 签发可验证凭证
+func (s *SmartContract) IssueCredential(ctx contractapi.TransactionContextInterface,
+	credentialID string,
+	credentialJSON string,
+	issuerDID string,
+	subjectDID string,
+	credentialType string,
+) error {
+	// 检查凭证是否已存在
+	credentialKey, err := s.createCompositeKey(ctx, "Credential", []string{credentialID}...)
+	if err != nil {
+		return fmt.Errorf("[IssueCredential] 创建凭证复合键失败: %v", err)
+	}
+
+	exists, err := ctx.GetStub().GetState(credentialKey)
+	if err != nil {
+		return fmt.Errorf("[IssueCredential] 查询凭证失败: %v", err)
+	}
+	if exists != nil {
+		return fmt.Errorf("[IssueCredential] 凭证 %s 已存在", credentialID)
+	}
+
+	// 验证颁发者DID是否存在
+	_, err = s.ResolveDID(ctx, issuerDID)
+	if err != nil {
+		return fmt.Errorf("[IssueCredential] 颁发者DID不存在: %v", err)
+	}
+
+	// 验证主体DID是否存在
+	_, err = s.ResolveDID(ctx, subjectDID)
+	if err != nil {
+		return fmt.Errorf("[IssueCredential] 主体DID不存在: %v", err)
+	}
+
+	now, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("[IssueCredential] 获取交易时间戳失败: %v", err)
+	}
+
+	// 保存凭证
+	err = ctx.GetStub().PutState(credentialKey, []byte(credentialJSON))
+	if err != nil {
+		return fmt.Errorf("[IssueCredential] 保存凭证失败: %v", err)
+	}
+
+	// 创建凭证索引（按主体DID）
+	subjectCredentialKey, err := s.createCompositeKey(ctx, "SubjectCredential", []string{subjectDID, credentialID}...)
+	if err != nil {
+		return fmt.Errorf("[IssueCredential] 创建主体凭证索引失败: %v", err)
+	}
+
+	credentialIndex := map[string]interface{}{
+		"credentialId":   credentialID,
+		"issuerDid":      issuerDID,
+		"subjectDid":     subjectDID,
+		"credentialType": credentialType,
+		"issuedAt":       time.Unix(now.Seconds, int64(now.Nanos)).UTC(),
+		"status":         "active",
+	}
+
+	credentialIndexJSON, err := json.Marshal(credentialIndex)
+	if err != nil {
+		return fmt.Errorf("[IssueCredential] 序列化凭证索引失败: %v", err)
+	}
+
+	return ctx.GetStub().PutState(subjectCredentialKey, credentialIndexJSON)
+}
+
+// GetCredentialsByDID 根据DID获取凭证
+func (s *SmartContract) GetCredentialsByDID(ctx contractapi.TransactionContextInterface,
+	did string,
+	credentialType string,
+) ([]string, error) {
+	// 验证DID是否存在
+	_, err := s.ResolveDID(ctx, did)
+	if err != nil {
+		return nil, fmt.Errorf("[GetCredentialsByDID] DID不存在: %v", err)
+	}
+
+	// 查询主体凭证索引
+	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey("SubjectCredential", []string{did})
+	if err != nil {
+		return nil, fmt.Errorf("[GetCredentialsByDID] 查询凭证索引失败: %v", err)
+	}
+	defer iterator.Close()
+
+	var credentials []string
+	for iterator.HasNext() {
+		result, err := iterator.Next()
+		if err != nil {
+			return nil, fmt.Errorf("[GetCredentialsByDID] 迭代凭证索引失败: %v", err)
+		}
+
+		var credentialIndex map[string]interface{}
+		err = json.Unmarshal(result.Value, &credentialIndex)
+		if err != nil {
+			continue
+		}
+
+		// 过滤凭证类型
+		if credentialType != "" {
+			if indexType, ok := credentialIndex["credentialType"].(string); !ok || indexType != credentialType {
+				continue
+			}
+		}
+
+		// 检查凭证状态
+		if status, ok := credentialIndex["status"].(string); !ok || status != "active" {
+			continue
+		}
+
+		// 获取完整凭证
+		credentialID, ok := credentialIndex["credentialId"].(string)
+		if !ok {
+			continue
+		}
+
+		credentialKey, err := s.createCompositeKey(ctx, "Credential", []string{credentialID}...)
+		if err != nil {
+			continue
+		}
+
+		credentialBytes, err := ctx.GetStub().GetState(credentialKey)
+		if err != nil || credentialBytes == nil {
+			continue
+		}
+
+		credentials = append(credentials, string(credentialBytes))
+	}
+
+	return credentials, nil
+}
+
+// RevokeCredential 撤销凭证
+func (s *SmartContract) RevokeCredential(ctx contractapi.TransactionContextInterface,
+	credentialID string,
+	revokerDID string,
+) error {
+	// 检查凭证是否存在
+	credentialKey, err := s.createCompositeKey(ctx, "Credential", []string{credentialID}...)
+	if err != nil {
+		return fmt.Errorf("[RevokeCredential] 创建凭证复合键失败: %v", err)
+	}
+
+	credentialBytes, err := ctx.GetStub().GetState(credentialKey)
+	if err != nil {
+		return fmt.Errorf("[RevokeCredential] 查询凭证失败: %v", err)
+	}
+	if credentialBytes == nil {
+		return fmt.Errorf("[RevokeCredential] 凭证 %s 不存在", credentialID)
+	}
+
+	// 解析凭证以验证撤销权限
+	var credential VerifiableCredential
+	err = json.Unmarshal(credentialBytes, &credential)
+	if err != nil {
+		return fmt.Errorf("[RevokeCredential] 解析凭证失败: %v", err)
+	}
+
+	// 检查撤销权限（只有颁发者或主体可以撤销）
+	subjectDID, _ := credential.CredentialSubject["id"].(string)
+	if credential.Issuer != revokerDID && subjectDID != revokerDID {
+		return fmt.Errorf("[RevokeCredential] 无权撤销此凭证")
+	}
+
+	// 更新凭证索引状态
+	iterator, err := ctx.GetStub().GetStateByPartialCompositeKey("SubjectCredential", []string{subjectDID})
+	if err != nil {
+		return fmt.Errorf("[RevokeCredential] 查询凭证索引失败: %v", err)
+	}
+	defer iterator.Close()
+
+	for iterator.HasNext() {
+		result, err := iterator.Next()
+		if err != nil {
+			continue
+		}
+
+		var credentialIndex map[string]interface{}
+		err = json.Unmarshal(result.Value, &credentialIndex)
+		if err != nil {
+			continue
+		}
+
+		if indexCredentialID, ok := credentialIndex["credentialId"].(string); ok && indexCredentialID == credentialID {
+			credentialIndex["status"] = "revoked"
+			now, _ := ctx.GetStub().GetTxTimestamp()
+			credentialIndex["revokedAt"] = time.Unix(now.Seconds, int64(now.Nanos)).UTC()
+
+			updatedIndexJSON, err := json.Marshal(credentialIndex)
+			if err != nil {
+				continue
+			}
+
+			ctx.GetStub().PutState(result.Key, updatedIndexJSON)
+			break
+		}
+	}
+
+	return nil
+}
+
+// GetPublicKeyByDID 根据DID获取公钥
+func (s *SmartContract) GetPublicKeyByDID(ctx contractapi.TransactionContextInterface,
+	did string,
+) (string, error) {
+	publicKeyKey, err := s.createCompositeKey(ctx, "DIDPublicKey", []string{did}...)
+	if err != nil {
+		return "", fmt.Errorf("[GetPublicKeyByDID] 创建公钥复合键失败: %v", err)
+	}
+
+	publicKeyBytes, err := ctx.GetStub().GetState(publicKeyKey)
+	if err != nil {
+		return "", fmt.Errorf("[GetPublicKeyByDID] 查询公钥失败: %v", err)
+	}
+	if publicKeyBytes == nil {
+		return "", fmt.Errorf("[GetPublicKeyByDID] DID %s 的公钥不存在", did)
+	}
+
+	var publicKeyData map[string]interface{}
+	err = json.Unmarshal(publicKeyBytes, &publicKeyData)
+	if err != nil {
+		return "", fmt.Errorf("[GetPublicKeyByDID] 解析公钥数据失败: %v", err)
+	}
+
+	publicKey, ok := publicKeyData["publicKey"].(string)
+	if !ok {
+		return "", fmt.Errorf("[GetPublicKeyByDID] 公钥格式错误")
+	}
+
+	return publicKey, nil
 }
 
 func main() {

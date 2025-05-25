@@ -17,6 +17,7 @@ func InitServices() error {
 	realEstateDAO := dao.NewRealEstateDAO()
 	contractDAO := dao.NewContractDAO()
 	paymentDAO := dao.NewPaymentDAO()
+	didDAO := dao.NewDIDDAO()
 
 	// 初始化服务
 	service.InitUserService(userDAO)
@@ -27,6 +28,7 @@ func InitServices() error {
 	service.InitBlockService()
 	service.InitPictureService()
 	service.InitChatService()
+	service.InitDIDService(didDAO)
 
 	// 初始化控制器
 	controller.InitUserController()
@@ -37,6 +39,7 @@ func InitServices() error {
 	controller.InitBlockController()
 	controller.InitPictureController()
 	controller.InitChatController()
+	controller.InitDIDController()
 	return nil
 }
 
