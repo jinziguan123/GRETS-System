@@ -14,6 +14,7 @@ import (
 	userDto "grets_server/dto/user_dto"
 	"grets_server/pkg/blockchain"
 	"grets_server/pkg/did"
+	"grets_server/pkg/did/credentialType"
 	"grets_server/pkg/utils"
 	"log"
 	"os"
@@ -207,7 +208,7 @@ func (s *didService) CreateDID(req *didDto.CreateDIDRequest) (*didDto.CreateDIDR
 	identityCredential, err := s.didManager.CreateCredential(
 		issuerDID,
 		didStr,
-		did.CredentialTypeIdentity,
+		string(credentialType.CredentialTypeIdentity),
 		identityClaims,
 		issuerKeyPair, // 这里应该使用颁发者的密钥
 	)
@@ -401,7 +402,7 @@ func (s *didService) DIDLogin(req *didDto.DIDLoginRequest) (*didDto.DIDLoginResp
 	}
 
 	// 尝试从身份凭证中获取用户信息
-	credentials, err := s.didDAO.GetCredentialsByDID(req.DID, did.CredentialTypeIdentity)
+	credentials, err := s.didDAO.GetCredentialsByDID(req.DID, string(credentialType.CredentialTypeIdentity))
 	if err == nil && len(credentials) > 0 {
 		if name, ok := credentials[0].CredentialSubject["name"].(string); ok {
 			userInfo.Name = name
@@ -670,6 +671,8 @@ func (s *didService) getIssuerDID(organization string) string {
 		return "did:grets:bank:system"
 	case constants.AuditOrganization:
 		return "did:grets:audit:system"
+	case constants.InvestorOrganization:
+		return "did:grets:investor:system"
 	default:
 		return "did:grets:system:authority"
 	}

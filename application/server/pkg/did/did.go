@@ -17,12 +17,6 @@ const (
 
 	// 凭证上下文
 	CredentialContext = "https://www.w3.org/2018/credentials/v1"
-
-	// 凭证类型
-	CredentialTypeIdentity     = "IdentityCredential"
-	CredentialTypeOrganization = "OrganizationCredential"
-	CredentialTypeRole         = "RoleCredential"
-	CredentialTypeAsset        = "AssetCredential"
 )
 
 // DIDManager DID管理器

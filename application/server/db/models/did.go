@@ -25,8 +25,8 @@ func (DIDDocument) TableName() string {
 type VerifiableCredential struct {
 	ID             int64      `gorm:"primaryKey;autoIncrement:true" json:"id"`
 	CredentialID   string     `gorm:"size:255;uniqueIndex;not null" json:"credentialId"`
-	IssuerDID      string     `gorm:"size:255;not null" json:"issuerDid"`
-	SubjectDID     string     `gorm:"size:255;not null" json:"subjectDid"`
+	IssuerDID      string     `gorm:"size:255;not null;column:issuer_did" json:"issuerDid"`
+	SubjectDID     string     `gorm:"size:255;not null;column:subject_did" json:"subjectDid"`
 	CredentialType string     `gorm:"size:100;not null" json:"credentialType"`
 	Credential     string     `gorm:"type:text;not null" json:"credential"` // JSON格式的凭证
 	IssuanceDate   time.Time  `gorm:"not null" json:"issuanceDate"`
