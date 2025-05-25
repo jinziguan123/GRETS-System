@@ -21,7 +21,7 @@ export interface UserInfo {
   id: number,
   citizenID: string
   name: string
-  role: 'GOVERNMENT' | 'BANK' | 'INVESTOR' | 'AUDITOR'
+  role: 'user' | 'admin'
   organization: string
   phone: string
   email: string
