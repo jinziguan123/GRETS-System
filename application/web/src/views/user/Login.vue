@@ -8,6 +8,14 @@
         <el-radio-button label="traditional">传统登录</el-radio-button>
         <el-radio-button label="did">DID登录</el-radio-button>
       </el-radio-group>
+      <div class="mode-description">
+        <small v-if="loginMode === 'traditional'">
+          使用身份证号和密码进行传统登录
+        </small>
+        <small v-if="loginMode === 'did'">
+          使用去中心化身份标识(DID)和数字签名进行安全登录
+        </small>
+      </div>
     </div>
 
     <!-- 传统登录表单 -->
@@ -76,6 +84,20 @@
         </div>
       </el-form-item>
 
+      <!-- DID登录进度指示器 -->
+      <el-form-item v-if="didLoading">
+        <div class="login-progress">
+          <el-steps :active="loginStep" finish-status="success" simple>
+            <el-step title="验证DID" />
+            <el-step title="获取挑战" />
+            <el-step title="生成签名" />
+            <el-step title="身份验证" />
+            <el-step title="登录成功" />
+          </el-steps>
+          <div class="progress-text">{{ loginProgressText }}</div>
+        </div>
+      </el-form-item>
+
       <!-- 密钥管理 -->
       <el-form-item>
         <div class="key-management">
@@ -115,7 +137,7 @@
           class="w-100"
           @click="handleDIDLogin"
         >
-          {{ didLoading ? 'DID认证中...' : 'DID登录' }}
+          {{ didLoading ? loginProgressText : 'DID登录' }}
         </el-button>
       </el-form-item>
     </el-form>
@@ -195,7 +217,8 @@ import {
   removeKeyPair,
   createAuthResponse,
   validateDID,
-  generateHash
+  generateHash,
+  generatePublicKeyFromPrivate
 } from '@/utils/did'
 
 interface LoginResponse {
@@ -253,6 +276,10 @@ const hasStoredKey = ref(hasKeyPair())
 const currentKeyInfo = reactive({
   publicKey: ''
 })
+
+// DID登录进度状态
+const loginStep = ref(0)
+const loginProgressText = ref('DID认证中...')
 
 // 表单验证规则
 const loginRules = reactive<FormRules>({
@@ -334,22 +361,28 @@ const handleLogin = (): void => {
   }
 }
 
-// 处理DID登录
+// 处理DID登录 - 按照挑战-响应机制实现
 const handleDIDLogin = async (): Promise<void> => {
   if (didFormRef.value) {
     didFormRef.value.validate(async (valid: boolean) => {
       if (valid) {
         didLoading.value = true
+        loginStep.value = 0
+        
         try {
           let userDID = didLoginForm.did
 
-          // 如果输入的不是DID格式，尝试根据身份证号查找DID
+          // 步骤1: 验证DID格式或根据身份证号查找DID
+          loginStep.value = 1
+          loginProgressText.value = '正在验证DID...'
+          
           if (!validateDID(userDID)) {
             if (userDID.length === 18) {
               try {
                 const didResponse = await getDIDByUser(userDID, 'investor')
-                userDID = didResponse.data.did
+                userDID = didResponse.did
                 didLoginForm.did = userDID
+                ElMessage.info(`找到DID: ${userDID}`)
               } catch (error) {
                 ElMessage.error('未找到对应的DID，请先注册')
                 return
@@ -360,44 +393,91 @@ const handleDIDLogin = async (): Promise<void> => {
             }
           }
 
-          // 获取认证挑战
+          // 步骤2: 向RP请求认证挑战
+          loginStep.value = 2
+          loginProgressText.value = '正在获取认证挑战...'
+          
           const challengeResponse = await getChallenge({
             did: userDID,
             domain: window.location.hostname
           })
 
-          const challenge = challengeResponse.data
+          const challenge = challengeResponse
+          ElMessage.success('获取挑战成功')
 
-          // 获取密钥对
-          const keyPair = loadKeyPair(await getKeyPassword())
-          if (!keyPair) {
-            ElMessage.error('无法加载密钥，请重新导入')
+          // 步骤3: 获取用户密钥对
+          loginProgressText.value = '正在加载密钥...'
+          
+          const password = await getKeyPassword()          
+          if (!password) {
+            ElMessage.error('需要密钥密码才能继续')
             return
           }
 
-          // 创建认证响应
-          const authResponse = createAuthResponse(
+          const keyPair = loadKeyPair(password)
+          if (!keyPair) {
+            ElMessage.error('无法加载密钥，请检查密码或重新导入密钥')
+            return
+          }
+          // 步骤4: 使用私钥对挑战进行签名
+          loginStep.value = 3
+          loginProgressText.value = '正在生成数字签名...'
+          
+          const authResponse = await createAuthResponse(
             userDID,
             challenge,
             keyPair.privateKey,
             keyPair.publicKey
           )
 
-          // 执行DID登录
+          // 步骤5: 将签名和公钥信息发送给RP进行验证
+          loginStep.value = 4
+          loginProgressText.value = '正在验证身份...'
+          
           const loginResponse = await didLogin(authResponse)
 
-          ElMessage.success('DID登录成功')
+          // 步骤6: 登录成功处理
+          loginStep.value = 5
+          loginProgressText.value = '登录成功！'
+          
+          ElMessage.success('DID身份验证成功！')
           localStorage.setItem('token', loginResponse.data.token)
+          
+          // 处理用户信息，确保类型兼容
           if (loginResponse.data.user) {
-            userStore.updateUserInfo(loginResponse.data.user)
+            const userInfo = {
+              ...loginResponse.data.user,
+              role: loginResponse.data.user.role === 'investor' ? 'user' as const : 'admin' as const
+            }
+            userStore.updateUserInfo(userInfo)
           }
-          const redirect = router.currentRoute.value.query.redirect as string || '/'
-          router.push(redirect)
-        } catch (error) {
+          
+          // 延迟跳转，让用户看到成功状态
+          setTimeout(() => {
+            const redirect = router.currentRoute.value.query.redirect as string || '/'
+            router.push(redirect)
+          }, 1000)
+          
+        } catch (error: any) {
           console.error('DID登录失败:', error)
-          ElMessage.error('DID登录失败，请检查网络连接或密钥是否正确')
+          
+          // 根据错误类型提供更具体的错误信息
+          if (error.message?.includes('密码错误')) {
+            ElMessage.error('密钥密码错误，请重新输入')
+          } else if (error.message?.includes('签名')) {
+            ElMessage.error('数字签名验证失败，请检查密钥是否正确')
+          } else if (error.message?.includes('挑战')) {
+            ElMessage.error('认证挑战已过期，请重试')
+          } else {
+            ElMessage.error('DID登录失败，请检查网络连接或联系管理员')
+          }
         } finally {
-          didLoading.value = false
+          // 延迟重置状态
+          setTimeout(() => {
+            didLoading.value = false
+            loginStep.value = 0
+            loginProgressText.value = 'DID认证中...'
+          }, loginStep.value === 5 ? 1500 : 500)
         }
       }
     })
@@ -405,14 +485,13 @@ const handleDIDLogin = async (): Promise<void> => {
 }
 
 // 导入密钥
-const importKey = (): void => {
+const importKey = async (): Promise<void> => {
   if (keyImportFormRef.value) {
-    keyImportFormRef.value.validate((valid: boolean) => {
+    keyImportFormRef.value.validate(async (valid: boolean) => {
       if (valid) {
         try {
-          // 生成公钥（简化处理）
-          const publicKey = generateHash(keyImportForm.privateKey)
-          
+          // 从私钥生成对应的公钥，与后端crypto.go格式保持一致          
+          const publicKey = await generatePublicKeyFromPrivate(keyImportForm.privateKey)
           const keyPair = {
             privateKey: keyImportForm.privateKey,
             publicKey: publicKey
@@ -429,8 +508,9 @@ const importKey = (): void => {
           keyImportForm.privateKey = ''
           keyImportForm.password = ''
           keyImportForm.confirmPassword = ''
-        } catch (error) {
-          ElMessage.error('密钥导入失败')
+        } catch (error: any) {
+          console.error('密钥导入失败:', error)
+          ElMessage.error(`密钥导入失败: ${error.message}`)
         }
       }
     })
@@ -551,5 +631,30 @@ const handleEnter = (e: KeyboardEvent) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.login-progress {
+  margin: 20px 0;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.progress-text {
+  text-align: center;
+  margin-top: 10px;
+  color: #666;
+  font-size: 14px;
+}
+
+.mode-description {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.mode-description small {
+  color: #999;
+  font-size: 12px;
 }
 </style> 

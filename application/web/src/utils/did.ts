@@ -1,3 +1,11 @@
+import { ec as EC } from 'elliptic'; // 使用 ES6 模块导入语法
+
+// 选择椭圆曲线。
+// 'p256' (NIST P-256 / prime256v1 / secp256r1)
+// 'secp256k1' (比特币、以太坊等使用)
+const curveName: string = 'p256'; // 或者 'secp256k1' 等，根据你的私钥类型
+const ec: EC = new EC(curveName);
+
 /**
  * DID密钥管理工具
  * 与后端crypto.go保持一致的ECDSA P-256密钥生成和处理
@@ -23,38 +31,41 @@ export interface SignatureResult {
  */
 export async function generateKeyPair(): Promise<KeyPair> {
   try {
-    // 使用Web Crypto API生成ECDSA P-256密钥对
     const cryptoKeyPair = await window.crypto.subtle.generateKey(
       {
         name: 'ECDSA',
-        namedCurve: 'P-256'
+        namedCurve: 'P-256' // NIST P-256
       },
-      true, // 可导出
+      true, // exportable
       ['sign', 'verify']
-    )
+    );
 
-    // 导出公钥
-    const publicKeyBuffer = await window.crypto.subtle.exportKey('raw', cryptoKeyPair.publicKey)
-    const publicKeyArray = new Uint8Array(publicKeyBuffer)
-    
-    // 确保公钥是65字节（04前缀 + 32字节X + 32字节Y）
-    if (publicKeyArray.length !== 65 || publicKeyArray[0] !== 0x04) {
-      throw new Error('生成的公钥格式不正确')
+    // Export Public Key (raw format for 04 + X + Y)
+    const publicKeyBuffer = await window.crypto.subtle.exportKey('raw', cryptoKeyPair.publicKey);
+    const publicKeyHex = arrayBufferToHex(publicKeyBuffer);
+    // Verification for uncompressed P-256 public key
+    if (new Uint8Array(publicKeyBuffer).length !== 65 || new Uint8Array(publicKeyBuffer)[0] !== 0x04) {
+        throw new Error('Generated public key is not in uncompressed P-256 format (65 bytes, starting with 0x04)');
     }
-    
-    const publicKeyHex = arrayBufferToHex(publicKeyBuffer)
 
-    // 导出私钥
-    const privateKeyBuffer = await window.crypto.subtle.exportKey('pkcs8', cryptoKeyPair.privateKey)
-    const privateKeyHex = extractPrivateKeyFromPKCS8(privateKeyBuffer)
+    // Export Private Key as JWK to easily get the 'd' parameter (raw private scalar)
+    const privateKeyJwk = await window.crypto.subtle.exportKey('jwk', cryptoKeyPair.privateKey);
+
+    if (!privateKeyJwk.d) {
+      throw new Error('Failed to get "d" parameter (private scalar) from JWK');
+    }
+
+    // The 'd' parameter in JWK is the Base64URL encoded private scalar
+    const privateKeyHex = base64UrlToHex(privateKeyJwk.d);
 
     return {
       publicKey: publicKeyHex,
-      privateKey: privateKeyHex,
+      privateKey: privateKeyHex, // This is now the raw 32-byte scalar in hex
       cryptoKeyPair
-    }
+    };
   } catch (error: any) {
-    throw new Error(`密钥生成失败: ${error.message}`)
+    console.error("Key generation failed:", error);
+    throw new Error(`Key generation failed: ${error.message || error}`);
   }
 }
 
@@ -71,7 +82,7 @@ export async function restoreKeyPair(privateKeyHex: string, publicKeyHex: string
     
     if (!isValidPublicKey(publicKeyHex)) {
       throw new Error('无效的公钥格式')
-    }
+    }   
 
     // 重新导入密钥到Web Crypto API
     const cryptoKeyPair = await importKeyPair(privateKeyHex, publicKeyHex)
@@ -181,6 +192,50 @@ export async function generateHash(data: string): Promise<string> {
 }
 
 /**
+ * 从私钥生成对应的公钥
+ * 与后端crypto.go的PublicKeyToHex()格式保持一致
+ */
+export function generatePublicKeyFromPrivate(privateKeyHex: string, curveName: 'p256' | 'secp256k1' = 'p256'): string | null {
+  // No need for isValidPrivateKey if we assume privateKeyHex is the raw 32-byte scalar
+  // but basic length check can be useful for P-256.
+  if (curveName === 'p256' && privateKeyHex.length !== 64) {
+      console.error('Invalid private key length for P-256. Expected 64 hex characters (32 bytes).');
+      return null;
+  }
+
+  try {
+    const ecInstance = new EC(curveName);
+    const keyPair = ecInstance.keyFromPrivate(privateKeyHex, 'hex');
+    return keyPair.getPublic(false, 'hex'); // Uncompressed public key
+  } catch (error: any) {
+    console.error(`Failed to derive public key from private key: ${error.message || error}`);
+    return null; // Or throw error
+  }
+}
+
+/**
+ * 将base64url编码的字符串转换为字节数组
+ */
+function base64UrlToBytes(base64url: string): Uint8Array {
+  // 将base64url转换为base64
+  let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
+  
+  // 添加填充
+  while (base64.length % 4) {
+    base64 += '='
+  }
+  
+  // 解码base64
+  const binaryString = atob(base64)
+  const bytes = new Uint8Array(binaryString.length)
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i)
+  }
+  
+  return bytes
+}
+
+/**
  * 生成DID标识符
  */
 export function generateDID(organization: string, identifier?: string): string {
@@ -210,8 +265,9 @@ export function parseDID(did: string): { method: string; organization: string; i
  * ArrayBuffer转十六进制字符串
  */
 function arrayBufferToHex(buffer: ArrayBuffer): string {
-  const byteArray = new Uint8Array(buffer)
-  return Array.from(byteArray, byte => byte.toString(16).padStart(2, '0')).join('')
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /**
@@ -223,6 +279,21 @@ function hexToArrayBuffer(hex: string): ArrayBuffer {
     bytes[i / 2] = parseInt(hex.substr(i, 2), 16)
   }
   return bytes.buffer
+}
+
+function base64UrlToHex(base64Url: string): string {
+  let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  // Pad with '=' if necessary
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  const raw = window.atob(base64);
+  let hex = '';
+  for (let i = 0; i < raw.length; i++) {
+    const byte = raw.charCodeAt(i);
+    hex += byte.toString(16).padStart(2, '0');
+  }
+  return hex;
 }
 
 /**
@@ -414,7 +485,116 @@ function isValidSignature(signatureHex: string): boolean {
  * 生成随机标识符
  */
 function generateRandomIdentifier(): string {
-  const array = new Uint8Array(16)
-  window.crypto.getRandomValues(array)
-  return arrayBufferToHex(array.buffer)
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+}
+
+// ===== 新增的密钥管理和认证函数 =====
+
+/**
+ * 保存密钥对到本地存储（加密）
+ */
+export function saveKeyPair(keyPair: KeyPair, password: string): void {
+  try {
+    // 简单的加密处理（实际项目中应使用更安全的加密方式）
+    const data = {
+      publicKey: keyPair.publicKey,
+      privateKey: keyPair.privateKey,
+      timestamp: Date.now()
+    }
+    
+    const encrypted = btoa(JSON.stringify(data) + password)
+    localStorage.setItem('did_keypair', encrypted)
+    localStorage.setItem('did_keypair_hash', btoa(password))
+  } catch (error: any) {
+    throw new Error(`保存密钥失败: ${error.message}`)
+  }
+}
+
+/**
+ * 从本地存储加载密钥对（解密）
+ */
+export function loadKeyPair(password: string): KeyPair | null {
+  try {
+    const encrypted = localStorage.getItem('did_keypair')
+    const passwordHash = localStorage.getItem('did_keypair_hash')
+    
+    if (!encrypted || !passwordHash) {
+      return null
+    }
+    
+    // 验证密码
+    if (btoa(password) !== passwordHash) {
+      throw new Error('密码错误')
+    }
+    
+    const decrypted = atob(encrypted)
+    const dataWithPassword = decrypted.substring(0, decrypted.length - password.length)
+    const data = JSON.parse(dataWithPassword)
+
+    const publicKey = generatePublicKeyFromPrivate(data.privateKey)
+    
+    return {
+      publicKey: publicKey || '',
+      privateKey: data.privateKey
+    }
+  } catch (error: any) {
+    throw new Error(`加载密钥失败: ${error.message}`)
+  }
+}
+
+/**
+ * 检查是否有存储的密钥对
+ */
+export function hasKeyPair(): boolean {
+  return localStorage.getItem('did_keypair') !== null
+}
+
+/**
+ * 移除存储的密钥对
+ */
+export function removeKeyPair(): void {
+  localStorage.removeItem('did_keypair')
+  localStorage.removeItem('did_keypair_hash')
+}
+
+/**
+ * 验证DID格式
+ */
+export function validateDID(did: string): boolean {
+  // DID格式: did:grets:organization:identifier
+  const didRegex = /^did:grets:[a-zA-Z]+:[a-zA-Z0-9]+$/
+  return didRegex.test(did)
+}
+
+/**
+ * 创建认证响应（用于DID登录）
+ */
+export async function createAuthResponse(
+  did: string,
+  challenge: string,
+  privateKey: string,
+  publicKey: string
+): Promise<{
+  did: string
+  challenge: string
+  signature: string
+  publicKey: string
+}> {
+  try {
+    // 恢复密钥对
+    const keyPair = await restoreKeyPair(privateKey, publicKey)
+    
+    // 对挑战进行签名
+    const signatureResult = await signMessage(keyPair, challenge)
+    console.log('signatureResult:', signatureResult)
+    
+    return {
+      did,
+      challenge,
+      signature: signatureResult.signature,
+      publicKey
+    }
+  } catch (error: any) {
+    throw new Error(`创建认证响应失败: ${error.message}`)
+  }
 } 

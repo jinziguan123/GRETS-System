@@ -14,12 +14,14 @@
     "axios": "^1.8.3",
     "crypto-js": "^4.2.0",
     "element-plus": "^2.9.6",
+    "elliptic": "^6.6.1",
     "pinia": "^3.0.1",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
+    "@types/elliptic": "^6.4.18",
     "@types/node": "^20.17.28",
     "@types/vue": "^1.0.31",
     "@types/vue-router": "^2.0.0",
