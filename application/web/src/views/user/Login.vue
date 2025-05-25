@@ -442,13 +442,13 @@ const handleDIDLogin = async (): Promise<void> => {
           loginProgressText.value = '登录成功！'
           
           ElMessage.success('DID身份验证成功！')
-          localStorage.setItem('token', loginResponse.data.token)
+          localStorage.setItem('token', loginResponse.token)
           
           // 处理用户信息，确保类型兼容
-          if (loginResponse.data.user) {
+          if (loginResponse.user) {
             const userInfo = {
-              ...loginResponse.data.user,
-              role: loginResponse.data.user.role === 'investor' ? 'user' as const : 'admin' as const
+              ...loginResponse.user,
+              role: loginResponse.user.role === 'investor' ? 'user' as const : 'admin' as const
             }
             userStore.updateUserInfo(userInfo)
           }
