@@ -201,7 +201,7 @@
       <!-- 登录链接 -->
       <el-form-item class="login-link">
         <span>已有账号？</span>
-        <el-button type="text" @click="router.push('login')">立即登录</el-button>
+        <el-button type="text" @click="router.push('/auth/login')">立即登录</el-button>
       </el-form-item>
     </el-form>
     
