@@ -16,6 +16,28 @@
         </div>
       </div>
       <div class="header-right">
+        <!-- 操作按钮 -->
+        <div class="header-actions">
+          <el-button 
+            type="primary" 
+            size="small" 
+            @click="goToRealtyDetail"
+            class="action-btn"
+          >
+            房产详情
+          </el-button>
+          <el-button 
+            v-if="isBuyer || !isSeller" 
+            type="success" 
+            size="small" 
+            @click="applyTransaction"
+            class="action-btn"
+            :disabled="roomInfo.status !== 'ACTIVE'"
+          >
+            申请交易
+          </el-button>
+        </div>
+        
         <div class="connection-status" :class="{ 'connected': isConnected }">
           <span class="status-dot"></span>
           <span class="status-text">{{ isConnected ? '在线' : '连接中...' }}</span>
@@ -193,13 +215,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Plus, Document, InfoFilled, Picture, ChatDotSquare } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { getChatMessageList, sendMessage as sendChatMessage, markMessagesRead } from '@/api/chat'
-import CryptoJS from 'crypto-js'
+import CryptoJS, { SHA256 } from 'crypto-js'
 
 const router = useRouter()
 const route = useRoute()
@@ -219,7 +241,10 @@ const roomInfo = reactive({
   roomUUID: '',
   title: '聊天室',
   subtitle: '',
-  status: 'ACTIVE'
+  status: 'ACTIVE',
+  buyerCitizenIDHash: '',
+  sellerCitizenIDHash: '',
+  realtyCert: ''
 })
 
 // 分页信息
@@ -241,6 +266,23 @@ const isMessageFromSelf = (message) => {
   return message.senderCitizenIDHash === currentUserCitizenIDHash && 
          message.senderOrganization === userStore.user.organization
 }
+
+// 判断当前用户是否为买方
+const isBuyer = computed(() => {
+  const currentUserCitizenIDHash = userStore.user.citizenIDHash || 
+    CryptoJS.SHA256(userStore.user.citizenID).toString()
+  
+  return route.query.buyerCitizenIDHash === currentUserCitizenIDHash &&
+         route.query.buyerOrganization === userStore.user.organization
+})
+
+const isSeller = computed(() => {
+  const currentUserCitizenIDHash = userStore.user.citizenIDHash || 
+    CryptoJS.SHA256(userStore.user.citizenID).toString()
+  
+  return route.query.sellerCitizenIDHash === currentUserCitizenIDHash &&
+         route.query.sellerOrganization === userStore.user.organization
+})
 
 const handleEnter = (e) => {
   if (e.keyCode === 13 || e.keyCode === 108) {
@@ -604,11 +646,29 @@ const getRoomStatusText = (status) => {
   return statusMap[status] || status
 }
 
+// 跳转到房产详情页面
+const goToRealtyDetail = async () => {
+  const realtyCertHash = route.query.realtyCertHash || roomInfo.realtyCertHash
+  if (realtyCertHash) {
+    router.push({
+      path: `/realty/${realtyCertHash}`
+    })
+  } else {
+    ElMessage.warning('房产证号不存在')
+  }
+}
+
+// 申请交易
+const applyTransaction = async () => {
+  router.push(`/transaction/create?realtyCert=${route.query.realtyCert}`)
+}
+
 // 初始化房间信息
 const initRoomInfo = () => {
   roomInfo.roomUUID = roomUUID.value
   roomInfo.subtitle = `房产交易咨询`
   roomInfo.title = `房产证号: ${route.query.realtyCert || ''}`
+  roomInfo.realtyCert = route.query.realtyCert || ''
 }
 
 // 生命周期
@@ -699,10 +759,37 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
   line-height: 1;
 }
 
-.header-right {
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .header-actions {
+    gap: 4px;
+  }
+  
+  .action-btn {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+.header-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
+}
+
+.action-btn {
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .connection-status {

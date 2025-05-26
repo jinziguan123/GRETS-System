@@ -102,8 +102,11 @@
           <!-- 相关操作 -->
           <div class="actions" v-if="realty.status === 'PENDING_SALE' && hasTransactionPermission">
             <el-divider />
-            <el-button type="primary" @click="startChatRoom" :disabled="isOwner">
+            <el-button type="primary" @click="startChatRoom" :disabled="isOwner" v-if="!roomUUID">
               {{ isOwner ? '不能与自己聊天' : '咨询房主' }}
+            </el-button>
+            <el-button type="primary" @click="goToChatRoom" v-else>
+              进入聊天室
             </el-button>
           </div>
         </el-card>
@@ -395,7 +398,7 @@ import { getRealtyDetail, updateRealty } from "@/api/realty.js"
 import CryptoJS from 'crypto-js'
 import {queryTransactionList} from "@/api/transaction.js";
 import {queryContractList, getContractDetail, getContractByUUID} from '@/api/contract'
-import { verifyCapital, createChatRoom } from '@/api/chat'
+import { verifyCapital, createChatRoom, getChatRoomList } from '@/api/chat'
 
 const router = useRouter()
 const route = useRoute()
@@ -472,6 +475,8 @@ const transactionQuery = reactive({
   pageSize: 10,
   pageNumber: 1
 })
+
+const roomUUID = ref('')
 
 // 编辑表单
 const editForm = reactive({
@@ -673,6 +678,8 @@ const fetchRealtyDetail = async () => {
       // 如果没有图片，使用默认图片
       realty.images = ['http://localhost:8089/i/2025/04/28/680f3098ac95a.png']
     }
+
+    fetchChatRoom()
   } catch (error) {
     console.error('获取房产详情失败:', error)
     ElMessage.error(error.response?.data?.message || '获取房产详情失败')
@@ -954,6 +961,33 @@ const submitVerification = async () => {
     }
   })
 }
+
+const fetchChatRoom = async () => {
+  const requestData = {
+    userOrganization: userStore.user.organization,
+    pageSize: 10000,
+    pageNumber: 1,
+    userCitizenID: userStore.user.citizenID,
+    realtyCert: realty.realtyCert
+  }
+
+  const response = await getChatRoomList(requestData)
+  console.log(response.chatRooms);
+  
+  roomUUID.value = response.chatRooms[0].roomUUID || ''
+}
+
+const goToChatRoom = () => {
+  router.push({
+    path: `/chat/room/${roomUUID.value}`,
+    query: {
+      realtyCert: realty.realtyCert,
+      sellerCitizenIDHash: realty.currentOwnerCitizenIDHash,
+      sellerOrganization: realty.currentOwnerOrganization
+    }
+  })
+}
+
 
 onMounted(() => {
   fetchRealtyDetail()

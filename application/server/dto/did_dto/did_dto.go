@@ -44,6 +44,8 @@ type UserInfo struct {
 	Name         string `json:"name"`
 	Organization string `json:"organization"`
 	Role         string `json:"role"`
+	Phone        string `json:"phone"`
+	Email        string `json:"email"`
 	CitizenID    string `json:"citizenID,omitempty"` // 可选，用于兼容
 }
 

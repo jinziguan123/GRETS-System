@@ -58,8 +58,7 @@
       <template v-else>
         <el-table 
           :data="contractsData" 
-          style="width: 100%" 
-          @row-click="handleRowClick" 
+          style="width: 100%"
           row-key="id"
           v-loading="tableLoading"
         >
@@ -74,8 +73,8 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="title" label="合同标题" min-width="200" />
-          <el-table-column prop="creatorCitizenIDHash" label="创建者ID" width="180" />
+          <el-table-column prop="title" label="合同标题"/>
+          <el-table-column prop="creatorCitizenIDHash" label="创建者ID" width="300px" />
           <el-table-column prop="createTime" label="创建日期" width="120">
             <template #default="scope">
               {{ formatDate(scope.row.createTime) }}

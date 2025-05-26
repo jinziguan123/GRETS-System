@@ -402,6 +402,8 @@ func (s *didService) DIDLogin(req *didDto.DIDLoginRequest) (*didDto.DIDLoginResp
 		Name:         identityVC.CredentialSubject["name"].(string),
 		Organization: identityVC.CredentialSubject["organization"].(string),
 		Role:         identityVC.CredentialSubject["role"].(string),
+		Phone:        identityVC.CredentialSubject["phone"].(string),
+		Email:        identityVC.CredentialSubject["email"].(string),
 	}
 
 	// 从身份凭证中提取详细信息

@@ -184,7 +184,12 @@ const enterChatRoom = (room) => {
   router.push({
     path: `/chat/room/${room.roomUUID}`,
     query: {
-      realtyCert: room.realtyCert
+      realtyCert: room.realtyCert,
+      realtyCertHash: room.realtyCertHash,
+      sellerCitizenIDHash: room.sellerCitizenIDHash,
+      sellerOrganization: room.sellerOrganization,
+      buyerCitizenIDHash: room.buyerCitizenIDHash,
+      buyerOrganization: room.buyerOrganization
     }
   })
 }
