@@ -33,10 +33,9 @@ type DIDLoginRequest struct {
 
 // DIDLoginResponse DID登录响应
 type DIDLoginResponse struct {
-	Token       string           `json:"token"`
-	DID         string           `json:"did"`
-	DIDDocument *did.DIDDocument `json:"didDocument"`
-	User        *UserInfo        `json:"user"`
+	Token string    `json:"token"`
+	DID   string    `json:"did"`
+	User  *UserInfo `json:"user"`
 }
 
 // UserInfo 用户信息

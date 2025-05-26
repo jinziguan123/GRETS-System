@@ -366,6 +366,33 @@ const handleDIDLogin = async (): Promise<void> => {
   if (didFormRef.value) {
     didFormRef.value.validate(async (valid: boolean) => {
       if (valid) {
+        // 首先显示身份认证授权提示
+        try {
+          await ElMessageBox.confirm(
+            '使用DID登录需要您的身份认证授权，系统将：\n\n' +
+            '• 验证您的DID身份标识\n' +
+            '• 获取您的身份凭证信息\n' +
+            '• 使用您的私钥进行数字签名\n' +
+            '• 创建可验证展示(VP)进行身份证明\n\n' +
+            '您的私钥将始终保存在本地，不会上传到服务器。\n' +
+            '是否同意进行身份认证授权？',
+            'DID身份认证授权',
+            {
+              confirmButtonText: '同意授权',
+              cancelButtonText: '取消',
+              type: 'info',
+              customClass: 'did-auth-dialog',
+              dangerouslyUseHTMLString: false,
+              showClose: false,
+              closeOnClickModal: false,
+              closeOnPressEscape: false
+            }
+          )
+        } catch (error) {
+          ElMessage.info('已取消DID登录')
+          return
+        }
+
         didLoading.value = true
         loginStep.value = 0
         
@@ -426,7 +453,12 @@ const handleDIDLogin = async (): Promise<void> => {
           
           const authResponse = await createAuthResponse(
             userDID,
-            challenge,
+            {
+              did: userDID,
+              challenge: challenge.challenge,
+              nonce: challenge.nonce,
+              domain: challenge.domain
+            },
             keyPair.privateKey,
             keyPair.publicKey
           )
@@ -661,5 +693,27 @@ const handleEnter = (e: KeyboardEvent) => {
 .mode-description small {
   color: #999;
   font-size: 12px;
+}
+
+/* DID授权对话框样式 */
+:deep(.did-auth-dialog) {
+  .el-message-box__content {
+    white-space: pre-line;
+    line-height: 1.6;
+  }
+  
+  .el-message-box__message {
+    font-size: 14px;
+    color: #606266;
+  }
+  
+  .el-message-box__btns {
+    padding-top: 20px;
+  }
+  
+  .el-button--primary {
+    background-color: #409eff;
+    border-color: #409eff;
+  }
 }
 </style> 

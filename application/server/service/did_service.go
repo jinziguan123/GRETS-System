@@ -381,13 +381,7 @@ func (s *didService) DIDLogin(req *didDto.DIDLoginRequest) (*didDto.DIDLoginResp
 		return nil, fmt.Errorf("标记挑战已使用失败: %v", err)
 	}
 
-	// 获取DID文档
-	didDoc, err := s.didDAO.GetDIDDocument(req.DID)
-	if err != nil {
-		return nil, fmt.Errorf("获取DID文档失败: %v", err)
-	}
-
-	// 步骤1: 获取用户的身份凭证(VC)
+	// 获取用户的身份凭证(VC)
 	identityCredentials, err := s.didDAO.GetCredentialsByDID(req.DID, string(credentialType.CredentialTypeIdentity))
 	if err != nil {
 		return nil, fmt.Errorf("获取身份凭证失败: %v", err)
@@ -402,78 +396,12 @@ func (s *didService) DIDLogin(req *didDto.DIDLoginRequest) (*didDto.DIDLoginResp
 		return nil, fmt.Errorf("身份凭证已过期")
 	}
 
-	// 步骤2: 创建可验证展示(VP)用于登录
-	// VP包含用户的身份凭证和登录声明
-	sessionID := utils.GenerateRandomHash()
-	loginClaims := map[string]interface{}{
-		"loginTime": time.Now(),
-		"challenge": req.Challenge,
-		"domain":    challenge.Domain,
-		"purpose":   "authentication",
-		"sessionId": sessionID,
-	}
-
-	// 获取用户的密钥对用于签名VP
-	userPublicKey, err := did.HexToPublicKey(req.PublicKey)
-	if err != nil {
-		return nil, fmt.Errorf("解析用户公钥失败: %v", err)
-	}
-
-	// 创建登录凭证
-	loginCredential, err := s.didManager.CreateCredential(
-		req.DID, // 自签发
-		req.DID, // 主体是自己
-		string(credentialType.CredentialTypeIdentity), // 登录凭证类型
-		loginClaims,
-		&did.KeyPair{PublicKey: userPublicKey}, // 用户自己的密钥对
-	)
-	if err != nil {
-		return nil, fmt.Errorf("创建登录凭证失败: %v", err)
-	}
-
-	// 步骤3: 创建可验证展示(VP)
-	presentation := &did.VerifiablePresentation{
-		Context: []string{
-			"https://www.w3.org/2018/credentials/v1",
-			"https://grets.example.com/contexts/v1",
-		},
-		Type: []string{
-			"VerifiablePresentation",
-			"AuthenticationPresentation",
-		},
-		Holder: req.DID,
-		VerifiableCredential: []did.VerifiableCredential{
-			identityVC,       // 身份凭证
-			*loginCredential, // 登录凭证
-		},
-		Proof: did.Proof{
-			Type:               "EcdsaSecp256k1Signature2019",
-			Created:            time.Now(),
-			VerificationMethod: fmt.Sprintf("%s#keys-1", req.DID),
-			ProofPurpose:       "authentication",
-			JWS:                req.Signature, // 使用提供的签名
-		},
-	}
-
-	// 步骤4: 验证VP的完整性
-	vpVerifyReq := &didDto.VerifyPresentationRequest{
-		Presentation: presentation,
-	}
-
-	vpVerifyResp, err := s.VerifyPresentation(vpVerifyReq)
-	if err != nil {
-		return nil, fmt.Errorf("验证VP失败: %v", err)
-	}
-	if !vpVerifyResp.Valid {
-		return nil, fmt.Errorf("VP验证失败: %s", vpVerifyResp.Reason)
-	}
-
 	// 步骤5: 从身份凭证中提取用户信息
 	userInfo := &didDto.UserInfo{
 		DID:          req.DID,
-		Name:         "",
-		Organization: didDoc.Organization,
-		Role:         didDoc.Role,
+		Name:         identityVC.CredentialSubject["name"].(string),
+		Organization: identityVC.CredentialSubject["organization"].(string),
+		Role:         identityVC.CredentialSubject["role"].(string),
 	}
 
 	// 从身份凭证中提取详细信息
@@ -488,21 +416,20 @@ func (s *didService) DIDLogin(req *didDto.DIDLoginRequest) (*didDto.DIDLoginResp
 
 	// 步骤6: 生成包含VP信息的JWT令牌
 	// 在token中包含VP的引用，以便后续验证
-	vpHash := did.GenerateHash(fmt.Sprintf("%v", presentation))
-	token, err := utils.GenerateToken("", didDoc.Organization, "", didDoc.Role)
+	token, err := utils.GenerateToken(
+		identityVC.CredentialSubject["citizenID"].(string),
+		identityVC.CredentialSubject["organization"].(string),
+		identityVC.CredentialSubject["name"].(string),
+		identityVC.CredentialSubject["role"].(string),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("生成token失败: %v", err)
 	}
 
-	// 步骤7: 记录登录审计日志（简化处理）
-	utils.Log.Info(fmt.Sprintf("DID登录成功: DID=%s, Organization=%s, Role=%s, VPHash=%s",
-		req.DID, didDoc.Organization, didDoc.Role, vpHash))
-
 	return &didDto.DIDLoginResponse{
-		Token:       token,
-		DID:         req.DID,
-		DIDDocument: didDoc,
-		User:        userInfo,
+		Token: token,
+		DID:   req.DID,
+		User:  userInfo,
 	}, nil
 }
 
