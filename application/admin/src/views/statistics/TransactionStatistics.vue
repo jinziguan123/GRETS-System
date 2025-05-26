@@ -61,13 +61,6 @@
               </div>
             </template>
             <div class="stats-value">{{ formatNumber(overviewData.totalTransactions) }}</div>
-            <div class="stats-trend">
-              <span :class="{'trend-up': overviewData.totalTransactionsTrend > 0, 'trend-down': overviewData.totalTransactionsTrend < 0}">
-                <el-icon><component :is="overviewData.totalTransactionsTrend > 0 ? 'CaretTop' : 'CaretBottom'" /></el-icon>
-                {{ Math.abs(overviewData.totalTransactionsTrend) }}%
-              </span>
-              较上期
-            </div>
           </el-card>
         </el-col>
         <el-col :span="6">
@@ -81,13 +74,6 @@
               </div>
             </template>
             <div class="stats-value">¥{{ formatNumber(overviewData.totalAmount / 10000) }}万</div>
-            <div class="stats-trend">
-              <span :class="{'trend-up': overviewData.totalAmountTrend > 0, 'trend-down': overviewData.totalAmountTrend < 0}">
-                <el-icon><component :is="overviewData.totalAmountTrend > 0 ? 'CaretTop' : 'CaretBottom'" /></el-icon>
-                {{ Math.abs(overviewData.totalAmountTrend) }}%
-              </span>
-              较上期
-            </div>
           </el-card>
         </el-col>
         <el-col :span="6">
@@ -101,13 +87,6 @@
               </div>
             </template>
             <div class="stats-value">¥{{ formatNumber(overviewData.averagePrice) }}/㎡</div>
-            <div class="stats-trend">
-              <span :class="{'trend-up': overviewData.averagePriceTrend > 0, 'trend-down': overviewData.averagePriceTrend < 0}">
-                <el-icon><component :is="overviewData.averagePriceTrend > 0 ? 'CaretTop' : 'CaretBottom'" /></el-icon>
-                {{ Math.abs(overviewData.averagePriceTrend) }}%
-              </span>
-              较上期
-            </div>
           </el-card>
         </el-col>
         <el-col :span="6">
@@ -121,13 +100,6 @@
               </div>
             </template>
             <div class="stats-value">¥{{ formatNumber(overviewData.totalTax / 10000) }}万</div>
-            <div class="stats-trend">
-              <span :class="{'trend-up': overviewData.totalTaxTrend > 0, 'trend-down': overviewData.totalTaxTrend < 0}">
-                <el-icon><component :is="overviewData.totalTaxTrend > 0 ? 'CaretTop' : 'CaretBottom'" /></el-icon>
-                {{ Math.abs(overviewData.totalTaxTrend) }}%
-              </span>
-              较上期
-            </div>
           </el-card>
         </el-col>
       </el-row>

@@ -2,13 +2,6 @@
   <div class="login-container">
     <h2 class="login-title">用户登录</h2>
     
-    <!-- 登录方式选择 -->
-    <div class="login-mode-selector">
-      <el-radio-group v-model="loginMode" class="mode-group">
-        <el-radio-button label="traditional">传统登录</el-radio-button>
-        <el-radio-button label="did">DID登录</el-radio-button>
-      </el-radio-group>
-    </div>
 
     <!-- 传统登录表单 -->
     <el-form
@@ -71,86 +64,6 @@
       </el-form-item>
     </el-form>
 
-    <!-- DID登录表单 -->
-    <el-form
-      v-if="loginMode === 'did'"
-      ref="didFormRef"
-      :model="didLoginForm"
-      :rules="didLoginRules"
-      @submit.prevent="handleDIDLogin"
-      class="login-form"
-    >
-      <!-- 组织选择 -->
-      <el-form-item prop="organization">
-        <el-select
-            v-model="didLoginForm.organization"
-            placeholder="请选择组织"
-            class="w-100"
-        >
-          <el-option
-              v-for="org in organizations"
-              :key="org.value"
-              :label="org.label"
-              :value="org.value"
-          />
-        </el-select>
-      </el-form-item>
-
-      <!-- DID输入框 -->
-      <el-form-item prop="did">
-        <el-input
-          v-model="didLoginForm.did"
-          placeholder="请输入DID或身份证号"
-          prefix-icon="Key"
-        />
-        <div class="form-help">
-          <small>可以输入完整的DID或身份证号自动查找DID</small>
-        </div>
-      </el-form-item>
-
-      <!-- 密钥管理 -->
-      <el-form-item>
-        <div class="key-management">
-          <el-button 
-            v-if="!hasStoredKey" 
-            type="info" 
-            @click="showKeyImportDialog = true"
-            icon="Upload"
-          >
-            导入密钥
-          </el-button>
-          <el-button 
-            v-if="hasStoredKey" 
-            type="success" 
-            @click="showKeyInfoDialog = true"
-            icon="Key"
-          >
-            密钥已加载
-          </el-button>
-          <el-button 
-            v-if="hasStoredKey" 
-            type="danger" 
-            @click="removeStoredKey"
-            icon="Delete"
-          >
-            清除密钥
-          </el-button>
-        </div>
-      </el-form-item>
-      
-      <!-- DID登录按钮 -->
-      <el-form-item>
-        <el-button
-          type="primary"
-          :loading="didLoading"
-          :disabled="!hasStoredKey"
-          class="w-100"
-          @click="handleDIDLogin"
-        >
-          {{ didLoading ? 'DID认证中...' : 'DID登录' }}
-        </el-button>
-      </el-form-item>
-    </el-form>
       
     <!-- 注册链接 -->
     <el-form-item class="register-link">
