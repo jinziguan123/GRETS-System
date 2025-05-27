@@ -105,7 +105,7 @@
             <el-button type="primary" @click="startChatRoom" :disabled="isOwner" v-if="!roomUUID">
               {{ isOwner ? '不能与自己聊天' : '咨询房主' }}
             </el-button>
-            <el-button type="primary" @click="goToChatRoom" v-else>
+            <el-button type="primary" @click="goToChatRoom" v-else-if="roomUUID && !isOwner">
               进入聊天室
             </el-button>
           </div>
@@ -968,7 +968,8 @@ const fetchChatRoom = async () => {
     pageSize: 10000,
     pageNumber: 1,
     userCitizenID: userStore.user.citizenID,
-    realtyCert: realty.realtyCert
+    realtyCert: realty.realtyCert,
+    status: "ACTIVE"
   }
 
   const response = await getChatRoomList(requestData)

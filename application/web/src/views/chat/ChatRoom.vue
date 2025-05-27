@@ -1,7 +1,7 @@
 <template>
   <div class="chat-room-wrapper">
     <!-- 聊天室头部 -->
-    <div class="chat-header">
+    <div class="chat-header" v-loading="roomLoading">
       <div class="header-left">
         <el-button 
           type="text" 
@@ -13,6 +13,9 @@
         <div class="room-info">
           <h3 class="room-title">{{ roomInfo.title }}</h3>
           <span class="room-subtitle">{{ roomInfo.subtitle }}</span>
+          <div v-if="roomInfo.verificationAmount > 0" class="verification-info">
+            验资金额: ¥{{ roomInfo.verificationAmount.toLocaleString() }}
+          </div>
         </div>
       </div>
       <div class="header-right">
@@ -35,6 +38,15 @@
             :disabled="roomInfo.status !== 'ACTIVE'"
           >
             申请交易
+          </el-button>
+          <el-button 
+            v-if="isSeller && roomInfo.status === 'ACTIVE'" 
+            type="danger" 
+            size="small" 
+            @click="handleCloseChatRoom"
+            class="action-btn"
+          >
+            关闭聊天室
           </el-button>
         </div>
         
@@ -201,15 +213,15 @@
     </div>
 
     <!-- 聊天室已关闭提示 -->
-    <div v-else class="chat-disabled">
-      <el-empty 
-        description="聊天室已关闭或被冻结" 
-        :image-size="100"
-      >
-        <template #image>
-          <el-icon size="100" color="#c0c4cc"><ChatDotSquare /></el-icon>
-        </template>
-      </el-empty>
+    <div v-else class="chat-disabled-notice">
+      <div class="disabled-content">
+        <el-icon size="48" color="#909399"><ChatDotSquare /></el-icon>
+        <div class="disabled-text">
+          <h4>聊天室已{{ roomInfo.status === 'CLOSED' ? '关闭' : '冻结' }}</h4>
+          <p>{{ roomInfo.status === 'CLOSED' ? '聊天室已被关闭，无法发送新消息' : '聊天室已被冻结，无法发送新消息' }}</p>
+          <p class="sub-text">您可以查看历史聊天记录</p>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -220,7 +232,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Plus, Document, InfoFilled, Picture, ChatDotSquare } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
-import { getChatMessageList, sendMessage as sendChatMessage, markMessagesRead } from '@/api/chat'
+import { getChatMessageList, sendMessage as sendChatMessage, markMessagesRead, closeChatRoom, getChatRoomList } from '@/api/chat'
 import CryptoJS, { SHA256 } from 'crypto-js'
 
 const router = useRouter()
@@ -233,6 +245,7 @@ const messages = ref([])
 const inputMessage = ref('')
 const sending = ref(false)
 const loading = ref(true)
+const roomLoading = ref(true)
 const roomUUID = ref(route.params.roomUUID)
 const webSocket = ref(null)
 const isConnected = ref(false)
@@ -244,7 +257,15 @@ const roomInfo = reactive({
   status: 'ACTIVE',
   buyerCitizenIDHash: '',
   sellerCitizenIDHash: '',
-  realtyCert: ''
+  buyerOrganization: '',
+  sellerOrganization: '',
+  realtyCert: '',
+  realtyCertHash: '',
+  verificationAmount: 0,
+  createTime: null,
+  closeTime: null,
+  realtyInfo: null,
+  participantInfo: null
 })
 
 // 分页信息
@@ -272,16 +293,16 @@ const isBuyer = computed(() => {
   const currentUserCitizenIDHash = userStore.user.citizenIDHash || 
     CryptoJS.SHA256(userStore.user.citizenID).toString()
   
-  return route.query.buyerCitizenIDHash === currentUserCitizenIDHash &&
-         route.query.buyerOrganization === userStore.user.organization
+  return roomInfo.buyerCitizenIDHash === currentUserCitizenIDHash &&
+         roomInfo.buyerOrganization === userStore.user.organization
 })
 
 const isSeller = computed(() => {
   const currentUserCitizenIDHash = userStore.user.citizenIDHash || 
     CryptoJS.SHA256(userStore.user.citizenID).toString()
   
-  return route.query.sellerCitizenIDHash === currentUserCitizenIDHash &&
-         route.query.sellerOrganization === userStore.user.organization
+  return roomInfo.sellerCitizenIDHash === currentUserCitizenIDHash &&
+         roomInfo.sellerOrganization === userStore.user.organization
 })
 
 const handleEnter = (e) => {
@@ -316,7 +337,7 @@ const connectWebSocket = () => {
     console.log('WebSocket连接已关闭')
     isConnected.value = false
     
-    // 重连逻辑
+    // 重连逻辑 - 只有活跃状态的聊天室才重连
     setTimeout(() => {
       if (roomInfo.status === 'ACTIVE') {
         connectWebSocket()
@@ -362,6 +383,93 @@ const disconnectWebSocket = () => {
     webSocket.value = null
     isConnected.value = false
   }
+}
+
+// 获取聊天室信息
+const fetchRoomInfo = async () => {
+  roomLoading.value = true
+  try {
+    // 先尝试获取较大的页面大小来查找目标房间
+    let currentRoom = null
+    let pageNumber = 1
+    const pageSize = 50
+    
+    while (!currentRoom && pageNumber <= 10) { // 最多查找10页，避免无限循环
+      const requestData = {
+        userCitizenID: userStore.user.citizenID,
+        userOrganization: userStore.user.organization,
+        pageSize: pageSize,
+        pageNumber: pageNumber
+      }
+
+      const response = await getChatRoomList(requestData)
+      
+      // 查找当前聊天室
+      currentRoom = response.chatRooms?.find(room => room.roomUUID === roomUUID.value)
+      
+      // 如果没有更多数据，跳出循环
+      if (!response.chatRooms || response.chatRooms.length === 0 || 
+          response.chatRooms.length < pageSize) {
+        break
+      }
+      
+      pageNumber++
+    }
+    
+    if (currentRoom) {
+      // 更新房间信息
+      Object.assign(roomInfo, {
+        roomUUID: currentRoom.roomUUID,
+        status: currentRoom.status,
+        buyerCitizenIDHash: currentRoom.buyerCitizenIDHash,
+        sellerCitizenIDHash: currentRoom.sellerCitizenIDHash,
+        buyerOrganization: currentRoom.buyerOrganization,
+        sellerOrganization: currentRoom.sellerOrganization,
+        realtyCert: currentRoom.realtyCert,
+        realtyCertHash: currentRoom.realtyCertHash,
+        verificationAmount: currentRoom.verificationAmount,
+        createTime: currentRoom.createTime,
+        closeTime: currentRoom.closeTime,
+        realtyInfo: currentRoom.realtyInfo,
+        participantInfo: currentRoom.participantInfo
+      })
+      
+      // 更新标题和副标题
+      if (currentRoom.realtyInfo) {
+        roomInfo.title = `${currentRoom.realtyInfo.address} - ${currentRoom.realtyCert}`
+        roomInfo.subtitle = `${currentRoom.realtyInfo.address} · ${currentRoom.realtyInfo.area}m² · ¥${currentRoom.verificationAmount.toLocaleString()}`
+      } else {
+        roomInfo.title = `房产证号: ${currentRoom.realtyCert}`
+        roomInfo.subtitle = `房产交易咨询 · ¥${currentRoom.verificationAmount.toLocaleString()}`
+      }
+      
+      console.log('聊天室信息获取成功:', roomInfo)
+    } else {
+      ElMessage.error('聊天室不存在或您没有访问权限')
+      router.back()
+    }
+  } catch (error) {
+    console.error('获取聊天室信息失败:', error)
+    ElMessage.error('获取聊天室信息失败')
+    // 如果获取失败，使用默认信息
+    initRoomInfoFromRoute()
+  } finally {
+    roomLoading.value = false
+  }
+}
+
+// 从路由参数初始化房间信息（作为备用方案）
+const initRoomInfoFromRoute = () => {
+  roomInfo.roomUUID = roomUUID.value
+  roomInfo.realtyCert = route.query.realtyCert || ''
+  roomInfo.realtyCertHash = route.query.realtyCertHash || ''
+  roomInfo.buyerCitizenIDHash = route.query.buyerCitizenIDHash || ''
+  roomInfo.sellerCitizenIDHash = route.query.sellerCitizenIDHash || ''
+  roomInfo.buyerOrganization = route.query.buyerOrganization || ''
+  roomInfo.sellerOrganization = route.query.sellerOrganization || ''
+  roomInfo.status = route.query.status || 'ACTIVE'
+  roomInfo.title = `房产证号: ${roomInfo.realtyCert}`
+  roomInfo.subtitle = '房产交易咨询'
 }
 
 // 获取消息列表
@@ -422,7 +530,12 @@ const fetchMessages = async (isLoadMore = false) => {
 // 发送消息
 const sendMessage = async () => {
   if (!inputMessage.value.trim()) {
-    ElMessage.warning('请输入消息内容')
+    return
+  }
+  
+  // 检查聊天室状态
+  if (roomInfo.status !== 'ACTIVE') {
+    ElMessage.warning('聊天室已关闭或被冻结，无法发送消息')
     return
   }
   
@@ -648,7 +761,7 @@ const getRoomStatusText = (status) => {
 
 // 跳转到房产详情页面
 const goToRealtyDetail = async () => {
-  const realtyCertHash = route.query.realtyCertHash || roomInfo.realtyCertHash
+  const realtyCertHash = roomInfo.realtyCertHash
   if (realtyCertHash) {
     router.push({
       path: `/realty/${realtyCertHash}`
@@ -660,21 +773,57 @@ const goToRealtyDetail = async () => {
 
 // 申请交易
 const applyTransaction = async () => {
-  router.push(`/transaction/create?realtyCert=${route.query.realtyCert}`)
+  router.push(`/transaction/create?realtyCert=${roomInfo.realtyCert}`)
 }
 
-// 初始化房间信息
-const initRoomInfo = () => {
-  roomInfo.roomUUID = roomUUID.value
-  roomInfo.subtitle = `房产交易咨询`
-  roomInfo.title = `房产证号: ${route.query.realtyCert || ''}`
-  roomInfo.realtyCert = route.query.realtyCert || ''
+// 关闭聊天室
+const handleCloseChatRoom = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要关闭这个聊天室吗？关闭后将无法继续聊天，但聊天记录会保留。',
+      '关闭聊天室',
+      {
+        confirmButtonText: '确定关闭',
+        cancelButtonText: '取消',
+        type: 'warning',
+        dangerouslyUseHTMLString: false
+      }
+    )
+
+    // 调用关闭聊天室API
+    await closeChatRoom({
+      userCitizenID: userStore.user.citizenID,
+      userOrganization: userStore.user.organization,
+      roomUUID: roomUUID.value
+    })
+
+    // 更新房间状态
+    roomInfo.status = 'CLOSED'
+    
+    // 断开WebSocket连接
+    disconnectWebSocket()
+    
+    ElMessage.success('聊天室已关闭')
+    
+    // 可选：延迟后跳转到聊天室列表
+    setTimeout(() => {
+      router.push('/chat')
+    }, 2000)
+    
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('关闭聊天室失败:', error)
+      ElMessage.error('关闭聊天室失败，请重试')
+    }
+  }
 }
+
+
 
 // 生命周期
-onMounted(() => {
-  initRoomInfo()
-  fetchMessages()
+onMounted(async () => {
+  await fetchRoomInfo()
+  await fetchMessages()
   connectWebSocket()
   window.addEventListener('keydown', handleEnter);
 })
@@ -685,11 +834,11 @@ onBeforeUnmount(() => {
 })
 
 // 监听路由变化
-watch(() => route.params.roomUUID, (newRoomUUID) => {
+watch(() => route.params.roomUUID, async (newRoomUUID) => {
   if (newRoomUUID) {
     roomUUID.value = newRoomUUID
-    initRoomInfo()
-    fetchMessages()
+    await fetchRoomInfo()
+    await fetchMessages()
     disconnectWebSocket()
     connectWebSocket()
   }
@@ -756,6 +905,13 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
 .room-subtitle {
   font-size: 12px;
   color: #909399;
+  line-height: 1;
+}
+
+.verification-info {
+  font-size: 11px;
+  color: #409eff;
+  margin-top: 2px;
   line-height: 1;
 }
 
@@ -1190,19 +1346,47 @@ watch(() => route.params.roomUUID, (newRoomUUID) => {
 }
 
 /* 聊天室已关闭样式 */
-.chat-disabled {
-  flex: 1;
+.chat-disabled-notice {
+  background: #ffffff;
+  border-top: 1px solid #e4e7ed;
+  padding: 20px;
+  position: relative;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.disabled-content {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fafafa;
-  padding: 40px;
-  min-height: 0; /* 确保可以被压缩 */
+  gap: 16px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
 }
 
-.chat-disabled :deep(.el-empty__description) {
-  color: #909399;
+.disabled-text {
+  text-align: center;
+}
+
+.disabled-text h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.disabled-text p {
+  margin: 4px 0;
   font-size: 14px;
+  color: #909399;
+  line-height: 1.4;
+}
+
+.disabled-text .sub-text {
+  font-size: 12px;
+  color: #c0c4cc;
 }
 
 /* 滚动条样式 */

@@ -118,7 +118,7 @@ func (s *chatService) CreateChatRoom(req *chatDto.CreateChatRoomDTO) (*chatDto.C
 
 	// 3. 检查是否已存在聊天室
 	existingRoom := &models.ChatRoom{}
-	err = s.db.Where("realty_cert_hash = ? AND buyer_citizen_id_hash = ? AND buyer_organization = ?",
+	err = s.db.Where("realty_cert_hash = ? AND buyer_citizen_id_hash = ? AND buyer_organization = ? AND status = 'ACTIVE'",
 		realtyCertHash, userCitizenIDHash, req.UserOrganization).First(existingRoom).Error
 
 	if err == nil {

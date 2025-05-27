@@ -38,6 +38,7 @@
             v-for="room in chatRooms" 
             :key="room.roomUUID"
             class="chat-room-item"
+            :class="{ 'room-disabled': room.status !== 'ACTIVE' }"
             @click="enterChatRoom(room)"
           >
             <div class="room-avatar">
@@ -181,16 +182,14 @@ const handleCurrentChange = (page) => {
 
 // 进入聊天室
 const enterChatRoom = (room) => {
+  // 如果聊天室已关闭或冻结，显示提示信息
+  if (room.status !== 'ACTIVE') {
+    const statusText = room.status === 'CLOSED' ? '已关闭' : '已冻结'
+    ElMessage.info(`聊天室${statusText}，您只能查看历史消息记录`)
+  }
+  
   router.push({
-    path: `/chat/room/${room.roomUUID}`,
-    query: {
-      realtyCert: room.realtyCert,
-      realtyCertHash: room.realtyCertHash,
-      sellerCitizenIDHash: room.sellerCitizenIDHash,
-      sellerOrganization: room.sellerOrganization,
-      buyerCitizenIDHash: room.buyerCitizenIDHash,
-      buyerOrganization: room.buyerOrganization
-    }
+    path: `/chat/room/${room.roomUUID}`
   })
 }
 
@@ -309,6 +308,27 @@ onMounted(() => {
 
 .chat-room-item:last-child {
   border-bottom: none;
+}
+
+.room-disabled {
+  opacity: 0.7;
+  background-color: #f8f9fa;
+}
+
+.room-disabled:hover {
+  background-color: #f0f0f0;
+}
+
+.room-disabled .title {
+  color: #909399;
+}
+
+.room-disabled .room-subtitle {
+  color: #c0c4cc;
+}
+
+.room-disabled .last-message {
+  color: #c0c4cc;
 }
 
 .room-avatar {

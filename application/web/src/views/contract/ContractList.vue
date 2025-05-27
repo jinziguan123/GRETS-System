@@ -259,7 +259,8 @@ const fetchContractsData = async () => {
       contractType: filterForm.contractType,
       contractUUID: filterForm.contractUUID,
       pageSize: pageSize.value,
-      pageNumber: currentPage.value
+      pageNumber: currentPage.value,
+      creatorCitizenID: userStore.user.citizenID
     }
     
     tableLoading.value = true
